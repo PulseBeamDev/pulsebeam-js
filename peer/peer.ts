@@ -41,7 +41,7 @@ export class Peer {
   private sessions: Session[];
   private _state: PeerState;
 
-  public onnewsession = (_s: ISession) => { };
+  public onsession = (_s: ISession) => { };
   public onstatechange = () => { };
   public readonly peerId: string;
 
@@ -69,10 +69,10 @@ export class Peer {
       logger: this.logger,
       isRecoverable,
     });
-    this.transport.onnewstream = (s) => {
+    this.transport.onstream = (s) => {
       const sess = new Session(s, rtcConfig);
       this.sessions.push(sess);
-      this.onnewsession(sess);
+      this.onsession(sess);
     };
     this.transport.onclosed = () => {
       this.close();

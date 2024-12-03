@@ -136,7 +136,7 @@ describe("transport", () => {
     let streamCountA = 0;
     let payloadCountA = 0;
     let streamCountB = 0;
-    peerA.onnewstream = (s) => {
+    peerA.onstream = (s) => {
       expect(s.otherPeerId).toBe(peerB.peerId);
       expect(s.otherConnId).toBe(peerB.connId);
       streamCountA++;
@@ -146,7 +146,7 @@ describe("transport", () => {
         return Promise.resolve();
       };
     };
-    peerB.onnewstream = (s) => {
+    peerB.onstream = (s) => {
       expect(s.otherPeerId).toBe(peerA.peerId);
       expect(s.otherConnId).toBe(peerA.connId);
       streamCountB++;

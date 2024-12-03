@@ -112,7 +112,7 @@ export class Transport {
   public readonly asleep: typeof defaultAsleep;
   private readonly randUint32: typeof defaultRandUint32;
   private readonly isRecoverable: typeof defaultIsRecoverable;
-  public onnewstream = (_: Stream) => { };
+  public onstream = (_: Stream) => { };
   public onclosed = (_reason: string) => { };
 
   constructor(
@@ -228,7 +228,7 @@ export class Transport {
           this.logger,
         );
         this.streams.push(stream);
-        this.onnewstream(stream);
+        this.onstream(stream);
       }
 
       stream.recvq.enqueue(msg);

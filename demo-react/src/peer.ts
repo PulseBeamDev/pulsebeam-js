@@ -48,7 +48,7 @@ export const usePeerStore = create<PeerState>((set, get) => ({
         token,
       });
 
-      p.onnewsession = (s) => {
+      p.onsession = (s) => {
         const id = `${s.otherPeerId}:${s.otherConnId}`;
 
         s.ontrack = ({ streams }) => {
