@@ -1,4 +1,4 @@
-import { createPeer, type ISession, type Peer } from "@signalerdev/client";
+import { createPeer, type ISession, type Peer } from "@pulsebeam/peer";
 import { create } from "zustand";
 import { produce } from "immer";
 

@@ -1,5 +1,5 @@
 {
-  "name": "@signalerdev/e2e",
+  "name": "@pulsebeam/e2e",
   "version": "1.0.0",
   "scripts": {
     "record": "playwright codegen http://localhost:5173",

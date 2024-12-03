@@ -1,6 +1,6 @@
 {
-  "name": "@signalerdev/client",
-  "version": "0.0.15",
+  "name": "@pulsebeam/peer",
+  "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "dist/index.mjs",
@@ -16,7 +16,7 @@
     }
   },
   "scripts": {
-    "gen": "protoc --ts_out=. --ts_opt=client_generic --proto_path rpc/v1 ./rpc/v1/tunnel.proto",
+    "gen": "protoc --ts_out=. --ts_opt=client_generic --proto_path proto/v1 ./proto/v1/tunnel.proto",
     "build": "tsup",
     "build:watch": "tsup --watch",
     "clean": "rm -rf dist",

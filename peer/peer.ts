@@ -174,7 +174,7 @@ export async function createPeer(opts: PeerOptions): Promise<Peer> {
     });
   }
   const peer = new Peer(
-    new Logger("signalerdev", undefined, PRETTY_LOG_SINK),
+    new Logger("pulsebeam", undefined, PRETTY_LOG_SINK),
     client,
     { ...opts, "iceServers": iceServers },
     isTwirpRecoverable,
