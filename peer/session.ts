@@ -3,9 +3,9 @@ import {
   type MessagePayload,
   SdpKind,
   type Signal,
-} from "./tunnel";
-import { Logger } from "./logger";
-import type { Stream } from "./transport";
+} from "./tunnel.ts";
+import { Logger } from "./logger.ts";
+import type { Stream } from "./transport.ts";
 
 const ICE_RESTART_MAX_COUNT = 2;
 const ICE_RESTART_DEBOUNCE_DELAY_MS = 5000;

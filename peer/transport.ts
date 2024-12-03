@@ -4,13 +4,12 @@ import type {
   MessageHeader,
   MessagePayload,
   PeerInfo,
-  RecvReq,
-} from "./tunnel";
+} from "./tunnel.ts";
 import {
   ITunnelClient,
-} from "./tunnel.client";
-import type { Logger } from "./logger";
-import { asleep, joinSignals, retry, RetryOptions } from "./util";
+} from "./tunnel.client.ts";
+import type { Logger } from "./logger.ts";
+import { asleep, joinSignals, retry, RetryOptions } from "./util.ts";
 import { RpcOptions } from "@protobuf-ts/runtime-rpc";
 
 const POLL_TIMEOUT_MS = 60000;

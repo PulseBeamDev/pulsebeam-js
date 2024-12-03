@@ -16,7 +16,7 @@
     }
   },
   "scripts": {
-    "gen": "protoc --ts_out=. --ts_opt=client_generic --proto_path proto/v1 ./proto/v1/tunnel.proto",
+    "gen": "protoc --ts_out=. --ts_opt=client_generic --proto_path proto/v1 ./proto/v1/tunnel.proto && node ./scripts/patch.cjs",
     "build": "tsup",
     "build:watch": "tsup --watch",
     "clean": "rm -rf dist",

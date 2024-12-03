@@ -1,10 +1,10 @@
-import { type ITunnelClient, TunnelClient } from "./tunnel.client";
-import { Transport } from "./transport";
-import { DEFAULT_LOG_SINK, Logger, PRETTY_LOG_SINK } from "./logger";
-import { Session } from "./session";
+import { type ITunnelClient, TunnelClient } from "./tunnel.client.ts";
+import { Transport } from "./transport.ts";
+import { DEFAULT_LOG_SINK, Logger, PRETTY_LOG_SINK } from "./logger.ts";
+import { Session } from "./session.ts";
 import { RpcError, UnaryCall, RpcOptions } from "@protobuf-ts/runtime-rpc";
 import { TwirpErrorCode, TwirpFetchTransport } from "@protobuf-ts/twirp-transport";
-import { retry } from "./util";
+import { retry } from "./util.ts";
 
 const PREPARE_INITIAL_DELAY_MS = 50;
 const PREPARE_MAX_RETRY = 3;

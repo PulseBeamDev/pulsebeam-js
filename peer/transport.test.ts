@@ -1,11 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { TwirpFetchTransport } from "@protobuf-ts/twirp-transport";
 import {
-  delay,
   ReservedConnId,
   Transport,
   type TransportOptions,
-} from "./transport";
+} from "./transport.ts";
 import {
   PrepareReq,
   PrepareResp,
@@ -14,11 +13,12 @@ import {
   type RecvResp,
   type SendReq,
   type SendResp,
-} from "./tunnel";
-import { type ITunnelClient, TunnelClient } from "./tunnel.client";
+} from "./tunnel.ts";
+import { type ITunnelClient, TunnelClient } from "./tunnel.client.ts";
 import type { UnaryCall } from "@protobuf-ts/runtime-rpc";
 import type { RpcOptions } from "@protobuf-ts/runtime-rpc";
-import { Logger } from "./logger";
+import { Logger } from "./logger.ts";
+import { asleep } from "./util.ts";
 
 async function waitFor(
   conditionFn: () => boolean | Promise<boolean>,
@@ -31,7 +31,7 @@ async function waitFor(
     if (await conditionFn()) {
       return;
     }
-    await delay(interval);
+    await asleep(interval);
   }
 
   throw new Error(`waitFor: condition not met within ${timeout}ms`);
@@ -118,7 +118,7 @@ describe("util", () => {
 });
 
 describe("transport", () => {
-  afterEach(() => delay(100)); // make sure all timers have exited
+  afterEach(() => asleep(100)); // make sure all timers have exited
 
   it("should receive join", async () => {
     const logger = new Logger("test", {});
@@ -129,7 +129,7 @@ describe("transport", () => {
       groupId: "default",
       peerId: "peerA",
       logger,
-      asleep: (ms, opts) => delay(ms / 100, opts), // speedup by 100x
+      asleep: (ms, opts) => asleep(ms / 100, opts), // speedup by 100x
     };
     const peerA = new Transport(clientA, opts);
     const peerB = new Transport(clientB, { ...opts, peerId: "peerB" });
@@ -162,10 +162,11 @@ describe("transport", () => {
     peerA.listen();
     peerB.listen();
 
-    peerA.connect("default", "peerB", 1000);
+    const ac = new AbortController();
+    peerA.connect("default", "peerB", ac.signal);
 
     await waitFor(() => streamCountA > 0 && streamCountB > 0);
-    await delay(100);
+    await asleep(100);
 
     peerA.close();
     peerB.close();

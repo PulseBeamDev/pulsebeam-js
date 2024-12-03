@@ -3,14 +3,14 @@
 // tslint:disable
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
-import { Tunnel } from "./tunnel";
-import type { RecvResp } from "./tunnel";
-import type { RecvReq } from "./tunnel";
-import type { SendResp } from "./tunnel";
-import type { SendReq } from "./tunnel";
+import { Tunnel } from "./tunnel.ts";
+import type { RecvResp } from "./tunnel.ts";
+import type { RecvReq } from "./tunnel.ts";
+import type { SendResp } from "./tunnel.ts";
+import type { SendReq } from "./tunnel.ts";
 import { stackIntercept } from "@protobuf-ts/runtime-rpc";
-import type { PrepareResp } from "./tunnel";
-import type { PrepareReq } from "./tunnel";
+import type { PrepareResp } from "./tunnel.ts";
+import type { PrepareReq } from "./tunnel.ts";
 import type { UnaryCall } from "@protobuf-ts/runtime-rpc";
 import type { RpcOptions } from "@protobuf-ts/runtime-rpc";
 /**

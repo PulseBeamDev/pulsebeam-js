@@ -1,5 +1,5 @@
 import adapter from "webrtc-adapter";
-export * from "./peer";
+export * from "./peer.ts";
 
 adapter.disableLog(false);
 adapter.disableWarnings(false);
