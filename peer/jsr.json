@@ -1,5 +1,11 @@
 {
   "name": "@pulsebeam/peer",
   "version": "0.0.1",
-  "exports": "./index.ts"
+  "exports": "./index.ts",
+  "publish": {
+    "exclude": [
+      "proto",
+      "scripts"
+    ]
+  }
 }

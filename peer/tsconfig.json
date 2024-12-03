@@ -3,6 +3,7 @@
     "target": "es6",
     "module": "NodeNext",
     "moduleResolution": "nodenext",
+    "noEmit": true,
     "allowImportingTsExtensions": true,
     "lib": [
       "dom",
