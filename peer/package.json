@@ -20,7 +20,8 @@
     "build": "tsup",
     "build:watch": "tsup --watch",
     "clean": "rm -rf dist",
-    "test": "vitest"
+    "test": "vitest",
+    "publish": "jsr publish --allow-slow-types"
   },
   "files": [
     "dist"
