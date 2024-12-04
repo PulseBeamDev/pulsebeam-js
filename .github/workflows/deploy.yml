@@ -32,7 +32,7 @@ jobs:
         run: "npm ci"
 
       - name: Install ui
-        run: "npm run build -w @pulsebeam/peer && npm run build -w @pulsebeam/demo-react"
+        run: "npm run build -w @pulsebeam/demo-react"
 
       - name: Upload to Deno Deploy
         uses: denoland/deployctl@v1
