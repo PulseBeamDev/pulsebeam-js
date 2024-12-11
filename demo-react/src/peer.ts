@@ -2,7 +2,7 @@ import { createPeer, type ISession, type Peer } from "@pulsebeam/peer";
 import { create } from "zustand";
 import { produce } from "immer";
 
-const BASE_URL = "https://demo.lukas-coding.us/twirp";
+const BASE_URL = "https://signal.pulsebeam.dev/twirp";
 // const BASE_URL = "http://localhost:3000/twirp";
 const DEFAULT_GROUP = "default";
 const DEFAULT_CONNECT_TIMEOUT_MS = 3_000;
