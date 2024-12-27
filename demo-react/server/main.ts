@@ -2,17 +2,15 @@ import * as path from "jsr:@std/path";
 import { serveDir } from "jsr:@std/http/file-server";
 import {
   App,
-  AppOpts,
   FirewallClaims,
   PeerClaims,
-} from "jsr:@signalerdev/server-sdk-js@^0.0.10/deno";
+} from "jsr:@pulsebeam/server@^0.0.3/deno";
 
 // default values are only used for testing only!!
-const opts = new AppOpts();
-opts.appId = Deno.env.get("APP_ID") || "app_e66Jb4zkt66nvlUKMRTSZ";
-opts.appSecret = Deno.env.get("APP_SECRET") ||
+const appId = Deno.env.get("APP_ID") || "app_e66Jb4zkt66nvlUKMRTSZ";
+const appSecret = Deno.env.get("APP_SECRET") ||
   "sk_7317736f8a8d075a03cdea6b6b76094ae424cbf619a8e9273e633daed3f55c38";
-const app = new App(opts);
+const app = new App(appId, appSecret);
 
 const handleAuth = (url: URL): Response => {
   const id = url.searchParams.get("id");
@@ -22,15 +20,11 @@ const handleAuth = (url: URL): Response => {
   }
 
   console.log({ id });
-  const claims = new PeerClaims();
-  claims.groupId = "default";
-  claims.peerId = id;
-
-  const rule = new FirewallClaims();
-  rule.groupId = "*";
-  rule.peerId = "*";
+  const claims = new PeerClaims("default", id);
+  const rule = new FirewallClaims("*", "*");
   claims.allowIncoming0 = rule;
   claims.allowOutgoing0 = rule;
+
 
   const token = app.createToken(claims, 3600);
 

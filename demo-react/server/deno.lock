@@ -1,6 +1,7 @@
 {
   "version": "4",
   "specifiers": {
+    "jsr:@pulsebeam/server@^0.0.3": "0.0.3",
     "jsr:@signalerdev/server-sdk-js@^0.0.10": "0.0.10",
     "jsr:@std/cli@^1.0.6": "1.0.6",
     "jsr:@std/encoding@^1.0.5": "1.0.5",
@@ -13,6 +14,9 @@
     "jsr:@std/streams@^1.0.8": "1.0.8"
   },
   "jsr": {
+    "@pulsebeam/server@0.0.3": {
+      "integrity": "1291860575af293e0be356200f38eecfe9887d7b1bb875678e82cfbd2e97d7cb"
+    },
     "@signalerdev/server-sdk-js@0.0.10": {
       "integrity": "1ee762f4d35654a14583f482f17a89b375ae7f33d12fe7fba1365eb9cde5bb84"
     },
