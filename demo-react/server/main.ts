@@ -1,10 +1,9 @@
-import * as path from "jsr:@std/path";
 import { serveDir } from "jsr:@std/http/file-server";
 import {
   App,
   FirewallClaims,
   PeerClaims,
-} from "jsr:@pulsebeam/server@^0.0.3/deno";
+} from "jsr:@pulsebeam/server@^0.0.4/deno";
 
 // default values are only used for testing only!!
 const appId = Deno.env.get("APP_ID") || "app_e66Jb4zkt66nvlUKMRTSZ";
@@ -22,9 +21,8 @@ const handleAuth = (url: URL): Response => {
   console.log({ id });
   const claims = new PeerClaims("default", id);
   const rule = new FirewallClaims("*", "*");
-  claims.allowIncoming0 = rule;
-  claims.allowOutgoing0 = rule;
-
+  claims.setAllowIncoming0(rule);
+  claims.setAllowOutgoing0(rule);
 
   const token = app.createToken(claims, 3600);
 

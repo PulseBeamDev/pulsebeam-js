@@ -3,7 +3,7 @@ import { create } from "zustand";
 import { produce } from "immer";
 
 const BASE_URL = "https://signal.pulsebeam.dev/twirp";
-// const BASE_URL = "http://localhost:3000/twirp";
+// const BASE_URL = "https://localhost:8443/twirp";
 const DEFAULT_GROUP = "default";
 const DEFAULT_CONNECT_TIMEOUT_MS = 3_000;
 
@@ -77,7 +77,9 @@ export const usePeerStore = create<PeerState>((set, get) => ({
 
         const localStream = get().localStream;
         if (localStream) {
-          localStream.getTracks().forEach((track) => s.addTrack(track, localStream));
+          localStream.getTracks().forEach((track) =>
+            s.addTrack(track, localStream)
+          );
         }
 
         set(produce((state: PeerState) => {
@@ -92,7 +94,7 @@ export const usePeerStore = create<PeerState>((set, get) => ({
 
       p.onstatechange = () => {
         if (p.state === "closed") get().stop();
-      }
+      };
 
       set({ ref: p });
       p.start();
@@ -109,9 +111,12 @@ export const usePeerStore = create<PeerState>((set, get) => ({
   connect: async (otherPeerId) => {
     set({ loading: true });
     const abort = new AbortController();
-    const timeoutId = window.setTimeout(() => abort.abort(), DEFAULT_CONNECT_TIMEOUT_MS);
+    const timeoutId = window.setTimeout(
+      () => abort.abort(),
+      DEFAULT_CONNECT_TIMEOUT_MS,
+    );
     await get().ref?.connect(DEFAULT_GROUP, otherPeerId, abort.signal);
     window.clearTimeout(timeoutId);
     set({ loading: false });
-  }
+  },
 }));
