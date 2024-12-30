@@ -24,8 +24,10 @@
     </article>
 
     <article class="medium middle-align center-align">
-      <h5 id="other-identity"></h5>
-      <h2 id="other-data"></h2>
+      <div>
+        <h5 id="other-identity"></h5>
+        <h2 id="other-data"></h2>
+      </div>
     </article>
 
     <script type="module">
@@ -36,10 +38,11 @@
       const groupId = params.get("groupId") || "default";
       const peerId = params.get("peerId") || `peer-${Math.floor(Math.random() * 100)}`;
       const otherGroupId = groupId;
-      const otherPeerId = params.get("otherPeerId");
+      let otherPeerId = params.get("otherPeerId");
 
       const refIdentity = document.querySelector("#identity");
       const refAction = document.querySelector("#action");
+      const refInput = document.querySelector("#input");
       const refOtherIdentity = document.querySelector("#other-identity");
       const refOtherData = document.querySelector("#other-data");
 
@@ -51,8 +54,11 @@
 
       peer.onsession = (sess) => {
         const chOut = sess.createDataChannel("chat");
+        otherPeerId = sess.otherPeerId;
+
         chOut.onopen = () => {
-          refInput.addEventListener("change", (e) => {
+          refOtherIdentity.textContent = `connected to ${otherPeerId}`;
+          refInput.addEventListener("input", (e) => {
             chOut.send(e.target.value);
           });
         };
@@ -79,8 +85,9 @@
 
         connecting = true;
         refAction.textContent = "Cancel"
+        otherPeerId = refInput.value;
+        console.log(`connecting to ${otherGroupId}:${otherPeerId}`);
         await peer.connect(otherGroupId, otherPeerId, ac.signal);
-        refOtherIdentity.textContent = otherPeerId;
       });
     </script>
   </body>
