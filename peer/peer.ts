@@ -88,6 +88,7 @@ export class Peer {
    * Starts the peer, making it ready to establish connections. 
    * Peers must be started before a connection can occur.
    * 
+   * @returns {void} 
    * @throws {Error} When the peer was previously closed.
    */
   start() {
@@ -95,9 +96,16 @@ export class Peer {
     this.transport.listen();
   }
 
-  close() {
+  /**
+   * Closes the peer. Releases associated resources. 
+   * Signals to the AbortController passed to connect if connect was called.
+   * 
+   * @async
+   * @returns {Promise<void>} Resolves when the peer has been closed.
+   */
+  async close() { 
     this.sessions = [];
-    this.transport.close();
+    await this.transport.close(); 
     this.setState("closed");
   }
 
