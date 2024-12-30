@@ -95,6 +95,20 @@ export class Peer {
     this.setState("closed");
   }
 
+  /**
+   * Establishes a connection with another peer in the specified group. 
+   * Peer should be started before calling connect.
+   * 
+   * Check the log output for troubleshooting information.
+   * 
+   * @async
+   * @param {string} otherGroupId The ID of the group the other peer belongs to. 
+   * @param {string} otherPeerID The ID of the peer you want to connect to.
+   * @param {AbortSignal} signal Handle cancellations or cancel the connection attempt. 
+   * @returns {Promise<void>} Resolves when the connection has been established, 
+   *                          an unrecoverable error (e.g., network connection issues, internal errors) occurs, 
+   *                          or the maximum retry attempts are reached. 
+   */
   connect(otherGroupId: string, otherPeerID: string, signal: AbortSignal) {
     return this.transport.connect(otherGroupId, otherPeerID, signal);
   }
