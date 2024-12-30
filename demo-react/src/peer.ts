@@ -2,8 +2,7 @@ import { createPeer, type ISession, type Peer } from "@pulsebeam/peer";
 import { create } from "zustand";
 import { produce } from "immer";
 
-const BASE_URL = "https://signal.pulsebeam.dev/twirp";
-// const BASE_URL = "https://localhost:8443/twirp";
+const BASE_URL = "https://localhost:443/twirp";
 const DEFAULT_GROUP = "default";
 const DEFAULT_CONNECT_TIMEOUT_MS = 3_000;
 
@@ -39,6 +38,9 @@ export const usePeerStore = create<PeerState>((set, get) => ({
 
     set({ loading: true });
     try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const forceRelay = urlParams.get("forceRelay");
+
       const resp = await fetch(`/auth?id=${peerId}`);
       const token = await resp.text();
       const p = await createPeer({
@@ -46,6 +48,7 @@ export const usePeerStore = create<PeerState>((set, get) => ({
         groupId: DEFAULT_GROUP,
         peerId,
         token,
+        forceRelay: forceRelay != null,
       });
 
       p.onsession = (s) => {

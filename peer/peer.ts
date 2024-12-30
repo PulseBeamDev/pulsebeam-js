@@ -2,10 +2,14 @@ import { type ITunnelClient, TunnelClient } from "./tunnel.client.ts";
 import { Transport } from "./transport.ts";
 import { DEFAULT_LOG_SINK, Logger, PRETTY_LOG_SINK } from "./logger.ts";
 import { Session } from "./session.ts";
-import { RpcError, UnaryCall, RpcOptions } from "@protobuf-ts/runtime-rpc";
-import { TwirpErrorCode, TwirpFetchTransport } from "@protobuf-ts/twirp-transport";
+import { RpcError, RpcOptions, UnaryCall } from "@protobuf-ts/runtime-rpc";
+import {
+  TwirpErrorCode,
+  TwirpFetchTransport,
+} from "@protobuf-ts/twirp-transport";
 import { retry } from "./util.ts";
 
+const BASE_URL = "https://signal.pulsebeam.dev/twirp";
 const PREPARE_INITIAL_DELAY_MS = 50;
 const PREPARE_MAX_RETRY = 3;
 
@@ -25,10 +29,11 @@ export type ISession = Pick<
 >;
 
 export interface PeerOptions {
-  baseUrl: string;
   groupId: string;
   peerId: string;
   token: string;
+  baseUrl?: string;
+  forceRelay?: boolean;
   iceServers?: RTCIceServer[];
 }
 
@@ -58,7 +63,7 @@ export class Peer {
 
     const rtcConfig: RTCConfiguration = {
       bundlePolicy: "balanced",
-      iceTransportPolicy: "all",
+      iceTransportPolicy: !!opts.forceRelay ? "relay" : "all",
       iceCandidatePoolSize: 0,
       iceServers: opts.iceServers,
     };
@@ -131,7 +136,7 @@ function isTwirpRecoverable(err: unknown): boolean {
 export async function createPeer(opts: PeerOptions): Promise<Peer> {
   // TODO: add hook for refresh token
   const twirp = new TwirpFetchTransport({
-    baseUrl: opts.baseUrl,
+    baseUrl: opts.baseUrl || BASE_URL,
     sendJson: false,
     jsonOptions: {
       emitDefaultValues: true, // treat zero values as values instead of undefined.
@@ -161,7 +166,8 @@ export async function createPeer(opts: PeerOptions): Promise<Peer> {
       maxDelay: 1000,
       maxRetries: 5,
       isRecoverable: isTwirpRecoverable,
-    });
+    },
+  );
   if (resp === null) {
     throw new Error("createPeer aborted");
   }
