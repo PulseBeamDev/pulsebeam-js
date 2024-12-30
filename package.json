@@ -2,6 +2,7 @@
   "workspaces": [
     "peer",
     "demo-react",
+    "demo-cdn",
     "e2e"
   ]
 }
