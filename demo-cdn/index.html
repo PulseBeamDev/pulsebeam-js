@@ -26,7 +26,9 @@
     <article class="medium middle-align center-align">
       <div>
         <h5 id="other-identity"></h5>
-        <h2 id="other-data"></h2>
+        <div class="field border">
+          <input type="text" id="data">
+        </div>
       </div>
     </article>
 
@@ -44,7 +46,7 @@
       const refAction = document.querySelector("#action");
       const refInput = document.querySelector("#input");
       const refOtherIdentity = document.querySelector("#other-identity");
-      const refOtherData = document.querySelector("#other-data");
+      const refData = document.querySelector("#data");
 
       refIdentity.textContent = `groupId=${groupId} peerId=${peerId}`;
 
@@ -58,7 +60,7 @@
 
         chOut.onopen = () => {
           refOtherIdentity.textContent = `connected to ${otherPeerId}`;
-          refInput.addEventListener("input", (e) => {
+          refData.addEventListener("input", (e) => {
             chOut.send(e.target.value);
           });
         };
@@ -66,7 +68,7 @@
         sess.ondatachannel = (e) => {
           const chIn = e.channel;
           chIn.onmessage = ({ data }) => {
-            refOtherData.textContent = data;
+            refData.value = data;
           };
         };
       };
