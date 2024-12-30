@@ -84,6 +84,12 @@ export class Peer {
     };
   }
 
+  /**
+   * Starts the peer, making it ready to establish connections. 
+   * Peers must be started before a connection can occur.
+   * 
+   * @throws {Error} When the peer was previously closed.
+   */
   start() {
     if (this._state === "closed") throw new Error("peer is already closed");
     this.transport.listen();
