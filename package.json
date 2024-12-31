@@ -6,7 +6,7 @@
     "e2e"
   ],
   "dependencies": {
-    "@playwright/test": "^1.49.0",
+    "@playwright/test": "^1.49.1",
     "ts-node": "^10.9.2"
   },
   "devDependencies": {

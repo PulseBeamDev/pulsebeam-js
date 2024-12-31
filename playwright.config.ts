@@ -36,12 +36,18 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
 
+  webServer: {
+    command: "npm run preview -w @pulsebeam/demo-react",
+    url: "http://localhost:4173",
+    reuseExistingServer: true,
+  },
+
   /* Configure projects for major browsers */
   projects: [
     {
       name: "local",
       use: {
-        baseURL: "http://localhost:5173/",
+        baseURL: "http://localhost:4173",
       },
       retries: 0,
     },

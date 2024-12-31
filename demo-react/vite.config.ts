@@ -19,6 +19,8 @@ export default defineConfig({
       //   secure: false,
       // },
       "/auth": {
+        // https://github.com/angular/angular-cli/issues/26198
+        target: "http://127.0.0.1:4173",
         bypass(req, res, options) {
           const url = new URL(req.url!, `http://${req.headers.host}`);
           if (url.pathname === "/auth") {

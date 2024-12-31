@@ -1,10 +1,9 @@
 import {
   chromium as bChromium,
   firefox as bFirefox,
-  type Page,
   webkit as bWebkit,
 } from "playwright";
-import { Browser, expect, test } from "@playwright/test";
+import { Browser, expect, type Page, test } from "@playwright/test";
 
 async function waitForStableVideo(
   page: Page,
@@ -99,6 +98,7 @@ test.describe("basic", () => {
   for (const [bA, bB] of pairs) {
     test(`${bA}_${bB}`, async ({ baseURL }) => {
       const url = (b: string) => b === "webkit" ? baseURL + "?mock" : baseURL;
+      console.log(url(bA));
       const peerA = `__${bA}_${randId()}`;
       const peerB = `__${bB}_${randId()}`;
 
