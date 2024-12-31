@@ -5,6 +5,9 @@ import {
 } from "playwright";
 import { Browser, expect, type Page, test } from "@playwright/test";
 
+const PULSEBEAM_BASE_URL = process.env.PULSEBEAM_BASE_URL ||
+  "https://signal.pulsebeam.dev/twirp";
+
 async function waitForStableVideo(
   page: Page,
   peerId: string,
@@ -89,7 +92,7 @@ test.describe("basic", () => {
 
   for (const [bA, bB] of pairs) {
     test(`${bA}_${bB}`, async ({ baseURL }) => {
-      const url = baseURL + "?mock&baseUrl=https://localhost:443/twirp";
+      const url = baseURL + "?mock&baseUrl=" + PULSEBEAM_BASE_URL;
       const peerA = `__${bA}_${randId()}`;
       const peerB = `__${bB}_${randId()}`;
 
