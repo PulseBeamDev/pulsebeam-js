@@ -2,6 +2,7 @@ import { type ITunnelClient, TunnelClient } from "./tunnel.client.ts";
 import { Transport } from "./transport.ts";
 import { DEFAULT_LOG_SINK, Logger, PRETTY_LOG_SINK } from "./logger.ts";
 import { Session } from "./session.ts";
+export { Session }
 import { RpcError, RpcOptions, UnaryCall } from "@protobuf-ts/runtime-rpc";
 import {
   TwirpErrorCode,
@@ -112,7 +113,7 @@ export class Peer {
   public readonly peerId: string;
 
   /**
-   * 
+   * Construct a Peer. Helper available: see {@link createPeer} function 
    * @param logger Logger instance for logging events.
    * @param client Tunnel client for signaling.
    * @param opts Configuration options for the peer.
@@ -191,19 +192,22 @@ export class Peer {
    *                          an unrecoverable error (e.g., network connection issues, internal errors) occurs, 
    *                          or the maximum retry attempts are reached. 
    */
-  connect(otherGroupId: string, otherPeerID: string, signal: AbortSignal) {
+  connect(otherGroupId: string, otherPeerID: string, signal: AbortSignal): Promise<void> {
     return this.transport.connect(otherGroupId, otherPeerID, signal);
   }
   /**
-   * Gets the current state of the peer.
-   *
-   * @returns {PeerState} The current state of the peer. 
+   * Gets the current state of the peer. For state info see {@link PeerState}
+   * @returns {PeerState} The current state of the peer
    */
-  get state() {
+  get state(): PeerState {
     return this._state;
   }
 
-  /** @private */
+  /**
+   * internal @private
+   * @param s new state to be used
+   * @returns {void}
+   */
   private setState(s: PeerState) {
     if (s === this._state) return;
 
@@ -242,6 +246,7 @@ function isTwirpRecoverable(err: unknown): boolean {
  */
 export async function createPeer(opts: PeerOptions): Promise<Peer> {
   // TODO: add hook for refresh token
+  const token = opts.token;
   const twirp = new TwirpFetchTransport({
     baseUrl: opts.baseUrl || BASE_URL,
     sendJson: false,
@@ -264,7 +269,6 @@ export async function createPeer(opts: PeerOptions): Promise<Peer> {
     ],
   });
   const client = new TunnelClient(twirp);
-  const token = opts.token;
 
   const resp = await retry(
     async () => await client.prepare({}),
