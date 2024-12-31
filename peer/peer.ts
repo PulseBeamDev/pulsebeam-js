@@ -2,7 +2,6 @@ import { type ITunnelClient, TunnelClient } from "./tunnel.client.ts";
 import { Transport } from "./transport.ts";
 import { DEFAULT_LOG_SINK, Logger, PRETTY_LOG_SINK } from "./logger.ts";
 import { Session } from "./session.ts";
-export { Session }
 import { RpcError, RpcOptions, UnaryCall } from "@protobuf-ts/runtime-rpc";
 import {
   TwirpErrorCode,
@@ -14,20 +13,104 @@ const BASE_URL = "https://signal.pulsebeam.dev/twirp";
 const PREPARE_INITIAL_DELAY_MS = 50;
 const PREPARE_MAX_RETRY = 3;
 
-export type ISession = Pick<
-  Session,
-  | "addTrack"
-  | "removeTrack"
-  | "createDataChannel"
-  | "connectionState"
-  | "ondatachannel"
-  | "onconnectionstatechange"
-  | "ontrack"
-  | "close"
-  // abstraction starts here
-  | "otherPeerId"
-  | "otherConnId"
->;
+/**
+ * The ISession interface is for managing the WebRTC connection between peers.
+ *  It provides methods and properties to handle media tracks, data channels, 
+ *  connection state, and peer-specific identifiers.
+ * 
+ * The Session class implements ISession. Session wraps {@link RTCPeerConnection}.
+ *  It manages connection complexities by handling tasks like signaling, ICE
+ *  candidate negotiation, connection restarts, and lifecycle events.
+ * 
+ * ISession provides a high-level API for managing peer-to-peer WebRTC
+ *  communications while maintaining access to lower-level {@link RTCPeerConnection} 
+ *  functionality. This allows full control over media tracks, data channels, and
+ *  connection state, enabling developers to build robust real-time communication
+ *  features with ease.
+ * 
+ * Usage:
+ *  @example peer.onsession = (session) => {console.log(session)};
+ */
+export interface ISession {
+  /**
+   * Adds a media track to the connection. Typically used for sending audio or video.
+   * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/addTrack}
+   * @returns {RTCRtpSender}
+   */
+  addTrack(...args: Parameters<RTCPeerConnection["addTrack"]>): RTCRtpSender;
+  
+  /**
+   * Removes a media track from the connection. Useful for stopping
+   * transmission of a specific track.
+   * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/removeTrack}
+   * @returns {void}
+   */
+  removeTrack(...args: Parameters<RTCPeerConnection["removeTrack"]>): void;
+
+  /**
+   * Creates a {@link RTCDataChannel} on the connection for arbitrary data transfer.
+   * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/createDataChannel}
+   */
+  createDataChannel(...args: Parameters<RTCPeerConnection["createDataChannel"]>): RTCDataChannel;
+
+  /**
+   * Retrieves the current connection state of the underlying RTCPeerConnection 
+   * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/connectionState}
+   * @returns {RTCPeerConnectionState}
+   */
+  get connectionState(): RTCPeerConnectionState;
+
+  /**
+   * Callback triggered when a {@link RTCDataChannel} is created or received.
+   * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ondatachannel}
+   * @example peer.onsession = (session) => {
+   *  session.ondatachannel = (event) => {
+   *      const channel = event.channel;
+   *      channel.onmessage = (e) => console.log("Received message:", e.data);
+   *  };
+   */
+  ondatachannel: RTCPeerConnection["ondatachannel"];
+
+  /**
+   * Callback triggered when the connection state changes.
+   * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/onconnectionstatechange}
+   */
+  onconnectionstatechange: RTCPeerConnection["onconnectionstatechange"];
+
+  /**
+   * Callback invoked when a new media track is added to the connection.
+   * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ontrack}
+   */
+  ontrack: RTCPeerConnection["ontrack"];
+
+  /**
+   * Closes the session, aborting all pending tasks, and cleaning up resources.
+   * Publishes events and logs about the closure.
+   * @param reason (optional) A reason for closing the session.
+   * @returns {void}
+   * @example mysession.close("Session ended by user");
+   */
+  close(reason?: string): void;
+
+  // Below is PulseBeam specific functionality. Unrelated to 
+  //  the underlying RTCPeerConnection
+
+  /** 
+   * Retrieves the identifier of the other peer in the connection. 
+   * @returns {string} The peer ID of the connected peer.
+   * @example console.log(`Connected to peer: ${session.otherPeerId}`);
+  */
+  get otherPeerId(): string;
+
+  /** 
+   * Retrieves the connection identifier for the current connection.
+   * Connection IDs are typically unique and help identify connections.
+   * @returns {number} The connection ID for the peer connection.
+   * @example
+   * console.log(`Connection ID: ${mySession.otherConnId}`);
+   */
+  get otherConnId(): number;
+}
 
 /**
  * Options used to configure a Peer.
@@ -195,6 +278,7 @@ export class Peer {
   connect(otherGroupId: string, otherPeerID: string, signal: AbortSignal): Promise<void> {
     return this.transport.connect(otherGroupId, otherPeerID, signal);
   }
+
   /**
    * Gets the current state of the peer. For state info see {@link PeerState}
    * @returns {PeerState} The current state of the peer
