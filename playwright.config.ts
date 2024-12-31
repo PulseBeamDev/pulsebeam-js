@@ -1,4 +1,4 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
 
 /**
  * Read environment variables from file.
@@ -12,7 +12,7 @@ import { defineConfig, devices } from '@playwright/test';
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
-  testDir: './',
+  testDir: "./tests",
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -24,7 +24,7 @@ export default defineConfig({
   workers: undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
-    ['html'],
+    ["html"],
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
@@ -33,27 +33,26 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     // trace: process.env.CI ? "retain-on-failure" : 'on',
-    trace: "retain-on-failure"
+    trace: "retain-on-failure",
   },
 
   /* Configure projects for major browsers */
   projects: [
     {
-      name: 'local',
+      name: "local",
       use: {
-        baseURL: 'http://localhost:5173/',
+        baseURL: "http://localhost:5173/",
       },
       retries: 0,
     },
     {
-      name: 'production',
+      name: "production",
       use: {
-        baseURL: 'https://meet.lukas-coding.us/',
+        baseURL: "https://meet.lukas-coding.us/",
       },
       retries: 2,
     },
   ],
-
   /* Run your local dev server before starting the tests */
   // webServer: {
   //   command: 'npm run start',
