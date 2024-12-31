@@ -4,7 +4,7 @@
   "main": "main.js",
   "type": "module",
   "scripts": {
-    "start": "node --experimental-vm-modules --experimental-wasm-modules main.js"
+    "start": "node --experimental-wasm-modules main.js"
   },
   "keywords": [],
   "author": "",
