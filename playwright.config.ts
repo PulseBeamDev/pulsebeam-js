@@ -24,7 +24,7 @@ export default defineConfig({
   workers: undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
-    ["html"],
+    ["html", "list"],
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
@@ -38,7 +38,7 @@ export default defineConfig({
 
   webServer: {
     command: "npm run preview -w @pulsebeam/demo-react",
-    url: "http://localhost:4173",
+    url: "http://127.0.0.1:4173",
     reuseExistingServer: true,
   },
 
@@ -47,7 +47,7 @@ export default defineConfig({
     {
       name: "local",
       use: {
-        baseURL: "http://localhost:4173",
+        baseURL: "http://127.0.0.1:4173",
         ignoreHTTPSErrors: true,
       },
       retries: 0,
