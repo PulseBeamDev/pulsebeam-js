@@ -97,20 +97,19 @@ test.describe("basic", () => {
 
   for (const [bA, bB] of pairs) {
     test(`${bA}_${bB}`, async ({ baseURL }) => {
-      const url = (b: string) => b === "webkit" ? baseURL + "?mock" : baseURL;
-      console.log(url(bA));
+      const url = baseURL + "?mock";
       const peerA = `__${bA}_${randId()}`;
       const peerB = `__${bB}_${randId()}`;
 
       // Launch browserA for pageA
       const contextA = await browsers[bA].newContext();
       const pageA = await contextA.newPage();
-      await pageA.goto(url(bA));
+      await pageA.goto(url);
 
       // Launch browserB for pageB
       const contextB = await browsers[bB].newContext();
       const pageB = await contextB.newPage();
-      await pageB.goto(url(bB));
+      await pageB.goto(url);
 
       try {
         const [closeA, closeB] = await Promise.all([
@@ -126,12 +125,9 @@ test.describe("basic", () => {
   }
 });
 
-test.skip(`connect`, async ({ browser, browserName, baseURL }) => {
+test(`load`, async ({ browser, browserName, baseURL }) => {
   const context = await browser.newContext();
   const page = await context.newPage();
-  await page.goto(baseURL!);
-
-  const peerA = "a";
-  const peerB = `__${browserName}_${randId()}`;
-  await connect(page, peerB, peerA);
+  await page.goto(baseURL! + "?mock");
+  await waitForStableVideo(page, "", 1000);
 });
