@@ -48,7 +48,11 @@ function fromSDPType(t: RTCSdpType): SdpKind {
       throw new Error(`unexpected sdp type: ${t}`);
   }
 }
-
+/**
+ * The Session class is a wrapper around RTCPeerConnection designed to manage
+ *  WebRTC connections, signaling, and ICE candidates. It handles negotiation,
+ *  ICE restarts, signaling messages, and connection lifecycle events.
+ */
 export class Session {
   private pc: RTCPeerConnection;
   private makingOffer: boolean;
@@ -65,25 +69,25 @@ export class Session {
 
   /**
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ondatachannel}
-  */
+   */
   public ondatachannel: RTCPeerConnection["ondatachannel"] = () => { };
 
   /**
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/onconnectionstatechange}
-  */
+   */
   public onconnectionstatechange: RTCPeerConnection["onconnectionstatechange"] = () => { };
 
   /**
    * Callback invoked when a new media track is added to the connection.
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ontrack}
-  */
+   */
   public ontrack: RTCPeerConnection["ontrack"] = () => { };
 
   /**
    * Adds a media track to the connection.
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/addTrack}
    * @returns {RTCRtpSender} the newly created track
-  */
+   */
   addTrack(...args: Parameters<RTCPeerConnection["addTrack"]>): RTCRtpSender {
     return this.pc.addTrack(...args);
   }
@@ -92,7 +96,7 @@ export class Session {
    * Removes a media track from the connection.
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/removeTrack}
    * @returns {void}
-  */
+   */
   removeTrack(...args: Parameters<RTCPeerConnection["removeTrack"]>): void {
     return this.pc.removeTrack(...args);
   }
@@ -100,7 +104,7 @@ export class Session {
   /**
    * Creates a data channel (useful for sending arbitrary data) through the connection.
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/createDataChannel}
-  */
+   */
   createDataChannel(...args: Parameters<RTCPeerConnection["createDataChannel"]>): RTCDataChannel {
     return this.pc.createDataChannel(...args);
   }
@@ -109,7 +113,7 @@ export class Session {
    * Returns the current connection state of the underlying RTCPeerConnection 
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/connectionState}
    * @returns {RTCPeerConnectionState}
-  */
+   */
   get connectionState(): RTCPeerConnectionState {
     return this.pc.connectionState;
   }
