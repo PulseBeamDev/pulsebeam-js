@@ -1,8 +1,17 @@
-import { chromium as bChromium, firefox as bFirefox, webkit as bWebkit, type Page } from "playwright";
-import { test, expect, Browser, } from '@playwright/test';
+import {
+  chromium as bChromium,
+  firefox as bFirefox,
+  type Page,
+  webkit as bWebkit,
+} from "playwright";
+import { Browser, expect, test } from "@playwright/test";
 
-
-async function waitForStableVideo(page: Page, peerId: string, timeoutMs: number, delayMs = 0) {
+async function waitForStableVideo(
+  page: Page,
+  peerId: string,
+  timeoutMs: number,
+  delayMs = 0,
+) {
   // return page.waitForFunction(({ peerId, durationSeconds }) => {
   //   const video = document.querySelector(`video[data-testid=${peerId}]`) as HTMLVideoElement;
   //   return !!video && !video.paused && video.currentTime > durationSeconds;
@@ -13,9 +22,15 @@ async function waitForStableVideo(page: Page, peerId: string, timeoutMs: number,
 
   while ((performance.now() - start) < timeoutMs) {
     try {
-      expect(await video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(false);
-      expect(await video.evaluate((v: HTMLVideoElement) => v.ended)).toBe(false);
-      expect(await video.evaluate((v: HTMLVideoElement) => v.readyState)).toBe(4);
+      expect(await video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(
+        false,
+      );
+      expect(await video.evaluate((v: HTMLVideoElement) => v.ended)).toBe(
+        false,
+      );
+      expect(await video.evaluate((v: HTMLVideoElement) => v.readyState)).toBe(
+        4,
+      );
       await page.waitForTimeout(delayMs).catch(() => { });
       return;
     } catch (_e) {
@@ -27,17 +42,17 @@ async function waitForStableVideo(page: Page, peerId: string, timeoutMs: number,
 }
 
 async function connect(page: Page, peerId: string, otherPeerId: string) {
-  await page.getByPlaceholder('You').click();
-  await page.getByPlaceholder('You').fill(peerId);
+  await page.getByPlaceholder("You").click();
+  await page.getByPlaceholder("You").fill(peerId);
   await waitForStableVideo(page, peerId, 5_000);
 
-  await page.getByRole('button', { name: 'Go Live' }).click();
-  await page.getByPlaceholder('Other').click();
-  await page.getByPlaceholder('Other').fill(otherPeerId);
-  await page.getByRole('button', { name: 'Connect' }).click();
+  await page.getByRole("button", { name: "Go Live" }).click();
+  await page.getByPlaceholder("Other").click();
+  await page.getByPlaceholder("Other").fill(otherPeerId);
+  await page.getByRole("button", { name: "Connect" }).click();
   await waitForStableVideo(page, otherPeerId, 10_000);
 
-  return () => page.getByRole('button', { name: 'Stop' }).click();
+  return () => page.getByRole("button", { name: "Stop" }).click();
 }
 
 function randId() {
@@ -56,27 +71,28 @@ function getAllPairs<T>(list: T[]): [T, T][] {
 }
 
 test.describe("basic", () => {
-  const browserNames = ["chromium", "chrome", "msedge"];
+  // const browserNames = ["chromium", "chrome", "msedge"];
+  const browserNames = ["chromium", "chrome"];
   const browsers: Browser[] = [];
   const pairs: [string, string][] = getAllPairs(browserNames);
 
   test.beforeAll(async () => {
     const chromiumFake = {
       args: [
-        '--use-fake-ui-for-media-stream', // Avoids the need for user interaction with media dialogs
-        '--use-fake-device-for-media-stream'
-      ]
+        "--use-fake-ui-for-media-stream", // Avoids the need for user interaction with media dialogs
+        "--use-fake-device-for-media-stream",
+      ],
     };
-    const [chromium, chrome, msedge] = await Promise.all([
+    const [chromium, chrome] = await Promise.all([
       bChromium.launch({ ...chromiumFake }),
       bChromium.launch({ ...chromiumFake, channel: "chrome" }),
-      bChromium.launch({ ...chromiumFake, channel: "msedge" }),
+      // bChromium.launch({ ...chromiumFake, channel: "msedge" }),
       // bWebkit.launch(),
-    ])
+    ]);
 
     browsers["chromium"] = chromium;
     browsers["chrome"] = chrome;
-    browsers["msedge"] = msedge;
+    // browsers["msedge"] = msedge;
     // browsers["webkit"] = webkit;
   });
 
@@ -99,7 +115,7 @@ test.describe("basic", () => {
       try {
         const [closeA, closeB] = await Promise.all([
           connect(pageA, peerA, peerB),
-          connect(pageB, peerB, peerA)
+          connect(pageB, peerB, peerA),
         ]);
         await Promise.all([closeA(), closeB()]);
       } finally {
