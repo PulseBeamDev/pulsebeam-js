@@ -203,12 +203,8 @@ export class Peer {
     return this._state;
   }
 
-  /**
-   * internal @private
-   * @param s new state to be used
-   * @returns {void}
-   */
-  private setState(s: PeerState) {
+  /** internal @private */
+  private setState(s: PeerState): void {
     if (s === this._state) return;
 
     this._state = s;
