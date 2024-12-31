@@ -28,28 +28,96 @@ export type ISession = Pick<
   | "otherConnId"
 >;
 
+/**
+ * Options used to configure a Peer.
+ * @interface PeerOptions
+ * @example
+ * const options: PeerOptions = {
+ *   groupId: "group-123",
+ *   peerId: "peer-456",
+ *   token: "eyJhbGciOiJFZERTQSIsImtpZCI6ImFwcF9ZY2w1Q2xSV0pXTnc4YnFCMjVETUgifQ.eyJleHAiOjE3MzU2NzIwMzMsImdyb3VwX2lkIjoiZGVmYXVsdCIsInBlZXJfaWQiOiJhbGljZSIsImFsbG93X2luY29taW5nXzAiOnsiZ3JvdXBfaWQiOiJkZWZhdWx0IiwicGVlcl9pZCI6IioifSwiYWxsb3dfb3V0Z29pbmdfMCI6eyJncm91cF9pZCI6ImRlZmF1bHQiLCJwZWVyX2lkIjoiKiJ9fQ.iJp8UbGOexL2qGEJqBFncen_PKxg3ZgaIz2ILOQc9v58XYxmJzE6d5LRM3Avb3TLIfKk_dG-88wSuE49nLmBCg",
+ *   forceRelay: true
+ * };
+ */
 export interface PeerOptions {
+  /**
+   * Identifier for the group which the peer belongs to.
+   * @type {string}
+   */
   groupId: string;
+
+  /**
+   * Identifier for the peer.
+   * @type {string}
+   */
   peerId: string;
+
+  /**
+   * PulseBeam authentication token for the peer.
+   * @type {string}
+   */
   token: string;
+
+  /**
+   * (Optional) Base URL for API calls. Defaults to useing our servers: "https://signal.pulsebeam.dev/twirp".
+   * @type {string | undefined}
+   */
   baseUrl?: string;
+
+  /**
+   * (Optional) If true, enforces relay-only connections, such as those passed through a TURN server. Defaults to allowing all connection types (such as direct peer to peer). For more details see {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/RTCPeerConnection#icetransportpolicy}
+   * @type {boolean | undefined}
+   */
   forceRelay?: boolean;
+
+  /**
+   * (Optional) Add Ice Servers. Defaults to using our servers. For more details see {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/RTCPeerConnection#iceservers}
+   * @type {RTCIceServer[] | undefined}
+   */
   iceServers?: RTCIceServer[];
 }
 
+/**
+ * Represents the possible states for a Peer.
+ * 
+ * @readonly
+ * @enum {string}
+ * Possible values:
+ *   - `"new"`: The peer has been created.
+ *   - `"closed"`: The peer has been closed.
+ */
 export type PeerState = "new" | "closed";
 
-// Peer is a mediator for signaling and all sessions
+/**
+ * Peer is a mediator for signaling, connecting, and managing sessions.
+ */
 export class Peer {
   private transport: Transport;
   private readonly logger: Logger;
   private sessions: Session[];
   private _state: PeerState;
 
+  /**
+   * Callback invoked when a new session is established.
+   * @param _s Session object
+   */
   public onsession = (_s: ISession) => { };
+  /**
+   * Callback invoked when the peer’s state changes.
+   */
   public onstatechange = () => { };
+  /**
+   * Identifier for the peer.
+   */
   public readonly peerId: string;
 
+  /**
+   * 
+   * @param logger Logger instance for logging events.
+   * @param client Tunnel client for signaling.
+   * @param opts Configuration options for the peer.
+   * @param isRecoverable Function to determine if an error is recoverable.
+   */
   constructor(
     logger: Logger,
     client: ITunnelClient,
@@ -126,11 +194,16 @@ export class Peer {
   connect(otherGroupId: string, otherPeerID: string, signal: AbortSignal) {
     return this.transport.connect(otherGroupId, otherPeerID, signal);
   }
-
+  /**
+   * Gets the current state of the peer.
+   *
+   * @returns {PeerState} The current state of the peer. 
+   */
   get state() {
     return this._state;
   }
 
+  /** @private */
   private setState(s: PeerState) {
     if (s === this._state) return;
 
@@ -161,6 +234,12 @@ function isTwirpRecoverable(err: unknown): boolean {
   return !TWIRP_FATAL_ERRORS.includes(err.code);
 }
 
+/**
+ * Helper to create a new Peer instance
+ * @param opts Configuration options for the peer.
+ * @returns {Promise<Peer>} Resolves to the newly cresated Peer
+ * @throws {Error} When unable to connect
+ */
 export async function createPeer(opts: PeerOptions): Promise<Peer> {
   // TODO: add hook for refresh token
   const twirp = new TwirpFetchTransport({
