@@ -24,7 +24,7 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
       - name: Push image
         run: |
-            IMAGE_ID=$(echo "${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}" | tr '[A-Z]' '[a-z]')
+            IMAGE_ID=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[A-Z]' '[a-z]')
             docker tag ${{ env.IMAGE_NAME }} $IMAGE_ID:${{github.ref_name}}
             docker push $IMAGE_ID:${{github.ref_name}}
             docker tag ${{ env.IMAGE_NAME }} $IMAGE_ID:latest
