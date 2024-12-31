@@ -37,8 +37,8 @@ export default defineConfig({
   },
 
   webServer: {
-    command: "npm run preview -w @pulsebeam/demo-react",
-    url: "http://127.0.0.1:4173",
+    command: "npm run dev -w @pulsebeam/demo-react",
+    url: "http://127.0.0.1:5173",
     reuseExistingServer: true,
   },
 
@@ -47,7 +47,7 @@ export default defineConfig({
     {
       name: "local",
       use: {
-        baseURL: "http://127.0.0.1:4173",
+        baseURL: "http://127.0.0.1:5173",
         ignoreHTTPSErrors: true,
       },
       retries: 0,
