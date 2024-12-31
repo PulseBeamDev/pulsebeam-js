@@ -48,6 +48,7 @@ export default defineConfig({
       name: "local",
       use: {
         baseURL: "http://localhost:4173",
+        ignoreHTTPSErrors: true,
       },
       retries: 0,
     },
