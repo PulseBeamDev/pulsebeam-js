@@ -72,19 +72,13 @@ function getAllPairs<T>(list: T[]): [T, T][] {
 test.describe("basic", () => {
   // const browserNames = ["chromium", "chrome", "msedge"];
   const browserNames = ["chromium", "chrome"];
-  const browsers: Browser[] = [];
+  const browsers: Record<string, Browser> = {};
   const pairs: [string, string][] = getAllPairs(browserNames);
 
   test.beforeAll(async () => {
-    const chromiumFake = {
-      args: [
-        "--use-fake-ui-for-media-stream", // Avoids the need for user interaction with media dialogs
-        "--use-fake-device-for-media-stream",
-      ],
-    };
     const [chromium, chrome] = await Promise.all([
-      bChromium.launch({ ...chromiumFake }),
-      bChromium.launch({ ...chromiumFake, channel: "chrome" }),
+      bChromium.launch({}),
+      bChromium.launch({ channel: "chrome" }),
       // bChromium.launch({ ...chromiumFake, channel: "msedge" }),
       // bWebkit.launch(),
     ]);
@@ -97,7 +91,7 @@ test.describe("basic", () => {
 
   for (const [bA, bB] of pairs) {
     test(`${bA}_${bB}`, async ({ baseURL }) => {
-      const url = baseURL + "?mock";
+      const url = baseURL + "?mock&baseUrl=https://localhost:443/twirp";
       const peerA = `__${bA}_${randId()}`;
       const peerB = `__${bB}_${randId()}`;
 
