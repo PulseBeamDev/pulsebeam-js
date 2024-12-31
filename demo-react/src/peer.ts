@@ -41,7 +41,9 @@ export const usePeerStore = create<PeerState>((set, get) => ({
       const urlParams = new URLSearchParams(window.location.search);
       const forceRelay = urlParams.get("forceRelay");
 
-      const resp = await fetch(`/auth?id=${peerId}`);
+      const resp = await fetch(
+        `/auth?groupId=${DEFAULT_GROUP}&peerId=${peerId}`,
+      );
       const token = await resp.text();
       const p = await createPeer({
         baseUrl: BASE_URL,
