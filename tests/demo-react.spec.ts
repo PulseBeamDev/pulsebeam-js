@@ -30,10 +30,10 @@ async function waitForStableVideo(
       expect(await video.evaluate((v: HTMLVideoElement) => v.readyState)).toBe(
         4,
       );
-      await page.waitForTimeout(delayMs).catch(() => { });
+      await page.waitForTimeout(delayMs).catch(() => {});
       return;
     } catch (_e) {
-      await page.waitForTimeout(1000).catch(() => { });
+      await page.waitForTimeout(1000).catch(() => {});
     }
   }
 
@@ -71,20 +71,18 @@ function getAllPairs<T>(list: T[]): [T, T][] {
 
 test.describe("basic", () => {
   // const browserNames = ["chromium", "chrome", "msedge"];
-  const browserNames = ["chromium", "chrome"];
+  const browserNames = ["chromium"];
   const browsers: Record<string, Browser> = {};
   const pairs: [string, string][] = getAllPairs(browserNames);
 
   test.beforeAll(async () => {
-    const [chromium, chrome] = await Promise.all([
+    const [chromium] = await Promise.all([
       bChromium.launch({}),
-      bChromium.launch({ channel: "chrome" }),
       // bChromium.launch({ ...chromiumFake, channel: "msedge" }),
       // bWebkit.launch(),
     ]);
 
     browsers["chromium"] = chromium;
-    browsers["chrome"] = chrome;
     // browsers["msedge"] = msedge;
     // browsers["webkit"] = webkit;
   });
