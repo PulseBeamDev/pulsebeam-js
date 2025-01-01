@@ -48,7 +48,11 @@ function fromSDPType(t: RTCSdpType): SdpKind {
       throw new Error(`unexpected sdp type: ${t}`);
   }
 }
-
+/**
+ * The Session class is a wrapper around RTCPeerConnection designed to manage
+ *  WebRTC connections, signaling, and ICE candidates. It handles negotiation,
+ *  ICE restarts, signaling messages, and connection lifecycle events.
+ */
 export class Session {
   private pc: RTCPeerConnection;
   private makingOffer: boolean;
@@ -64,61 +68,89 @@ export class Session {
   private _connectionState: RTCPeerConnectionState;
 
   /**
-  * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ondatachannel}
-  */
+   * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ondatachannel}
+   */
   public ondatachannel: RTCPeerConnection["ondatachannel"] = () => { };
 
   /**
-  * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/onconnectionstatechange}
-  */
+   * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/onconnectionstatechange}
+   */
   public onconnectionstatechange: RTCPeerConnection["onconnectionstatechange"] = () => { };
 
   /**
-  * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ontrack}
-  */
+   * Callback invoked when a new media track is added to the connection.
+   * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ontrack}
+   */
   public ontrack: RTCPeerConnection["ontrack"] = () => { };
 
   /**
-  * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/addTrack}
-  */
-  addTrack(...args: Parameters<RTCPeerConnection["addTrack"]>) {
+   * Adds a media track to the connection.
+   * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/addTrack}
+   * @returns {RTCRtpSender} the newly created track
+   */
+  addTrack(...args: Parameters<RTCPeerConnection["addTrack"]>): RTCRtpSender {
     return this.pc.addTrack(...args);
   }
 
   /**
-  * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/removeTrack}
-  */
-  removeTrack(...args: Parameters<RTCPeerConnection["removeTrack"]>) {
+   * Removes a media track from the connection.
+   * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/removeTrack}
+   * @returns {void}
+   */
+  removeTrack(...args: Parameters<RTCPeerConnection["removeTrack"]>): void {
     return this.pc.removeTrack(...args);
   }
 
   /**
-  * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/createDataChannel}
-  */
-  createDataChannel(...args: Parameters<RTCPeerConnection["createDataChannel"]>) {
+   * Creates a data channel (useful for sending arbitrary data) through the connection.
+   * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/createDataChannel}
+   */
+  createDataChannel(...args: Parameters<RTCPeerConnection["createDataChannel"]>): RTCDataChannel {
     return this.pc.createDataChannel(...args);
   }
 
   /**
-  * {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/connectionState}
-  */
-  get connectionState() {
+   * Returns the current connection state of the underlying RTCPeerConnection 
+   * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/connectionState}
+   * @returns {RTCPeerConnectionState}
+   */
+  get connectionState(): RTCPeerConnectionState {
     return this.pc.connectionState;
   }
 
-  get closeReason() {
+  /**
+   * If reason is available, returns the reason for the session being closed.
+   * @returns {string | undefined}
+   */
+  get closeReason(): string | undefined {
     return this._closeReason;
   }
 
+  /** 
+   * Retrieves the identifier of the other peer. 
+   * @returns {string}
+  */
   get otherPeerId(): string {
     return this.stream.otherPeerId;
   };
 
+  /** 
+   * Retrieves the connection identifier for the connection to the other peer.
+   *  Connection ids are usually unique.
+   * @returns {number}
+   */
   get otherConnId(): number {
     return this.stream.otherConnId;
   }
 
-  close(reason?: string) {
+  /**
+   * Closes the session, aborts pending tasks, and cleans up resources.
+   *  Publishes events and logs.
+   * @param reason (optional) Your reason for closing the session.
+   * @returns {void}
+   * @example mysession.close("Normal closure");
+   */
+  close(reason?: string): void {
     if (this.abort.signal.aborted) return;
     this.abort.abort(reason);
     for (const timer of this.timers) {
@@ -137,6 +169,14 @@ export class Session {
     this.logger.debug("session closed", { connectionState: this.connectionState });
   }
 
+  /**
+   * Creates a Session with the provided stream and
+   *  configs. Sets up event handlers, signaling, and ICE candidate
+   *  management.
+   * See {@link Session} For class responsibilities
+   * @param stream Represents the transport stream for signaling messages.
+   * @param config Configuration object for the RTCPeerConnection.
+   */
   constructor(
     private readonly stream: Stream,
     config: RTCConfiguration,
@@ -300,7 +340,8 @@ export class Session {
     };
   }
 
-  private setConnectionState(s: RTCPeerConnectionState, ev: Event) {
+  /** internal @private */
+  private setConnectionState(s: RTCPeerConnectionState, ev: Event): void {
     if (s === this._connectionState) return;
 
     if (this.onconnectionstatechange) {

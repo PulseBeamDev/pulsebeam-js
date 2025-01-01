@@ -10,7 +10,7 @@
     "preview": "NODE_OPTIONS='--experimental-wasm-modules' vite preview"
   },
   "dependencies": {
-    "@pulsebeam/peer": "npm:@jsr/pulsebeam__peer@^0.0.3",
+    "@pulsebeam/peer": "^0.0.2",
     "@theopenweb/get-user-media-mock": "^1.0.0",
     "immer": "^10.1.1",
     "react": "^18.3.1",
