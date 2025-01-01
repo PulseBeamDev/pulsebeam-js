@@ -9,6 +9,59 @@ import {
 } from "@protobuf-ts/twirp-transport";
 import { retry } from "./util.ts";
 
+/**
+ * Streamline real-time application development.`@pulsebeam/peer` abstracts
+ * networking, connection management, and signaling for applications. Built on
+ * WebRTC. PulseBeam handles peer-to-peer communication, media/data transmission,
+ * and provides infrastructure. 
+ *
+ * A JavaScript SDK for creating real-time applications with WebRTC.
+ *
+ * # Features
+ * - Flexible connection modes: peer-to-peer or server-relayed.
+ * - Support for media (audio/video) and data channels.
+ * - Abstracted signaling for establishing WebRTC connections.
+ * - Auto-reconnect during disruptions or dropped connections.
+ * 
+ * For more on PulseBeam, see our docs and quickstart guide:
+ * {@link https://pulsebeam.dev/docs/getting-started/}
+ * 
+ * For more on WebRTC, see the official documentation: 
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API}
+ * 
+ * # Example Usage
+ *
+ * Request an authentication token, initialize a peer instance, and establish a connection:
+ *
+ * ```ts
+ * import { Peer, createPeer } from "@pulsebeam/peer";
+ *
+ * // Step 1: Obtain an auth token
+ * const authResponse = await fetch("/auth");
+ * const { groupId, peerId, token } = await authResponse.json();
+ *
+ * // Step 2: Create a Peer instance
+ * const peer = await createPeer({ groupId, peerId, token });
+ *
+ * peer.onsession = (session) => {
+ *   session.ontrack = ({ streams }) => console.log("New media stream:", streams);
+ *   session.ondatachannel = (event) => console.log("Data channel:", event.channel);
+ *   session.onconnectionstatechange = () => console.log("Connection state changed");
+ * };
+ *
+ * // Step 3: Connect to another peer
+ * peer.start();
+ *
+ * const abortController = new AbortController();
+ * await peer.connect(groupId, "other-peer-id", abortController.signal);
+ * ```
+ *
+ * This module provides a framework for building WebRTC applications while
+ * leaving room for custom implementation details.
+ *
+ * @module
+ */
+
 const BASE_URL = "https://signal.pulsebeam.dev/twirp";
 const PREPARE_INITIAL_DELAY_MS = 50;
 const PREPARE_MAX_RETRY = 3;
