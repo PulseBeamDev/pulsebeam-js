@@ -13,7 +13,7 @@ import { retry } from "./util.ts";
  * Streamline real-time application development.`@pulsebeam/peer` abstracts
  * networking, connection management, and signaling for applications. Built on
  * WebRTC. PulseBeam handles peer-to-peer communication, media/data transmission,
- * and provides infrastructure. 
+ * and provides infrastructure.
  *
  * A JavaScript SDK for creating real-time applications with WebRTC.
  *
@@ -22,13 +22,13 @@ import { retry } from "./util.ts";
  * - Support for media (audio/video) and data channels.
  * - Abstracted signaling for establishing WebRTC connections.
  * - Auto-reconnect during disruptions or dropped connections.
- * 
+ *
  * For more on PulseBeam, see our docs and quickstart guide:
  * {@link https://pulsebeam.dev/docs/getting-started/}
- * 
- * For more on WebRTC, see the official documentation: 
+ *
+ * For more on WebRTC, see the official documentation:
  * {@link https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API}
- * 
+ *
  * # Example Usage
  *
  * Request an authentication token, initialize a peer instance, and establish a connection:
@@ -70,7 +70,7 @@ const PREPARE_MAX_RETRY = 3;
  * A high-level API for managing the peer-to-peer WebRTC connection. Provides
  *  access to lower-level {@link RTCPeerConnection} functionality. Including
  *  access to underlying media tracks, data channels, and connection state.
- * 
+ *
  * Usage:
  *  @example peer.onsession = (session) => {console.log(session)};
  */
@@ -81,7 +81,7 @@ export interface ISession {
    * @returns {RTCRtpSender}
    */
   addTrack(...args: Parameters<RTCPeerConnection["addTrack"]>): RTCRtpSender;
-  
+
   /**
    * Removes a media track from the connection. Useful for stopping
    * transmission of a specific track.
@@ -94,10 +94,12 @@ export interface ISession {
    * Creates a {@link RTCDataChannel} on the connection for arbitrary data transfer.
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/createDataChannel}
    */
-  createDataChannel(...args: Parameters<RTCPeerConnection["createDataChannel"]>): RTCDataChannel;
+  createDataChannel(
+    ...args: Parameters<RTCPeerConnection["createDataChannel"]>
+  ): RTCDataChannel;
 
   /**
-   * Retrieves the current connection state of the underlying RTCPeerConnection 
+   * Retrieves the current connection state of the underlying RTCPeerConnection
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/connectionState}
    * @returns {RTCPeerConnectionState}
    */
@@ -135,17 +137,17 @@ export interface ISession {
    */
   close(reason?: string): void;
 
-  // Below is PulseBeam specific functionality. Unrelated to 
+  // Below is PulseBeam specific functionality. Unrelated to
   //  the underlying RTCPeerConnection
 
-  /** 
-   * Retrieves the identifier of the other peer in the connection. 
+  /**
+   * Retrieves the identifier of the other peer in the connection.
    * @returns {string} The peer ID of the connected peer.
    * @example console.log(`Connected to peer: ${session.otherPeerId}`);
-  */
+   */
   get otherPeerId(): string;
 
-  /** 
+  /**
    * Retrieves the connection identifier for the current connection.
    * Connection IDs are typically unique and help identify connections.
    * @returns {number} The connection ID for the peer connection.
@@ -205,7 +207,7 @@ export interface PeerOptions {
 
 /**
  * Represents the possible states for a Peer.
- * 
+ *
  * @readonly
  * @enum {string}
  * Possible values:
@@ -238,7 +240,7 @@ export class Peer {
   public readonly peerId: string;
 
   /**
-   * Construct a Peer. Helper available: see {@link createPeer} function 
+   * Construct a Peer. Helper available: see {@link createPeer} function
    * @param logger Logger instance for logging events.
    * @param client Tunnel client for signaling.
    * @param opts Configuration options for the peer.
@@ -279,10 +281,10 @@ export class Peer {
   }
 
   /**
-   * Starts the peer, making it ready to establish connections. 
+   * Starts the peer, making it ready to establish connections.
    * Peers must be started before a connection can occur.
-   * 
-   * @returns {void} 
+   *
+   * @returns {void}
    * @throws {Error} When the peer was previously closed.
    */
   start() {
@@ -291,34 +293,38 @@ export class Peer {
   }
 
   /**
-   * Closes the peer. Releases associated resources. 
+   * Closes the peer. Releases associated resources.
    * Signals to the AbortController passed to connect if connect was called.
-   * 
+   *
    * @async
    * @returns {Promise<void>} Resolves when the peer has been closed.
    */
-  async close() { 
+  async close() {
     this.sessions = [];
-    await this.transport.close(); 
+    await this.transport.close();
     this.setState("closed");
   }
 
   /**
-   * Establishes a connection with another peer in the specified group. 
+   * Establishes a connection with another peer in the specified group.
    * Peer should be started before calling connect.
-   * 
+   *
    * Check the log output for troubleshooting information.
-   * 
+   *
    * @async
-   * @param {string} otherGroupId The ID of the group the other peer belongs to. 
-   * @param {string} otherPeerID The ID of the peer you want to connect to.
-   * @param {AbortSignal} signal Handle cancellations or cancel the connection attempt. 
-   * @returns {Promise<void>} Resolves when the connection has been established, 
-   *                          an unrecoverable error (e.g., network connection issues, internal errors) occurs, 
-   *                          or the maximum retry attempts are reached. 
+   * @param {string} otherGroupId The ID of the group the other peer belongs to.
+   * @param {string} otherPeerId The ID of the peer you want to connect to.
+   * @param {AbortSignal} signal Handle cancellations or cancel the connection attempt.
+   * @returns {Promise<void>} Resolves when the connection has been established,
+   *                          an unrecoverable error (e.g., network connection issues, internal errors) occurs,
+   *                          or the maximum retry attempts are reached.
    */
-  connect(otherGroupId: string, otherPeerID: string, signal: AbortSignal): Promise<void> {
-    return this.transport.connect(otherGroupId, otherPeerID, signal);
+  connect(
+    otherGroupId: string,
+    otherPeerId: string,
+    signal: AbortSignal,
+  ): Promise<void> {
+    return this.transport.connect(otherGroupId, otherPeerId, signal);
   }
 
   /**
