@@ -35,7 +35,7 @@ async function patchProtoFiles() {
     content = content
       .split('\n')
       .map((line) =>
-        line.replace(/^(import .+? from ["']\..+?)(["'];)$/, '$1.ts$2'),
+        line.replace(/^(import .+? from ["']\..+?)(?<!\.ts)(["'];)$/, '$1.ts$2'),
       )
       .join('\n');
 

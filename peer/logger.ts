@@ -63,7 +63,7 @@ export class Logger {
     handler: LogHandler,
     message: string,
     obj?: LogObj,
-  ) {
+  ): void {
     const o = obj || {};
     handler({
       ts: Date.now(),
@@ -73,23 +73,23 @@ export class Logger {
     });
   }
 
-  debug(message: string, obj?: LogObj) {
+  debug(message: string, obj?: LogObj): void {
     this.log(this.sink.DEBUG, message, obj);
   }
 
-  info(message: string, obj?: LogObj) {
+  info(message: string, obj?: LogObj): void {
     this.log(this.sink.INFO, message, obj);
   }
 
-  warn(message: string, obj?: LogObj) {
+  warn(message: string, obj?: LogObj): void {
     this.log(this.sink.WARN, message, obj);
   }
 
-  error(message: string, obj?: LogObj) {
+  error(message: string, obj?: LogObj): void {
     this.log(this.sink.ERROR, message, obj);
   }
 
-  sub(name: string, obj?: LogObj) {
+  sub(name: string, obj?: LogObj): Logger {
     if (!obj) obj = {};
     return new Logger(this.name + "." + name, { ...this.obj, ...obj }, this.sink);
   }

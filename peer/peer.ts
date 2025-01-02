@@ -67,19 +67,9 @@ const PREPARE_INITIAL_DELAY_MS = 50;
 const PREPARE_MAX_RETRY = 3;
 
 /**
- * The ISession interface is for managing the WebRTC connection between peers.
- *  It provides methods and properties to handle media tracks, data channels, 
- *  connection state, and peer-specific identifiers.
- * 
- * The Session class implements ISession. Session wraps {@link RTCPeerConnection}.
- *  It manages connection complexities by handling tasks like signaling, ICE
- *  candidate negotiation, connection restarts, and lifecycle events.
- * 
- * ISession provides a high-level API for managing peer-to-peer WebRTC
- *  communications while maintaining access to lower-level {@link RTCPeerConnection} 
- *  functionality. This allows full control over media tracks, data channels, and
- *  connection state, enabling developers to build robust real-time communication
- *  features with ease.
+ * A high-level API for managing the peer-to-peer WebRTC connection. Provides
+ *  access to lower-level {@link RTCPeerConnection} functionality. Including
+ *  access to underlying media tracks, data channels, and connection state.
  * 
  * Usage:
  *  @example peer.onsession = (session) => {console.log(session)};
@@ -172,8 +162,7 @@ export interface ISession {
  * const options: PeerOptions = {
  *   groupId: "group-123",
  *   peerId: "peer-456",
- *   token: "eyJhbGciOiJFZERTQSIsImtpZCI6ImFwcF9ZY2w1Q2xSV0pXTnc4YnFCMjVETUgifQ.eyJleHAiOjE3MzU2NzIwMzMsImdyb3VwX2lkIjoiZGVmYXVsdCIsInBlZXJfaWQiOiJhbGljZSIsImFsbG93X2luY29taW5nXzAiOnsiZ3JvdXBfaWQiOiJkZWZhdWx0IiwicGVlcl9pZCI6IioifSwiYWxsb3dfb3V0Z29pbmdfMCI6eyJncm91cF9pZCI6ImRlZmF1bHQiLCJwZWVyX2lkIjoiKiJ9fQ.iJp8UbGOexL2qGEJqBFncen_PKxg3ZgaIz2ILOQc9v58XYxmJzE6d5LRM3Avb3TLIfKk_dG-88wSuE49nLmBCg",
- *   forceRelay: true
+ *   token: "eyJhbGciOiJFZERTQSIsImtpZCI6ImFwcF9ZY2w1Q2xSV0pXTnc4YnFCMjVETUgifQ.eyJleHAiOjE3MzU2NzIwMzMsImdyb3VwX2lkIjoiZGVmYXVsdCIsInBlZXJfaWQiOiJhbGljZSIsImFsbG93X2luY29taW5nXzAiOnsiZ3JvdXBfaWQiOiJkZWZhdWx0IiwicGVlcl9pZCI6IioifSwiYWxsb3dfb3V0Z29pbmdfMCI6eyJncm91cF9pZCI6ImRlZmF1bHQiLCJwZWVyX2lkIjoiKiJ9fQ.iJp8UbGOexL2qGEJqBFncen_PKxg3ZgaIz2ILOQc9v58XYxmJzE6d5LRM3Avb3TLIfKk_dG-88wSuE49nLmBCg"
  * };
  */
 export interface PeerOptions {
