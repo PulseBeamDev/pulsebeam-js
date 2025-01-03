@@ -1,6 +1,6 @@
 {
   "name": "@pulsebeam/peer",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "exports": "./index.ts",
   "publish": {
     "exclude": [
