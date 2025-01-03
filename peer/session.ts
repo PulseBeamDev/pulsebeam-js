@@ -145,8 +145,8 @@ export class Session {
 
   /**
    * Closes the session, aborts pending tasks, and cleans up resources.
-   *  Publishes events and logs.
-   * @param reason (optional) Your reason for closing the session.
+   * Publishes events and logs.
+   * @param {string} [reason] - (optional) Your reason for closing the session.
    * @returns {void}
    * @example mysession.close("Normal closure");
    */
