@@ -4,6 +4,13 @@
     "demo-react",
     "demo-cdn"
   ],
+  "license": "Apache-2.0",
+  "author": "Lukas Herman support@pulsebeam.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PulseBeamDev/pulsebeam-js.git"
+  },
+  "homepage": "https://pulsebeam.dev",
   "dependencies": {
     "@playwright/test": "^1.49.1",
     "playwright": "^1.49.1",

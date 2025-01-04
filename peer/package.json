@@ -31,7 +31,12 @@
     "library",
     "browser"
   ],
-  "author": "Lukas Herman",
+  "author": "Lukas Herman support@pulsebeam.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PulseBeamDev/pulsebeam-js.git"
+  },
+  "homepage": "https://pulsebeam.dev",
   "license": "Apache-2.0",
   "dependencies": {
     "@protobuf-ts/runtime": "^2.9.4",

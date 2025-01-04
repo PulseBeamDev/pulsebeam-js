@@ -2,6 +2,13 @@
   "name": "@pulsebeam/peer",
   "version": "0.0.7",
   "exports": "./index.ts",
+  "license": "Apache-2.0",
+  "author": "Lukas Herman support@pulsebeam.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PulseBeamDev/pulsebeam-js.git"
+  },
+  "homepage": "https://pulsebeam.dev",
   "publish": {
     "exclude": [
       "proto",

@@ -3,12 +3,17 @@
   "version": "1.0.0",
   "main": "main.js",
   "type": "module",
+  "license": "Apache-2.0",
+  "author": "Lukas Herman support@pulsebeam.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PulseBeamDev/pulsebeam-js.git"
+  },
+  "homepage": "https://pulsebeam.dev",
   "scripts": {
     "start": "node --experimental-wasm-modules main.js"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
   "description": "",
   "dependencies": {
     "@pulsebeam/server": "npm:@jsr/pulsebeam__server@^0.0.13",
