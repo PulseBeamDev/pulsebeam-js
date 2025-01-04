@@ -11,7 +11,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@pulsebeam/server": "npm:@jsr/pulsebeam__server@^0.0.12",
+    "@pulsebeam/server": "npm:@jsr/pulsebeam__server@^0.0.13",
     "serve-handler": "^6.1.6"
   }
 }

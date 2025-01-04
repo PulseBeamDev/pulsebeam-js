@@ -1,6 +1,6 @@
 import handler from "serve-handler";
 import http from "http";
-import { App, FirewallClaims, PeerClaims } from "@pulsebeam/server/node";
+import { App, PeerPolicy, PeerClaims } from "@pulsebeam/server/node";
 
 // default values are only used for testing only!!
 const appId = process.env["PULSEBEAM_APP_ID"] || "app_e66Jb4zkt66nvlUKMRTSZ";
@@ -24,9 +24,8 @@ const server = http.createServer((request, response) => {
     }
 
     const claims = new PeerClaims(groupId, peerId);
-    const rule = new FirewallClaims("*", "*");
-    claims.setAllowIncoming0(rule);
-    claims.setAllowOutgoing0(rule);
+    const policy = new PeerPolicy("*", "*");
+    claims.setAllowPolicy(policy);
 
     const token = app.createToken(claims, 3600);
     response.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
