@@ -16,6 +16,9 @@ const server = http.createServer((request, response) => {
 
     if (!groupId || !peerId) {
       response.writeHead(400, { "Content-Type": "text/plain" });
+      // Note: depends on your application logic, for this sample, we
+      // require this information from the request. Other apps may want
+      // to define this server side.
       response.end("Bad Request - groupId and peerId are required");
       return;
     }
