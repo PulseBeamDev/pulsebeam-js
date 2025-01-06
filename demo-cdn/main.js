@@ -3,10 +3,10 @@ import http from "http";
 import { App, PeerPolicy, PeerClaims } from "@pulsebeam/server/node";
 
 // default values are only used for testing only!!
-const appId = process.env["PULSEBEAM_APP_ID"] || "app_e66Jb4zkt66nvlUKMRTSZ";
-const appSecret = process.env["PULSEBEAM_APP_SECRET"] ||
+const apiKey = process.env["PULSEBEAM_API_KEY"] || "app_e66Jb4zkt66nvlUKMRTSZ";
+const apiSecret = process.env["PULSEBEAM_API_SECRET"] ||
   "sk_7317736f8a8d075a03cdea6b6b76094ae424cbf619a8e9273e633daed3f55c38";
-const app = new App(appId, appSecret);
+const app = new App(apiKey, apiSecret);
 
 const server = http.createServer((request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
