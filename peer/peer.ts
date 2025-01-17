@@ -140,11 +140,11 @@ export interface ISession {
   // Below is PulseBeam specific functionality. Unrelated to
   //  the underlying RTCPeerConnection
 
-  /** 
-   * Retrieves the identifier of the other peer in the connection. 
+  /**
+   * Retrieves the identifier of the other peer in the connection.
    * @returns {string} The peer ID of the connected peer. Valid UTF-8 string of 1-16 characters.
    * @example ```console.log(`Connected to peer: ${session.otherPeerId()}`);```
-  */
+   */
   get otherPeerId(): string;
 
   /**
@@ -230,11 +230,11 @@ export class Peer {
    * Callback invoked when a new session is established.
    * @param _s Session object
    */
-  public onsession = (_s: ISession) => { };
+  public onsession = (_s: ISession) => {};
   /**
    * Callback invoked when the peer’s state changes.
    */
-  public onstatechange = () => { };
+  public onstatechange = () => {};
   /**
    * Identifier for the peer. Valid UTF-8 string of 1-16 characters.
    */
@@ -317,10 +317,10 @@ export class Peer {
    * Valid UTF-8 string of 1-16 characters.
    * @param {string} otherPeerID The ID of the peer you want to connect to.
    * Valid UTF-8 string of 1-16 characters.
-   * @param {AbortSignal} signal Handle cancellations or cancel the connection attempt. 
-   * @returns {Promise<void>} Resolves when the connection has been established, 
-   *                          an unrecoverable error (e.g., network connection issues, internal errors) occurs, 
-   *                          or the maximum retry attempts are reached. 
+   * @param {AbortSignal} signal Handle cancellations or cancel the connection attempt.
+   * @returns {Promise<void>} Resolves when the connection has been established,
+   *                          an unrecoverable error (e.g., network connection issues, internal errors) occurs,
+   *                          or the maximum retry attempts are reached.
    */
   connect(
     otherGroupId: string,
