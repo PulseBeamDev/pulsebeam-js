@@ -62,7 +62,7 @@ import { retry } from "./util.ts";
  * @module
  */
 
-const BASE_URL = "https://signal.pulsebeam.dev/twirp";
+const BASE_URL = "https://cloud.pulsebeam.dev/twirp";
 const PREPARE_INITIAL_DELAY_MS = 50;
 const PREPARE_MAX_RETRY = 3;
 
