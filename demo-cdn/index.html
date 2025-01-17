@@ -1,97 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>PulseBeam Demo - CDN</title>
-    <link href="https://cdn.jsdelivr.net/npm/beercss@3.8.0/dist/cdn/beer.min.css" rel="stylesheet">
-    <script type="module" src="https://cdn.jsdelivr.net/npm/beercss@3.8.0/dist/cdn/beer.min.js"></script>
-  </head>
-  <body>
-    <article class="medium middle-align center-align">
-      <div>
-        <i class="extra">person</i>
-        <h5 id="identity"></h5>
-        <p>Start chatting with another peer</p>
-        <div class="space"></div>
-        <nav class="no-space">
-          <div class="max field border left-round">
-            <input type="text" id="input">
-          </div>
-          <button class="large right-round" id="action">Connect</button>
-        </nav>
-      </div>
-    </article>
 
-    <article class="medium middle-align center-align">
-      <div>
-        <h5 id="other-identity"></h5>
-        <div class="field border">
-          <input type="text" id="data">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PulseBeam Demo - CDN</title>
+  <link href="https://cdn.jsdelivr.net/npm/beercss@3.8.0/dist/cdn/beer.min.css" rel="stylesheet">
+  <script type="module" src="https://cdn.jsdelivr.net/npm/beercss@3.8.0/dist/cdn/beer.min.js"></script>
+</head>
+
+<body>
+  <article class="medium middle-align center-align">
+    <div>
+      <i class="extra">person</i>
+      <h5 id="identity"></h5>
+      <p>Start chatting with another peer</p>
+      <div class="space"></div>
+      <nav class="no-space">
+        <div class="max field border left-round">
+          <input type="text" id="input">
         </div>
+        <button class="large right-round" id="action">Connect</button>
+      </nav>
+    </div>
+  </article>
+
+  <article class="medium middle-align center-align">
+    <div>
+      <h5 id="other-identity"></h5>
+      <div class="field border">
+        <input type="text" id="data">
       </div>
-    </article>
+    </div>
+  </article>
 
-    <script type="module">
-      import { createPeer } from "https://esm.sh/jsr/@pulsebeam/peer@0.0.7";
+  <script type="module">
+    import {createPeer} from "https://esm.sh/jsr/@pulsebeam/peer@0.0.8";
 
-      const params = new URLSearchParams(window.location.search);
-      const baseUrl = params.get("baseUrl");
-      const groupId = params.get("groupId") || "default";
-      const peerId = params.get("peerId") || `peer-${Math.floor(Math.random() * 100)}`;
-      const otherGroupId = groupId;
-      let otherPeerId = params.get("otherPeerId");
+    const params = new URLSearchParams(window.location.search);
+    const baseUrl = params.get("baseUrl");
+    const groupId = params.get("groupId") || "default";
+    const peerId = params.get("peerId") || `peer-${Math.floor(Math.random() * 100)}`;
+    const otherGroupId = groupId;
+    let otherPeerId = params.get("otherPeerId");
 
-      const refIdentity = document.querySelector("#identity");
-      const refAction = document.querySelector("#action");
-      const refInput = document.querySelector("#input");
-      const refOtherIdentity = document.querySelector("#other-identity");
-      const refData = document.querySelector("#data");
+    const refIdentity = document.querySelector("#identity");
+    const refAction = document.querySelector("#action");
+    const refInput = document.querySelector("#input");
+    const refOtherIdentity = document.querySelector("#other-identity");
+    const refData = document.querySelector("#data");
 
-      refIdentity.textContent = `groupId=${groupId} peerId=${peerId}`;
+    refIdentity.textContent = `groupId=${groupId} peerId=${peerId}`;
 
-      const resp = await fetch(`/auth?groupId=${groupId}&peerId=${peerId}`);
-      const token = await resp.text();
-      const peer = await createPeer({ groupId, peerId, token, baseUrl });
+    const resp = await fetch(`/auth?groupId=${groupId}&peerId=${peerId}`);
+    const token = await resp.text();
+    const peer = await createPeer({groupId, peerId, token, baseUrl});
 
-      peer.onsession = (sess) => {
-        const chOut = sess.createDataChannel("chat");
-        otherPeerId = sess.otherPeerId;
+    peer.onsession = (sess) => {
+      const chOut = sess.createDataChannel("chat");
+      otherPeerId = sess.otherPeerId;
 
-        chOut.onopen = () => {
-          refOtherIdentity.textContent = `connected to ${otherPeerId}`;
-          refData.addEventListener("input", (e) => {
-            chOut.send(e.target.value);
-          });
-        };
+      chOut.onopen = () => {
+        refOtherIdentity.textContent = `connected to ${otherPeerId}`;
+        refData.addEventListener("input", (e) => {
+          chOut.send(e.target.value);
+        });
+      };
 
-        sess.ondatachannel = (e) => {
-          const chIn = e.channel;
-          chIn.onmessage = ({ data }) => {
-            refData.value = data;
-          };
+      sess.ondatachannel = (e) => {
+        const chIn = e.channel;
+        chIn.onmessage = ({data}) => {
+          refData.value = data;
         };
       };
-      peer.start();
+    };
+    peer.start();
 
-      let ac = new AbortController();
-      let connecting = false;
-      action.addEventListener("click", async () => {
-        if (connecting) {
-          ac.abort();
-          ac = new AbortController();
-          refAction.textContent = "Connect"
-          connecting = false;
-          return;
-        };
+    let ac = new AbortController();
+    let connecting = false;
+    action.addEventListener("click", async () => {
+      if (connecting) {
+        ac.abort();
+        ac = new AbortController();
+        refAction.textContent = "Connect"
+        connecting = false;
+        return;
+      };
 
-        connecting = true;
-        refAction.textContent = "Cancel"
-        otherPeerId = refInput.value;
-        console.log(`connecting to ${otherGroupId}:${otherPeerId}`);
-        await peer.connect(otherGroupId, otherPeerId, ac.signal);
-      });
-    </script>
-  </body>
+      connecting = true;
+      refAction.textContent = "Cancel"
+      otherPeerId = refInput.value;
+      console.log(`connecting to ${otherGroupId}:${otherPeerId}`);
+      await peer.connect(otherGroupId, otherPeerId, ac.signal);
+    });
+  </script>
+</body>
+
 </html>
-
