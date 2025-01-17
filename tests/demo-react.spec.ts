@@ -6,7 +6,7 @@ import {
 import { Browser, expect, type Page, test } from "@playwright/test";
 
 const PULSEBEAM_BASE_URL = process.env.PULSEBEAM_BASE_URL ||
-  "https://signal.pulsebeam.dev/twirp";
+  "https://cloud.pulsebeam.dev/twirp";
 
 async function waitForStableVideo(
   page: Page,

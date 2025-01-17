@@ -188,7 +188,7 @@ export interface PeerOptions {
   token: string;
 
   /**
-   * (Optional) Base URL for API calls. Defaults to using our servers: "https://signal.pulsebeam.dev/twirp".
+   * (Optional) Base URL for API calls. Defaults to using our servers: "https://cloud.pulsebeam.dev/twirp".
    * @type {string | undefined} [baseUrl]
    */
   baseUrl?: string;
