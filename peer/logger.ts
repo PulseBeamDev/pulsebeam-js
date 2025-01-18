@@ -14,6 +14,9 @@ export const DEFAULT_LOG_SINK: LogSink = {
   ERROR: console.error,
 };
 
+// inspired by toml format, https://toml.io/en/
+// the main difference is that the fields are appended on the same line
+// to optimize readability in console.
 export const PRETTY_LOG_SINK: LogSink = {
   DEBUG: (o) => console.debug(pretty(o)),
   INFO: (o) => console.info(pretty(o)),
