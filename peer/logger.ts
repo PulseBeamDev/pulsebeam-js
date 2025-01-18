@@ -1,11 +1,11 @@
 type LogObj = Record<string, unknown>;
 type LogHandler = (_obj: LogObj) => void;
 type LogSink = {
-  "DEBUG": LogHandler,
-  "INFO": LogHandler,
-  "WARN": LogHandler,
-  "ERROR": LogHandler,
-}
+  "DEBUG": LogHandler;
+  "INFO": LogHandler;
+  "WARN": LogHandler;
+  "ERROR": LogHandler;
+};
 
 export const DEFAULT_LOG_SINK: LogSink = {
   DEBUG: console.debug,
@@ -21,15 +21,20 @@ export const PRETTY_LOG_SINK: LogSink = {
   ERROR: (o) => console.error(pretty(o)),
 };
 
-export function flatten(obj: LogObj, pairs: Record<string, string[]>, parentKey = "root", visited = new Set<LogObj>) {
-  const sep = '.';
+export function flatten(
+  obj: LogObj,
+  pairs: Record<string, string[]>,
+  parentKey = "root",
+  visited = new Set<LogObj>(),
+) {
+  const sep = ".";
   if (visited.has(obj)) return; // Stop if already visited
   visited.add(obj);
 
   for (const key in obj) {
-    if (typeof obj[key] === 'object' && obj[key] !== null) {
+    if (typeof obj[key] === "object" && obj[key] !== null) {
       const newKey = parentKey + sep + key;
-      flatten(obj[key] as LogObj, pairs, newKey);
+      flatten(obj[key] as LogObj, pairs, newKey, visited);
     } else {
       const p = pairs[parentKey] || [];
       p.push(`${key}=${obj[key]}`);
@@ -44,9 +49,9 @@ export function pretty(obj: LogObj) {
 
   const lines: string[] = [];
   for (const k in pairs) {
-    lines.push(`[${k}] ${pairs[k].join(' ')}`);
+    lines.push(`[${k}] ${pairs[k].join(" ")}`);
   }
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 export class Logger {
@@ -91,6 +96,10 @@ export class Logger {
 
   sub(name: string, obj?: LogObj): Logger {
     if (!obj) obj = {};
-    return new Logger(this.name + "." + name, { ...this.obj, ...obj }, this.sink);
+    return new Logger(
+      this.name + "." + name,
+      { ...this.obj, ...obj },
+      this.sink,
+    );
   }
 }
