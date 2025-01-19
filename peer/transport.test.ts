@@ -250,11 +250,24 @@ describe("transport", () => {
     await waitFor(() => streamCountA > 0 && streamCountB > 0);
     await asleep(100);
 
+    let closeCountA = 0;
+    let closeCountB = 0;
+    peerA.onclosed = () => {
+      closeCountA++;
+    };
+    peerB.onclosed = () => {
+      closeCountB++;
+    };
+
     peerA.close();
     peerB.close();
 
     expect(streamCountA).toBe(1);
     expect(streamCountB).toBe(1);
     expect(payloadCountA).toBe(1);
+
+    await asleep(100);
+    expect(closeCountA).toBe(1);
+    expect(closeCountB).toBe(1);
   });
 });

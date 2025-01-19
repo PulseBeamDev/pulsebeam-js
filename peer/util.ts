@@ -1,12 +1,17 @@
-export function asleep(ms: number, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const timeoutId = setTimeout(resolve, ms);
+/**
+ * asleep is an async version of setTimeout with abortable signal.
+ * the function will resolve to false when aborted, meaning the delay will
+ * be less than the expected.
+ */
+export function asleep(ms: number, signal?: AbortSignal): Promise<boolean> {
+  return new Promise((resolve) => {
+    const timeoutId = setTimeout(() => resolve(true), ms);
 
     // If an AbortSignal is provided, listen for the 'abort' event
     if (signal) {
       signal.addEventListener("abort", () => {
         clearTimeout(timeoutId); // Cancel the delay
-        reject(new Error(signal.reason));
+        resolve(false);
       });
     }
   });
@@ -41,7 +46,7 @@ export type RetryOptions = {
 
 export async function retry<T>(
   asyncFunction: () => Promise<T>,
-  options: RetryOptions
+  options: RetryOptions,
 ): Promise<T | null> {
   const {
     maxRetries,
@@ -78,7 +83,7 @@ export async function retry<T>(
     return null;
   }
 
-  throw new Error('Retry failed: max retries exceeded'); // This is a fallback; should rarely occur
+  throw new Error("Retry failed: max retries exceeded"); // This is a fallback; should rarely occur
 }
 
 // Helper to calculate exponential backoff with jitter
@@ -86,7 +91,7 @@ function calculateDelay(
   attempt: number,
   baseDelay: number,
   maxDelay: number,
-  jitterFactor: number
+  jitterFactor: number,
 ): number {
   const exponentialDelay = Math.min(baseDelay * 2 ** (attempt - 1), maxDelay);
   const jitter = Math.random() * jitterFactor * exponentialDelay;

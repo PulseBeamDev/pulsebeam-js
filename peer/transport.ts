@@ -14,6 +14,8 @@ const POLL_TIMEOUT_MS = 60000;
 const POLL_RETRY_BASE_DELAY_MS = 50;
 const POLL_RETRY_MAX_DELAY_MS = 1000;
 const MAX_RELIABLE_RETRY_COUNT = 5;
+const STREAM_GC_DELAY_MS = 30_000; // just enough to avoid collision
+const STREAM_GC_INTERVAL_MS = 5_000;
 
 export enum ReservedConnId {
   Discovery = 0,
@@ -138,6 +140,23 @@ export class Transport {
   }
 
   async listen() {
+    await Promise.all([
+      this.pollLoop(),
+      this.gcLoop(),
+    ]);
+  }
+
+  async gcLoop() {
+    while (!this.abort.signal.aborted) {
+      // use cooldown period to fully close. Otherwise, there's a chance that the other peer is
+      // still sending some messages. In which case, we need to still ignore for some time until completely quiet.
+      this.streams = this.streams.filter((s) => !s.isClosed());
+      await asleep(STREAM_GC_INTERVAL_MS, this.abort.signal);
+    }
+    this.logger.debug("gc loop is closed");
+  }
+
+  async pollLoop() {
     const rpcOpt: RpcOptions = {
       abort: this.abort.signal,
       timeout: POLL_TIMEOUT_MS,
@@ -168,7 +187,7 @@ export class Transport {
         return;
       }
     }
-    this.logger.debug("connection closed");
+    this.logger.debug("poll loop is closed");
   }
 
   async close(reason?: string) {
@@ -178,6 +197,7 @@ export class Transport {
     this.abort.abort(reason);
     this.logger.debug("transport is now closed", { reason });
     this.streams = [];
+    this.onclosed(reason);
   }
 
   private handleMessages = (msgs: Message[]) => {
@@ -230,7 +250,7 @@ export class Transport {
         this.onstream(stream);
       }
 
-      stream.recvq.enqueue(msg);
+      stream.enqueue(msg);
     }
   };
 
@@ -303,15 +323,6 @@ export class Transport {
       return;
     }
   }
-
-  onstreamclosed(closed: Stream) {
-    // TODO: use cooldown period to fully close. Otherwise, there's a chance that the other peer is
-    // still sending some messages. In which case, we need to still ignore for some time until completely quiet.
-
-    // streams are created by transport. Thus, its object reference is the same.
-    this.streams = this.streams.filter((s) => s != closed);
-    this.logger.debug("stream has been closed", { streams: this.streams });
-  }
 }
 
 // Stream allows multiplexing on top of Transport, and
@@ -325,6 +336,7 @@ export class Stream {
   public readonly peerId: string;
   public readonly connId: number;
   private lastSeqnum: number;
+  private closedAt: number;
   public onpayload = async (_: MessagePayload) => { };
   public onclosed = (_reason: string) => { };
 
@@ -348,10 +360,32 @@ export class Stream {
     this.recvq = new Queue(this.logger);
     this.recvq.onmsg = (msg) => this.handleMessage(msg);
     this.lastSeqnum = 0;
+    this.closedAt = 0;
   }
 
   createSignal(...signals: AbortSignal[]): AbortSignal {
     return joinSignals(this.abort.signal, ...signals);
+  }
+
+  isClosed(): boolean {
+    const closed = this.abort.signal.aborted &&
+      (performance.now() - this.closedAt) > STREAM_GC_DELAY_MS;
+
+    if (closed) {
+      this.logger.debug("stream is ready for GC");
+    }
+    return closed;
+  }
+
+  enqueue(msg: Message) {
+    if (this.abort.signal.aborted) {
+      this.logger.warn(
+        "received a message in closed state, ignoring new messages.",
+      );
+      return;
+    }
+
+    this.recvq.enqueue(msg);
   }
 
   async send(payload: MessagePayload, reliable: boolean, signal?: AbortSignal) {
@@ -469,7 +503,7 @@ export class Stream {
       this.logger.warn("failed to send bye", { e: err })
     );
     this.abort.abort(reason);
-    this.transport.onstreamclosed(this);
+    this.closedAt = performance.now();
     this.onclosed(reason);
     this.logger.debug("sent bye to the other peer", { reason });
   }
