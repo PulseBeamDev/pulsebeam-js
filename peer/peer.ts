@@ -8,6 +8,7 @@ import {
   TwirpFetchTransport,
 } from "@protobuf-ts/twirp-transport";
 import { retry } from "./util.ts";
+import { jwtDecode } from "jwt-decode";
 
 /**
  * Streamline real-time application development.`@pulsebeam/peer` abstracts
@@ -159,15 +160,15 @@ export interface ISession {
 
 /**
  * Options used to configure a Peer.
- * @interface PeerOptions
+ * @interface PeerOptionsFull
  * @example```
- * const options: PeerOptions = {
+ * const options: PeerOptionsFull = {
  *   groupId: "group-123", // Valid UTF-8 strings of 1-16 characters.
  *   peerId: "peer-456",   // Valid UTF-8 strings of 1-16 characters.
  *   token: "eyJhbGc...49nLmBCg"
  * };```
  */
-export interface PeerOptions {
+export interface PeerOptionsFull {
   /**
    * Identifier for the group which the peer belongs to. Must be a valid UTF-8
    * string of 1-16 characters.
@@ -205,6 +206,8 @@ export interface PeerOptions {
    */
   iceServers?: RTCIceServer[];
 }
+
+export type PeerOptions = Omit<PeerOptionsFull, "groupId" | "peerId">;
 
 /**
  * Represents the possible states for a Peer.
@@ -250,7 +253,7 @@ export class Peer {
   constructor(
     logger: Logger,
     client: ITunnelClient,
-    opts: PeerOptions,
+    opts: PeerOptionsFull,
     isRecoverable: (_err: unknown) => boolean,
   ) {
     this.peerId = opts.peerId;
@@ -315,7 +318,7 @@ export class Peer {
    * @async
    * @param {string} otherGroupId The ID of the group the other peer belongs to.
    * Valid UTF-8 string of 1-16 characters.
-   * @param {string} otherPeerID The ID of the peer you want to connect to.
+   * @param {string} otherPeerId The ID of the peer you want to connect to.
    * Valid UTF-8 string of 1-16 characters.
    * @param {AbortSignal} signal Handle cancellations or cancel the connection attempt.
    * @returns {Promise<void>} Resolves when the connection has been established,
@@ -367,6 +370,11 @@ function isTwirpRecoverable(err: unknown): boolean {
   }
 
   return !TWIRP_FATAL_ERRORS.includes(err.code);
+}
+
+interface JwtClaims {
+  gid: string;
+  pid: string;
 }
 
 /**
@@ -421,10 +429,17 @@ export async function createPeer(opts: PeerOptions): Promise<Peer> {
       credential: s.credential,
     });
   }
+  const decoded = jwtDecode<JwtClaims>(token);
+  const optsFull: PeerOptionsFull = {
+    ...opts,
+    "iceServers": iceServers,
+    groupId: decoded.gid,
+    peerId: decoded.pid,
+  };
   const peer = new Peer(
     new Logger("pulsebeam", undefined, PRETTY_LOG_SINK),
     client,
-    { ...opts, "iceServers": iceServers },
+    optsFull,
     isTwirpRecoverable,
   );
   return peer;

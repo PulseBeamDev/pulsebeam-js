@@ -1,7 +1,7 @@
-import { createRoot } from 'react-dom/client'
+import { createRoot } from "react-dom/client";
 // @ts-ignore: no type
 import GetUserMediaMock from "@theopenweb/get-user-media-mock";
-import App from './App.tsx'
+import App from "./App.tsx";
 
 const urlParams = new URLSearchParams(window.location.search);
 // @ts-ignore: no type
@@ -16,6 +16,6 @@ if (urlParams.get("mock") !== null) {
   console.log("fallback mock");
 }
 
-createRoot(document.getElementById('root')!).render(
-  <App />
-)
+createRoot(document.getElementById("root")!).render(
+  <App />,
+);

@@ -47,8 +47,6 @@ export const usePeerStore = create<PeerState>((set, get) => ({
       const token = await resp.text();
       const p = await createPeer({
         baseUrl: baseUrl || undefined,
-        groupId: DEFAULT_GROUP,
-        peerId,
         token,
         forceRelay: forceRelay != null,
       });
