@@ -3,5 +3,6 @@
 install:
 	npm install
 
-e2e:
+test:
+	$(MAKE) -C peer
 	npx playwright test --project=local

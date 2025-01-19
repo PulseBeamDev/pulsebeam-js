@@ -1,0 +1,3 @@
+
+test: 
+	npx vitest run
