@@ -6,18 +6,18 @@ import {
   type TransportOptions,
 } from "./transport.ts";
 import {
+  type Message,
   PrepareReq,
   PrepareResp,
-  type Message,
   type RecvReq,
-  type RecvResp,
+  RecvResp,
   type SendReq,
-  type SendResp,
+  SendResp,
 } from "./tunnel.ts";
 import { type ITunnelClient, TunnelClient } from "./tunnel.client.ts";
 import type { UnaryCall } from "@protobuf-ts/runtime-rpc";
 import type { RpcOptions } from "@protobuf-ts/runtime-rpc";
-import { Logger } from "./logger.ts";
+import { Logger, PRETTY_LOG_SINK } from "./logger.ts";
 import { asleep } from "./util.ts";
 
 async function waitFor(
@@ -37,65 +37,117 @@ async function waitFor(
   throw new Error(`waitFor: condition not met within ${timeout}ms`);
 }
 
-class MockClient implements ITunnelClient {
-  private readonly queues: Record<string, Message[]>;
+class Channel<T> {
+  private queue: T[];
 
-  constructor(private readonly groupId: string, private readonly peerId: string) {
-    this.queues = {};
+  constructor(private readonly logger: Logger) {
+    this.queue = [];
+  }
+
+  send(value: T) {
+    this.queue.push(value);
+    this.logger.info("push", { length: this.queue.length });
+  }
+
+  async receive(signal?: AbortSignal): Promise<T[]> {
+    this.logger.info("checking queue");
+    if (!signal) {
+      const ac = new AbortController();
+      signal = ac.signal;
+      setTimeout(ac.abort, 1000);
+    }
+
+    while (!signal.aborted && this.queue.length === 0) {
+      this.logger.info("queue state", { length: this.queue.length });
+      await asleep(50);
+    }
+
+    this.logger.info("queue filled", { length: this.queue.length });
+    const msgs = this.queue;
+    this.queue = [];
+    return msgs;
+  }
+}
+
+class SharedState {
+  private readonly queues: Map<string, Channel<Message>>;
+
+  constructor(
+    private readonly logger: Logger,
+  ) {
+    this.queues = new Map();
   }
 
   getq(id: string) {
-    const q = this.queues[id] || [];
-    this.queues[id] = q;
+    let q = this.queues.get(id);
+    if (!q) {
+      q = new Channel(this.logger.sub("queue", { id }));
+      this.queues.set(id, q);
+      this.logger.info("new queue", {
+        id,
+        queues: this.queues.size,
+      });
+    }
+
     return q;
   }
+}
 
-  prepare(_input: PrepareReq, _options?: RpcOptions): UnaryCall<PrepareReq, PrepareResp> {
+class MockClient implements ITunnelClient {
+  constructor(
+    private readonly logger: Logger,
+    private readonly groupId: string,
+    private readonly peerId: string,
+    private readonly state: SharedState,
+  ) { }
+
+  prepare(
+    _input: PrepareReq,
+    _options?: RpcOptions,
+  ): UnaryCall<PrepareReq, PrepareResp> {
     // @ts-ignore: mock obj
     return null;
   }
 
-  send(input: SendReq, _options?: RpcOptions): UnaryCall<SendReq, SendResp> {
+  send(
+    input: SendReq,
+    _options?: RpcOptions,
+  ): UnaryCall<SendReq, SendResp> {
     const msg = input.msg!;
     const hdr = msg.header!;
-    const id = `${hdr.groupId}:${hdr.peerId}:${hdr.connId}`;
-    const otherId = `${hdr.groupId}:${hdr.otherPeerId}:${hdr.otherConnId}`;
-    this.getq(otherId).push(msg);
-
-    const recv = this.getq(id).pop();
-    const msgs: Message[] = [];
-    if (recv) msgs.push(recv);
+    const otherId = `${hdr.groupId}:${hdr.otherPeerId}`;
+    this.state.getq(otherId).send(msg);
 
     // @ts-ignore: mock obj
-    return Promise.resolve({ response: { msgs } });
+    return Promise.resolve({}).then((response) => ({
+      response,
+    }));
   }
 
   recv(input: RecvReq, options?: RpcOptions): UnaryCall<RecvReq, RecvResp> {
-    const id = `${this.groupId}:${this.peerId}:${input.info?.connId}`;
-    const discoveryId = `${this.groupId}:${this.peerId}:${ReservedConnId.Discovery}`;
-    const msgs: Message[] = [];
-    const resp = { response: { msgs } };
-    const signal = options?.abort;
-
+    const id = `${this.groupId}:${this.peerId}`;
+    let recvTask = this.state.getq(id).receive(options?.abort);
     // @ts-ignore: mock obj
-    return waitFor(
-      () => {
-        let recv = this.getq(id).pop();
-        if (recv) msgs.push(recv);
-        recv = this.getq(discoveryId).pop();
-        if (recv) msgs.push(recv);
-        const aborted = !!signal && signal.aborted;
-        return msgs.length > 0 || aborted;
+    return recvTask.then((msgs) => ({
+      response: {
+        msgs,
       },
-    )
-      .catch(() => resp)
-      .then(() => resp);
+    }));
   }
 }
 
-function createClient(groupId: string, peerId: string, mock: boolean): ITunnelClient {
-  if (mock) {
-    return new MockClient(groupId, peerId);
+function createClient(
+  groupId: string,
+  peerId: string,
+  state?: SharedState,
+): ITunnelClient {
+  if (state) {
+    return new MockClient(
+      new Logger("MockClient", {}, PRETTY_LOG_SINK),
+      groupId,
+      peerId,
+      state,
+    );
   }
 
   const twirp = new TwirpFetchTransport({
@@ -117,13 +169,43 @@ describe("util", () => {
   });
 });
 
+describe("channel", () => {
+  it("should send and receive all messages", async () => {
+    const logger = new Logger("channel_test", {}, PRETTY_LOG_SINK);
+    const ch = new Channel<number>(logger);
+    ch.send(1);
+    ch.send(2);
+
+    const res = await ch.receive();
+    expect(res.length).toBe(2);
+    expect(res[0]).toBe(1);
+    expect(res[1]).toBe(2);
+  });
+
+  it("should send and receive all messages with async", async () => {
+    const logger = new Logger("channel_test", {}, PRETTY_LOG_SINK);
+    const ch = new Channel<number>(logger);
+
+    setTimeout(() => {
+      ch.send(1);
+      ch.send(2);
+    }, 100);
+
+    const res = await ch.receive();
+    expect(res.length).toBe(2);
+    expect(res[0]).toBe(1);
+    expect(res[1]).toBe(2);
+  });
+});
+
 describe("transport", () => {
   afterEach(() => asleep(100)); // make sure all timers have exited
 
   it("should receive join", async () => {
-    const logger = new Logger("test", {});
-    const clientA = createClient("default", "peerA", true);
-    const clientB = createClient("default", "peerB", true);
+    const logger = new Logger("test", {}, PRETTY_LOG_SINK);
+    const state = new SharedState(logger.sub("state"));
+    const clientA = createClient("default", "peerA", state);
+    const clientB = createClient("default", "peerB", state);
     const opts: TransportOptions = {
       enableDiscovery: false,
       groupId: "default",
