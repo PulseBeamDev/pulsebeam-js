@@ -80,21 +80,24 @@ export const usePeerStore = create<PeerState>((set, get) => ({
           }
         };
 
-        const localStream = get().localStream;
-        if (localStream) {
-          localStream.getTracks().forEach((track) =>
-            s.addTrack(track, localStream)
-          );
-        }
+        s.close();
+        return;
 
-        set(produce((state: PeerState) => {
-          state.sessions[id] = {
-            key: performance.now(),
-            sess: s,
-            loading: true,
-            remoteStream: null,
-          };
-        }));
+        // const localStream = get().localStream;
+        // if (localStream) {
+        //   localStream.getTracks().forEach((track) =>
+        //     s.addTrack(track, localStream)
+        //   );
+        // }
+        //
+        // set(produce((state: PeerState) => {
+        //   state.sessions[id] = {
+        //     key: performance.now(),
+        //     sess: s,
+        //     loading: true,
+        //     remoteStream: null,
+        //   };
+        // }));
       };
 
       p.onstatechange = () => {

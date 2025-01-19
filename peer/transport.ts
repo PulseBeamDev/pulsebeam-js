@@ -5,9 +5,7 @@ import type {
   MessagePayload,
   PeerInfo,
 } from "./tunnel.ts";
-import {
-  ITunnelClient,
-} from "./tunnel.client.ts";
+import { ITunnelClient } from "./tunnel.client.ts";
 import type { Logger } from "./logger.ts";
 import { asleep, joinSignals, retry, RetryOptions } from "./util.ts";
 import { RpcOptions } from "@protobuf-ts/runtime-rpc";
@@ -154,9 +152,10 @@ export class Transport {
 
     while (!this.abort.signal.aborted) {
       try {
-        const resp = await retry(async () => await this.client.recv({
-          info: this.info,
-        }, rpcOpt), retryOpt);
+        const resp = await retry(async () =>
+          await this.client.recv({
+            info: this.info,
+          }, rpcOpt), retryOpt);
         if (resp === null) {
           break;
         }
@@ -235,7 +234,11 @@ export class Transport {
     }
   };
 
-  async connect(otherGroupId: string, otherPeerId: string, signal: AbortSignal) {
+  async connect(
+    otherGroupId: string,
+    otherPeerId: string,
+    signal: AbortSignal,
+  ) {
     const payload: MessagePayload = {
       payloadType: {
         oneofKind: "join",
@@ -283,14 +286,16 @@ export class Transport {
     };
 
     try {
-      const resp = await retry(async () => await this.client.send(
-        { msg }, rpcOpt), retryOpt);
+      const resp = await retry(async () =>
+        await this.client.send(
+          { msg },
+          rpcOpt,
+        ), retryOpt);
       if (resp === null) {
         this.logger.warn("aborted, message dropped from sending", { msg });
         return;
       }
 
-      this.logger.debug("sent", { msg });
       return;
     } catch (err) {
       this.logger.error("unrecoverable error, force closing", { err });
@@ -383,7 +388,9 @@ export class Stream {
     while (!signal.aborted) {
       await this.transport.send(this.abort.signal, msg);
 
-      await this.transport.asleep(5 * POLL_RETRY_MAX_DELAY_MS, this.abort.signal
+      await this.transport.asleep(
+        5 * POLL_RETRY_MAX_DELAY_MS,
+        this.abort.signal,
       ).catch(() => { });
 
       // since ackedbuf doesn't delete the seqnum right away, it prevents from racing between
@@ -458,7 +465,9 @@ export class Stream {
         oneofKind: "bye",
         bye: {},
       },
-    }, false).catch(err => this.logger.warn("failed to send bye", { e: err }));
+    }, false).catch((err) =>
+      this.logger.warn("failed to send bye", { e: err })
+    );
     this.abort.abort(reason);
     this.transport.onstreamclosed(this);
     this.onclosed(reason);
