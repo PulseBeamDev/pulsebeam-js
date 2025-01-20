@@ -23,23 +23,6 @@ Import symbol
 
 `import * as peer from "@pulsebeam/peer";`
 
-
-### Use with Deno
-
-Add Package
-
-`deno add jsr:@pulsebeam/peer`
-
-Import symbol
-
-`import * as peer from "@pulsebeam/peer";`
-
----- OR ----
-
-Import directly with a jsr specifier
-
-`import * as peer from "jsr:@pulsebeam/peer";`
-
 ### Use with Yarn
 
 Add Package
