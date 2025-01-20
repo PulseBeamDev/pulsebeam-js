@@ -1,5 +1,8 @@
 .PHONY: e2e
 
+bump:
+	$(MAKE) -C peer bump
+
 install:
 	npm install
 
