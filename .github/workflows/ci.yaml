@@ -8,6 +8,13 @@ on:
   pull_request:
     branches: ['main']
 
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v1.2.3)'
+        required: false
+        default: ''
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
@@ -18,6 +25,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.inputs.tag || github.ref }}
     - uses: actions/setup-node@v4
       with:
         node-version: lts/*
