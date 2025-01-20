@@ -1,7 +1,7 @@
-VERSION := $(shell git describe --tags --abbrev=0)
+VERSION := 0.0.0
 
 bump:
-	bash bump.bash
+	bash bump.bash ${VERSION} 
 
 test: 
 	npx vitest run

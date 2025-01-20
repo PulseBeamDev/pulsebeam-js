@@ -1,7 +1,7 @@
 .PHONY: e2e
 
 bump:
-	$(MAKE) -C peer bump
+	$(MAKE) -C peer bump VERSION=$(VERSION)
 
 install:
 	npm install
