@@ -22,6 +22,9 @@ if ! git diff-index --quiet HEAD --; then
   exit 1
 fi
 
+git fetch origin
+git log origin/main..HEAD
+
 read -p "Are you sure to bump version to ${version}? " -n 1 -r
 echo # (optional) move to a new line
 if ! [[ $REPLY =~ ^[Yy]$ ]]; then
