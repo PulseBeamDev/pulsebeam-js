@@ -33,10 +33,10 @@ async function waitForStableVideo(
       expect(await video.evaluate((v: HTMLVideoElement) => v.readyState)).toBe(
         4,
       );
-      await page.waitForTimeout(delayMs).catch(() => {});
+      await page.waitForTimeout(delayMs).catch(() => { });
       return;
     } catch (_e) {
-      await page.waitForTimeout(1000).catch(() => {});
+      await page.waitForTimeout(1000).catch(() => { });
     }
   }
 
@@ -73,20 +73,21 @@ function getAllPairs<T>(list: T[]): [T, T][] {
 }
 
 test.describe("basic", () => {
-  // const browserNames = ["chromium", "chrome", "msedge"];
-  const browserNames = ["chromium"];
+  const browserNames = ["chromium", "firefox", "webkit"];
   const browsers: Record<string, Browser> = {};
   const pairs: [string, string][] = getAllPairs(browserNames);
 
   test.beforeAll(async () => {
-    const [chromium] = await Promise.all([
+    const [chromium, firefox] = await Promise.all([
       bChromium.launch({}),
-      // bChromium.launch({ ...chromiumFake, channel: "msedge" }),
+      bFirefox.launch(),
+      // webkit still doesn't allow fake webcam
+      // https://github.com/microsoft/playwright/issues/2973
       // bWebkit.launch(),
     ]);
 
     browsers["chromium"] = chromium;
-    // browsers["msedge"] = msedge;
+    browsers["firefox"] = firefox;
     // browsers["webkit"] = webkit;
   });
 
