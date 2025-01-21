@@ -65,8 +65,8 @@ jobs:
           publish: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: npm ci
-      - run: npm run publish
+      - run: make ci
+      - run: make publish
 
   publish_e2e_docker:
     runs-on: ubuntu-24.04
