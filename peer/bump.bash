@@ -12,8 +12,19 @@ if ! echo ${version} | grep -Eo '[0-9]{1,}.[0-9]{1,}.[0-9]{1,}'; then
   exit 1
 fi
 
+if ! [[ "$(git branch --show-current)" == "main" ]]; then
+  echo "bumping version has to be based on main"
+  exit 1
+fi
+
 if ! git diff-index --quiet HEAD --; then
   echo "Error: Git working directory is dirty. Please commit or stash your changes before proceeding."
+  exit 1
+fi
+
+read -p "Are you sure to bump version to ${version}? " -n 1 -r
+echo # (optional) move to a new line
+if ! [[ $REPLY =~ ^[Yy]$ ]]; then
   exit 1
 fi
 
@@ -27,6 +38,6 @@ git add .
 git commit -m "[peer] bump to ${version}"
 git tag ${version_tag}
 
-echo "version bump has been commited and tagged, use these commands to upload them:"
-echo "git push origin main"
-echo "git push origin --tags"
+echo "version bump has been commited and tagged"
+git push origin main
+git push origin refs/tags/${version_tag}
