@@ -7,7 +7,7 @@ tmp=__tmp.json
 version=${1}
 version_tag="v${version}"
 
-if ! echo ${version} | grep -Eo '[0-9]{1,}.[0-9]{1,}.[0-9]{1,}'; then
+if ! echo ${version} | grep -Eo '^[0-9]{1,}.[0-9]{1,}.[0-9]{1,}'; then
   echo "VERSION must be in semver format"
   exit 1
 fi
