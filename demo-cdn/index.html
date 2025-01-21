@@ -35,7 +35,7 @@
   </article>
 
   <script type="module">
-    import {createPeer} from "https://esm.sh/jsr/@pulsebeam/peer@0.0.8";
+    import {createPeer} from "https://esm.sh/jsr/@pulsebeam/peer@0.0.11";
 
     const params = new URLSearchParams(window.location.search);
     const baseUrl = params.get("baseUrl");
@@ -54,7 +54,7 @@
 
     const resp = await fetch(`/auth?groupId=${groupId}&peerId=${peerId}`);
     const token = await resp.text();
-    const peer = await createPeer({groupId, peerId, token, baseUrl});
+    const peer = await createPeer({token, baseUrl});
 
     peer.onsession = (sess) => {
       const chOut = sess.createDataChannel("chat");
