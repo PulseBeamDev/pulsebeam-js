@@ -75,7 +75,8 @@ export class Session {
   /**
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/onconnectionstatechange}
    */
-  public onconnectionstatechange: RTCPeerConnection["onconnectionstatechange"] = () => { };
+  public onconnectionstatechange: RTCPeerConnection["onconnectionstatechange"] =
+    () => { };
 
   /**
    * Callback invoked when a new media track is added to the connection.
@@ -105,12 +106,14 @@ export class Session {
    * Creates a data channel (useful for sending arbitrary data) through the connection.
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/createDataChannel}
    */
-  createDataChannel(...args: Parameters<RTCPeerConnection["createDataChannel"]>): RTCDataChannel {
+  createDataChannel(
+    ...args: Parameters<RTCPeerConnection["createDataChannel"]>
+  ): RTCDataChannel {
     return this.pc.createDataChannel(...args);
   }
 
   /**
-   * Returns the current connection state of the underlying RTCPeerConnection 
+   * Returns the current connection state of the underlying RTCPeerConnection
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/connectionState}
    * @returns {RTCPeerConnectionState}
    */
@@ -126,15 +129,15 @@ export class Session {
     return this._closeReason;
   }
 
-  /** 
-   * Retrieves the identifier of the other peer. 
+  /**
+   * Retrieves the identifier of the other peer.
    * @returns {string}
-  */
+   */
   get otherPeerId(): string {
     return this.stream.otherPeerId;
-  };
+  }
 
-  /** 
+  /**
    * Retrieves the connection identifier for the connection to the other peer.
    *  Connection ids are usually unique.
    * @returns {number}
@@ -166,7 +169,9 @@ export class Session {
     const closeEvent = new Event("connectionstatechange");
     this.setConnectionState("closed", closeEvent);
 
-    this.logger.debug("session closed", { connectionState: this.connectionState });
+    this.logger.debug("session closed", {
+      connectionState: this.connectionState,
+    });
   }
 
   /**
@@ -211,11 +216,11 @@ export class Session {
       const remote: unknown[] = [];
       // https://developer.mozilla.org/en-US/docs/Web/API/RTCStatsReport#the_statistic_types
       stats.forEach((report: RTCStats) => {
-        if (report.type === 'candidate-pair') {
+        if (report.type === "candidate-pair") {
           pair.push(report);
-        } else if (report.type === 'local-candidate') {
+        } else if (report.type === "local-candidate") {
           local.push(report);
-        } else if (report.type === 'remote-candidate') {
+        } else if (report.type === "remote-candidate") {
           remote.push(report);
         }
       });
@@ -267,7 +272,7 @@ export class Session {
             payloadType: {
               oneofKind: "join",
               join: {},
-            }
+            },
           }, true);
           return;
         }
@@ -372,7 +377,7 @@ export class Session {
     this.generationCounter++;
     this.iceRestartCount++;
     this.lastIceRestart = performance.now();
-  }
+  };
 
   private sendSignal = (signal: Omit<Signal, "generationCounter">) => {
     this.stream.send({
@@ -487,7 +492,9 @@ export class Session {
       "have-local-offer",
       "have-remote-offer",
     ];
-    if (!safeStates.includes(this.pc.signalingState) || !this.pc.remoteDescription) {
+    if (
+      !safeStates.includes(this.pc.signalingState) || !this.pc.remoteDescription
+    ) {
       this.logger.debug("wait for adding pending candidates", {
         signalingState: this.pc.signalingState,
         iceConnectionState: this.pc.iceConnectionState,
@@ -503,10 +510,13 @@ export class Session {
         continue;
       }
 
-      // intentionally not awaiting, otherwise we might be in a different state than we originally 
+      // intentionally not awaiting, otherwise we might be in a different state than we originally
       // checked.
-      this.pc.addIceCandidate(candidate).catch(e => {
-        this.logger.warn("failed to add candidate, skipping.", { candidate, e });
+      this.pc.addIceCandidate(candidate).catch((e) => {
+        this.logger.warn("failed to add candidate, skipping.", {
+          candidate,
+          e,
+        });
       });
       this.logger.debug(`added ice: ${candidate.candidate}`);
     }
