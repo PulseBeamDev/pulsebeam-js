@@ -233,11 +233,11 @@ export class Peer {
    * Callback invoked when a new session is established.
    * @param _s Session object
    */
-  public onsession = (_s: ISession) => {};
+  public onsession = (_s: ISession) => { };
   /**
    * Callback invoked when the peer’s state changes.
    */
-  public onstatechange = () => {};
+  public onstatechange = () => { };
   /**
    * Identifier for the peer. Valid UTF-8 string of 1-16 characters.
    */

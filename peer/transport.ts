@@ -191,6 +191,7 @@ export class Transport {
   }
 
   async close(reason?: string) {
+    if (this.abort.signal.aborted) return;
     reason = reason || "transport is closed";
     await Promise.all(this.streams.map((s) => s.close(reason)));
     // Give a chance for graceful shutdown before aborting the connection
