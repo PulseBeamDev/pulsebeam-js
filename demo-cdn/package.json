@@ -16,7 +16,7 @@
   "keywords": [],
   "description": "",
   "dependencies": {
-    "@pulsebeam/server": "npm:@jsr/pulsebeam__server@^0.0.16",
+    "@pulsebeam/server": "^0.0.20",
     "serve-handler": "^6.1.6"
   }
 }
