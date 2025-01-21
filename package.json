@@ -13,6 +13,7 @@
   "homepage": "https://pulsebeam.dev",
   "dependencies": {
     "@playwright/test": "^1.49.1",
+    "@pulsebeam/peer": "^0.0.14",
     "playwright": "^1.49.1",
     "ts-node": "^10.9.2"
   }
