@@ -73,6 +73,7 @@ jobs:
       - working-directory: ./peer
         run: |
           npx jsr publish --allow-slow-types
+          npm run build
           npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
