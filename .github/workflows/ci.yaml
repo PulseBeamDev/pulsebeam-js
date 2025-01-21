@@ -70,8 +70,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: npm ci
-      - run: npx jsr publish --allow-slow-types
-      - run: npm publish --provenance --access public
+      - working-directory: ./peer
+        run: |
+          npx jsr publish --allow-slow-types
+          npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
