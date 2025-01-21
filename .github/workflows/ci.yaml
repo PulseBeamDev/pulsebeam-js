@@ -65,6 +65,7 @@ jobs:
           publish: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: npm ci
       - run: npx jsr publish
 
   publish_e2e_docker:
