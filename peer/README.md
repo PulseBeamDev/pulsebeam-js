@@ -17,7 +17,7 @@ Install and import the package using npm, deno, or yarn:
 
 Add Package
 
-`npx jsr add @pulsebeam/peer`
+`npm i @pulsebeam/peer`
 
 Import symbol
 
@@ -27,7 +27,7 @@ Import symbol
 
 Add Package
 
-`yarn dlx jsr add @pulsebeam/peer`
+`yarn add @pulsebeam/peer`
 
 Import symbol
 
