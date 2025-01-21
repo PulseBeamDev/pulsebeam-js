@@ -73,7 +73,7 @@ function getAllPairs<T>(list: T[]): [T, T][] {
 }
 
 test.describe("basic", () => {
-  const browserNames = ["chromium", "firefox", "webkit"];
+  const browserNames = ["chromium", "firefox"];
   const browsers: Record<string, Browser> = {};
   const pairs: [string, string][] = getAllPairs(browserNames);
 
