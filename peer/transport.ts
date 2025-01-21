@@ -14,8 +14,8 @@ const POLL_TIMEOUT_MS = 60000;
 const POLL_RETRY_BASE_DELAY_MS = 50;
 const POLL_RETRY_MAX_DELAY_MS = 1000;
 const MAX_RELIABLE_RETRY_COUNT = 5;
-const STREAM_GC_DELAY_MS = 30_000; // just enough to avoid collision
-const STREAM_GC_INTERVAL_MS = 5_000;
+const STREAM_GC_DELAY_MS = 10_000; // just enough to avoid collision and quick enough to reuse connection
+const STREAM_GC_INTERVAL_MS = 1_000;
 
 export enum ReservedConnId {
   Discovery = 0,

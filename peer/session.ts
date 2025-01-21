@@ -241,6 +241,7 @@ export class Session {
         "connectionstate": this.pc.connectionState,
         "iceconnectionstate": this.pc.iceConnectionState,
       });
+      this.setConnectionState(this.pc.connectionState, ev);
       switch (this.pc.connectionState) {
         case "connecting":
           start = performance.now();
@@ -255,13 +256,11 @@ export class Session {
           this.triggerIceRestart();
           break;
         case "failed":
-          this.triggerIceRestart();
+          this.close("detected sustained network failure");
           break;
         case "closed":
           break;
       }
-
-      this.setConnectionState(this.pc.connectionState, ev);
     };
     let firstOffer = true;
     this.pc.onnegotiationneeded = async () => {
