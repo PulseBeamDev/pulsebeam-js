@@ -1,7 +1,8 @@
 {
-  "name": "@pulsebeam/demo-cdn",
+  "name": "@pulsebeam/demo-server",
   "version": "1.0.0",
-  "main": "main.js",
+  "module": "index.js",
+  "types": "index.d.ts",
   "type": "module",
   "license": "Apache-2.0",
   "author": "Lukas Herman support@pulsebeam.dev",
@@ -10,13 +11,11 @@
     "url": "https://github.com/PulseBeamDev/pulsebeam-js.git"
   },
   "homepage": "https://pulsebeam.dev",
-  "scripts": {
-    "start": "node --experimental-wasm-modules main.js"
-  },
+  "scripts": {},
   "keywords": [],
   "description": "",
   "dependencies": {
-    "@pulsebeam/demo-server": "^1.0.0",
+    "@pulsebeam/server": "^0.0.28",
     "serve-handler": "^6.1.6"
   }
 }

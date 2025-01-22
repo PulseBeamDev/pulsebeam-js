@@ -1,5 +1,6 @@
 import { defineConfig, UserConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
+import { auth } from "@pulsebeam/demo-server";
 
 // https://vite.dev/config/
 export default defineConfig(async ({ mode }) => {
@@ -11,7 +12,6 @@ export default defineConfig(async ({ mode }) => {
   };
 
   if (mode !== "production") {
-    const { auth } = await import("./functions/auth.ts");
     config.server!.proxy!["/auth"] = {
       // https://github.com/angular/angular-cli/issues/26198
       target: "http://127.0.0.1:5173",

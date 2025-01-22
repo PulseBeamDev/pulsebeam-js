@@ -2,7 +2,8 @@
   "workspaces": [
     "peer",
     "demo-react",
-    "demo-cdn"
+    "demo-cdn",
+    "demo-server"
   ],
   "license": "Apache-2.0",
   "author": "Lukas Herman support@pulsebeam.dev",
