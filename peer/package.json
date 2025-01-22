@@ -21,6 +21,7 @@
     "build:watch": "tsup --watch",
     "clean": "rm -rf dist",
     "test": "vitest",
+    "show:docs": "npx deno doc --html index.ts && python -m http.server -d docs/", 
     "publish": "jsr publish --allow-slow-types"
   },
   "files": [

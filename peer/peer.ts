@@ -159,6 +159,7 @@ export interface ISession {
 }
 
 /**
+ * Intended to be used by for internal and advanced usecases.
  * Options used to configure a Peer.
  * @interface PeerOptionsFull
  * @example```
@@ -207,6 +208,14 @@ export interface PeerOptionsFull {
   iceServers?: RTCIceServer[];
 }
 
+/**
+ * Options used to configure a Peer. See {@link PeerOptionsFull} for properties.
+ * @interface PeerOptions
+ * @example```
+ * const options: PeerOptions = {
+ *   token: "eyJhbGc...49nLmBCg" // fetch token
+ * };```
+ */
 export type PeerOptions = Omit<PeerOptionsFull, "groupId" | "peerId">;
 
 /**

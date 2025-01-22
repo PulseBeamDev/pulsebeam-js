@@ -69,7 +69,7 @@ This example retrieves an authentication token (implementation details will vary
 
 For documentation, API keys, and usage scenarios, please refer to the official PulseBeam documentation:
 
-* https://pulsebeam.dev/docs/getting-started/
+* https://pulsebeam.dev/docs/
 
 # WebRTC Resources
 
