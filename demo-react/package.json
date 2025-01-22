@@ -12,7 +12,7 @@
   "homepage": "https://pulsebeam.dev",
   "scripts": {
     "dev": "NODE_OPTIONS='--experimental-wasm-modules' vite --host",
-    "build": "tsc -b && NODE_OPTIONS='--experimental-wasm-modules' vite build",
+    "build": "NODE_OPTIONS='--experimental-wasm-modules' vite build",
     "lint": "eslint .",
     "preview": "NODE_OPTIONS='--experimental-wasm-modules' vite preview"
   },
