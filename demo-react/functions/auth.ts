@@ -1,4 +1,4 @@
-import { AccessToken, PeerClaims, PeerPolicy } from "@pulsebeam/server/node";
+import { AccessToken, PeerClaims, PeerPolicy } from "@pulsebeam/server/workerd";
 
 // default values are only used for testing only!!
 const appId = process.env["PULSEBEAM_API_KEY"] || "kid_bc74ea55b2ffe97c";
