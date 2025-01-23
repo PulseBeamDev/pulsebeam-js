@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "module": "index.js",
   "types": "index.d.ts",
+  "exports": {
+    ".": "./index.js"
+  },
   "type": "module",
   "license": "Apache-2.0",
   "author": "Lukas Herman support@pulsebeam.dev",
