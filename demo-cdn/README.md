@@ -9,7 +9,7 @@
 4. On the second tab say `peer-29` in the first text box. Then click connect.
 5. You can edit the text in the bottom text box. And see it synchronizing between the peers. 
 
-This demo will work globally within the scope of your app-id (not just two tabs within the same browser!). So feel free to have the one peer on a different network or machine.
+This demo will work globally within the scope of your project-id (not just two tabs within the same browser!). So feel free to have the one peer on a different network or machine.
 
 If desired, go to inspector, console to see logs on either tab
 
