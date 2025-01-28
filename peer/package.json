@@ -1,6 +1,6 @@
 {
   "name": "@pulsebeam/peer",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "dist/index.mjs",
@@ -21,7 +21,7 @@
     "build:watch": "tsup --watch",
     "clean": "rm -rf dist",
     "test": "vitest",
-    "show:docs": "npx deno doc --html index.ts && python -m http.server -d docs/", 
+    "show:docs": "npx deno doc --html index.ts && python -m http.server -d docs/",
     "publish": "jsr publish --allow-slow-types"
   },
   "files": [
