@@ -10,7 +10,7 @@ import type { Logger } from "./logger.ts";
 import { asleep, joinSignals, retry, RetryOptions } from "./util.ts";
 import { RpcOptions } from "@protobuf-ts/runtime-rpc";
 
-const POLL_TIMEOUT_MS = 60000;
+const POLL_TIMEOUT_MS = 900000;
 const POLL_RETRY_BASE_DELAY_MS = 50;
 const POLL_RETRY_MAX_DELAY_MS = 1000;
 const MAX_RELIABLE_RETRY_COUNT = 5;
