@@ -37,7 +37,7 @@ class Queue {
   private unreliable: Message[];
   private processing: boolean;
   private readonly logger: Logger;
-  public onmsg = async (_: Message) => { };
+  public onmsg = async (_: Message) => {};
 
   constructor(logger: Logger) {
     this.logger = logger.sub("queue");
@@ -102,18 +102,15 @@ export interface TransportOptions {
 }
 
 export class Transport {
-  public readonly groupId: string;
-  public readonly peerId: string;
-  public readonly connId: number;
-  private readonly info: PeerInfo;
+  public readonly info: PeerInfo;
   private streams: Stream[];
   private abort: AbortController;
   public readonly logger: Logger;
   public readonly asleep: typeof defaultAsleep;
   private readonly randUint32: typeof defaultRandUint32;
   private readonly isRecoverable: typeof defaultIsRecoverable;
-  public onstream = (_: Stream) => { };
-  public onclosed = (_reason: string) => { };
+  public onstream = (_: Stream) => {};
+  public onclosed = (_reason: string) => {};
 
   constructor(
     private readonly client: ITunnelClient,
@@ -123,18 +120,14 @@ export class Transport {
     this.randUint32 = opts.randUint32 || defaultRandUint32;
     this.isRecoverable = opts.isRecoverable || defaultIsRecoverable;
 
-    this.groupId = opts.groupId;
-    this.peerId = opts.peerId;
-    this.connId = this.randUint32(ReservedConnId.Max);
     this.info = {
-      connId: this.connId,
-      enableDiscovery: opts.enableDiscovery,
+      groupId: opts.groupId,
+      peerId: opts.peerId,
+      connId: this.randUint32(ReservedConnId.Max),
     };
     this.abort = new AbortController();
     this.logger = opts.logger.sub("transport", {
-      groupId: this.opts.groupId,
-      peerId: this.opts.peerId,
-      connId: this.connId,
+      info: this.info,
     });
     this.streams = [];
   }
@@ -173,7 +166,7 @@ export class Transport {
       try {
         const resp = await retry(async () =>
           await this.client.recv({
-            info: this.info,
+            src: this.info,
           }, rpcOpt), retryOpt);
         if (resp === null) {
           break;
@@ -206,14 +199,17 @@ export class Transport {
       this.logger.debug("received", { msg: msg });
       if (this.abort.signal.aborted) return;
       if (!msg.header) continue;
+      const src = msg.header.src;
+      const dst = msg.header.dst;
+      if (!src || !dst) continue;
 
       if (
-        msg.header.otherConnId >= ReservedConnId.Max &&
-        msg.header.otherConnId != this.connId
+        dst.connId >= ReservedConnId.Max &&
+        dst.connId != this.info.connId
       ) {
         this.logger.warn(
           "received messages from a stale connection, ignoring",
-          { receivedConnID: msg.header!.otherConnId },
+          { receivedConnID: dst.connId },
         );
         continue;
       }
@@ -221,9 +217,9 @@ export class Transport {
       let stream: Stream | null = null;
       for (const s of this.streams) {
         if (
-          msg.header.groupId === s.otherGroupId &&
-          msg.header.peerId === s.otherPeerId &&
-          msg.header.connId === s.otherConnId
+          src.groupId === s.other.groupId &&
+          src.peerId === s.other.peerId &&
+          src.connId === s.other.connId
         ) {
           stream = s;
           break;
@@ -232,19 +228,18 @@ export class Transport {
 
       if (!stream) {
         this.logger.debug(
-          `session not found, creating one for ${msg.header.peerId}:${msg.header.connId}`,
+          `session not found, creating one for ${src.peerId}:${src.connId}`,
         );
 
-        if (msg.header.peerId == this.peerId) {
+        if (src.peerId == this.info.peerId) {
           this.logger.warn("loopback detected, ignoring messages");
           return;
         }
 
         stream = new Stream(
           this,
-          msg.header.groupId,
-          msg.header.peerId,
-          msg.header.connId,
+          this.info,
+          src,
           this.logger,
         );
         this.streams.push(stream);
@@ -267,12 +262,12 @@ export class Transport {
       },
     };
     const header: MessageHeader = {
-      groupId: this.groupId,
-      peerId: this.peerId,
-      connId: this.connId,
-      otherGroupId: otherGroupId,
-      otherPeerId: otherPeerId,
-      otherConnId: ReservedConnId.Discovery,
+      src: this.info,
+      dst: {
+        groupId: otherGroupId,
+        peerId: otherPeerId,
+        connId: ReservedConnId.Discovery,
+      },
       seqnum: 0,
       reliable: false,
     };
@@ -284,10 +279,10 @@ export class Transport {
         header,
         payload,
       });
-      await this.asleep(POLL_RETRY_MAX_DELAY_MS, joinedSignal).catch(() => { });
+      await this.asleep(POLL_RETRY_MAX_DELAY_MS, joinedSignal).catch(() => {});
 
       found = !!this.streams.find((s) =>
-        s.otherGroupId === otherGroupId && s.otherPeerId === otherPeerId
+        s.other.groupId === otherGroupId && s.other.peerId === otherPeerId
       );
     }
   }
@@ -333,29 +328,20 @@ export class Stream {
   private abort: AbortController;
   public recvq: Queue;
   public ackedbuf: Record<string, boolean>;
-  public readonly groupId: string;
-  public readonly peerId: string;
-  public readonly connId: number;
   private lastSeqnum: number;
   private closedAt: number;
-  public onpayload = async (_: MessagePayload) => { };
-  public onclosed = (_reason: string) => { };
+  public onpayload = async (_: MessagePayload) => {};
+  public onclosed = (_reason: string) => {};
 
   constructor(
     private readonly transport: Transport,
-    public readonly otherGroupId: string,
-    public readonly otherPeerId: string,
-    public readonly otherConnId: number,
+    public readonly info: PeerInfo,
+    public readonly other: PeerInfo,
     logger: Logger,
   ) {
     this.logger = logger.sub("stream", {
-      otherGroupId,
-      otherPeerId,
-      otherConnId,
+      other,
     });
-    this.groupId = transport.groupId;
-    this.peerId = transport.peerId;
-    this.connId = transport.connId;
     this.abort = new AbortController();
     this.ackedbuf = {};
     this.recvq = new Queue(this.logger);
@@ -395,12 +381,8 @@ export class Stream {
     }
     const msg: Message = {
       header: {
-        groupId: this.transport.groupId,
-        peerId: this.transport.peerId,
-        connId: this.transport.connId,
-        otherGroupId: this.otherGroupId,
-        otherPeerId: this.otherPeerId,
-        otherConnId: this.otherConnId,
+        src: this.transport.info,
+        dst: this.other,
         seqnum: 0,
         reliable,
       },
@@ -426,7 +408,7 @@ export class Stream {
       await this.transport.asleep(
         5 * POLL_RETRY_MAX_DELAY_MS,
         this.abort.signal,
-      ).catch(() => { });
+      ).catch(() => {});
 
       // since ackedbuf doesn't delete the seqnum right away, it prevents from racing between
       // resending and acknolwedging

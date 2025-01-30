@@ -1,5 +1,6 @@
 import { type ITunnelClient, TunnelClient } from "./tunnel.client.ts";
 import { Transport } from "./transport.ts";
+import type { PeerInfo } from "./tunnel.ts";
 import { DEFAULT_LOG_SINK, Logger, PRETTY_LOG_SINK } from "./logger.ts";
 import { Session } from "./session.ts";
 import { RpcError, RpcOptions, UnaryCall } from "@protobuf-ts/runtime-rpc";
@@ -9,6 +10,8 @@ import {
 } from "@protobuf-ts/twirp-transport";
 import { retry } from "./util.ts";
 import { jwtDecode } from "jwt-decode";
+
+export type { PeerInfo } from "./tunnel.ts";
 
 /**
  * Streamline real-time application development.`@pulsebeam/peer` abstracts
@@ -143,19 +146,10 @@ export interface ISession {
 
   /**
    * Retrieves the identifier of the other peer in the connection.
-   * @returns {string} The peer ID of the connected peer. Valid UTF-8 string of 1-16 characters.
-   * @example ```console.log(`Connected to peer: ${session.otherPeerId()}`);```
+   * @returns {PeerInfo} The peer identity of the connected peer. Valid UTF-8 string of 1-16 characters.
+   * @example ```console.log(`Connected to peer: ${session.other.peerId()}`);```
    */
-  get otherPeerId(): string;
-
-  /**
-   * Retrieves the connection identifier for the current connection.
-   * Connection IDs are typically unique and help identify connections.
-   * @returns {number} The connection ID for the peer connection.
-   * @example
-   * ```console.log(`Connection ID: ${mySession.otherConnId()}`);```
-   */
-  get otherConnId(): number;
+  get other(): PeerInfo;
 }
 
 /**
@@ -242,11 +236,11 @@ export class Peer {
    * Callback invoked when a new session is established.
    * @param _s Session object
    */
-  public onsession = (_s: ISession) => { };
+  public onsession = (_s: ISession) => {};
   /**
    * Callback invoked when the peer’s state changes.
    */
-  public onstatechange = () => { };
+  public onstatechange = () => {};
   /**
    * Identifier for the peer. Valid UTF-8 string of 1-16 characters.
    */

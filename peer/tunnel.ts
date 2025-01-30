@@ -53,9 +53,9 @@ export interface SendResp {
  */
 export interface RecvReq {
     /**
-     * @generated from protobuf field: pulsebeam.v1.PeerInfo info = 1;
+     * @generated from protobuf field: pulsebeam.v1.PeerInfo src = 1;
      */
-    info?: PeerInfo;
+    src?: PeerInfo;
 }
 /**
  * @generated from protobuf message pulsebeam.v1.RecvResp
@@ -71,13 +71,22 @@ export interface RecvResp {
  */
 export interface PeerInfo {
     /**
-     * @generated from protobuf field: uint32 conn_id = 1;
+     * @generated from protobuf field: string group_id = 1;
+     */
+    groupId: string;
+    /**
+     * where this message is originated from. Special values: "SYSTEM"
+     *
+     * @generated from protobuf field: string peer_id = 2;
+     */
+    peerId: string;
+    /**
+     * used for deciding polite vs impolite. higher id wins. It also is used to detect connection breakages
+     * WARNING, reserved values: 0-16
+     *
+     * @generated from protobuf field: uint32 conn_id = 3;
      */
     connId: number;
-    /**
-     * @generated from protobuf field: bool enable_discovery = 2;
-     */
-    enableDiscovery: boolean;
 }
 /**
  * Use small tag numbers (1-15) for fields that are frequently used or are performance-sensitive, even if they are optional.
@@ -139,29 +148,13 @@ export interface MessagePayload {
  */
 export interface MessageHeader {
     /**
-     * @generated from protobuf field: string group_id = 1;
+     * @generated from protobuf field: pulsebeam.v1.PeerInfo src = 1;
      */
-    groupId: string;
+    src?: PeerInfo;
     /**
-     * @generated from protobuf field: string peer_id = 2;
+     * @generated from protobuf field: pulsebeam.v1.PeerInfo dst = 2;
      */
-    peerId: string; // where this message is originated from. Special values: "SYSTEM"
-    /**
-     * @generated from protobuf field: uint32 conn_id = 3;
-     */
-    connId: number; // used for deciding polite vs impolite. higher id wins. It also is used to detect connection breakages
-    /**
-     * @generated from protobuf field: string other_group_id = 4;
-     */
-    otherGroupId: string;
-    /**
-     * @generated from protobuf field: string other_peer_id = 5;
-     */
-    otherPeerId: string; // Special values: "SYSTEM"
-    /**
-     * @generated from protobuf field: uint32 other_conn_id = 6;
-     */
-    otherConnId: number; // Special values: 0-16
+    dst?: PeerInfo;
     /**
      * @generated from protobuf field: uint32 seqnum = 7;
      */
@@ -379,7 +372,7 @@ export const SendResp = new SendResp$Type();
 class RecvReq$Type extends MessageType<RecvReq> {
     constructor() {
         super("pulsebeam.v1.RecvReq", [
-            { no: 1, name: "info", kind: "message", T: () => PeerInfo }
+            { no: 1, name: "src", kind: "message", T: () => PeerInfo }
         ]);
     }
 }
@@ -403,8 +396,9 @@ export const RecvResp = new RecvResp$Type();
 class PeerInfo$Type extends MessageType<PeerInfo> {
     constructor() {
         super("pulsebeam.v1.PeerInfo", [
-            { no: 1, name: "conn_id", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
-            { no: 2, name: "enable_discovery", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 1, name: "group_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "peer_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "conn_id", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
         ]);
     }
 }
@@ -444,12 +438,8 @@ export const MessagePayload = new MessagePayload$Type();
 class MessageHeader$Type extends MessageType<MessageHeader> {
     constructor() {
         super("pulsebeam.v1.MessageHeader", [
-            { no: 1, name: "group_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "peer_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "conn_id", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
-            { no: 4, name: "other_group_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "other_peer_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "other_conn_id", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 1, name: "src", kind: "message", T: () => PeerInfo },
+            { no: 2, name: "dst", kind: "message", T: () => PeerInfo },
             { no: 7, name: "seqnum", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
             { no: 8, name: "reliable", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);

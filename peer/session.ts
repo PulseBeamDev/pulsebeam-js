@@ -1,11 +1,13 @@
 import {
   type ICECandidate,
   type MessagePayload,
+  PeerInfo,
   SdpKind,
   type Signal,
 } from "./tunnel.ts";
 import { Logger } from "./logger.ts";
 import type { Stream } from "./transport.ts";
+export type { PeerInfo } from "./tunnel.ts";
 
 const ICE_RESTART_MAX_COUNT = 2;
 const ICE_RESTART_DEBOUNCE_DELAY_MS = 5000;
@@ -70,19 +72,19 @@ export class Session {
   /**
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ondatachannel}
    */
-  public ondatachannel: RTCPeerConnection["ondatachannel"] = () => { };
+  public ondatachannel: RTCPeerConnection["ondatachannel"] = () => {};
 
   /**
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/onconnectionstatechange}
    */
   public onconnectionstatechange: RTCPeerConnection["onconnectionstatechange"] =
-    () => { };
+    () => {};
 
   /**
    * Callback invoked when a new media track is added to the connection.
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ontrack}
    */
-  public ontrack: RTCPeerConnection["ontrack"] = () => { };
+  public ontrack: RTCPeerConnection["ontrack"] = () => {};
 
   /**
    * Adds a media track to the connection.
@@ -133,17 +135,12 @@ export class Session {
    * Retrieves the identifier of the other peer.
    * @returns {string}
    */
-  get otherPeerId(): string {
-    return this.stream.otherPeerId;
-  }
-
-  /**
-   * Retrieves the connection identifier for the connection to the other peer.
-   *  Connection ids are usually unique.
-   * @returns {number}
-   */
-  get otherConnId(): number {
-    return this.stream.otherConnId;
+  get other(): PeerInfo {
+    return {
+      groupId: this.stream.other.groupId,
+      peerId: this.stream.other.peerId,
+      connId: this.stream.other.connId,
+    };
   }
 
   /**
@@ -192,10 +189,10 @@ export class Session {
     this.pendingCandidates = [];
     // Higher is impolite. [0-15] is reserved. One of the reserved value can be used
     // for implementing fixed "polite" role for lite ICE.
-    if (this.stream.connId === this.stream.otherConnId) {
-      this.impolite = this.stream.peerId > this.stream.otherPeerId;
+    if (this.stream.info.connId === this.stream.other.connId) {
+      this.impolite = this.stream.info.peerId > this.stream.other.peerId;
     } else {
-      this.impolite = this.stream.connId > this.stream.otherConnId;
+      this.impolite = this.stream.info.connId > this.stream.other.connId;
     }
     this.abort = new AbortController();
     this.logger = stream.logger.sub("session", {

@@ -99,7 +99,7 @@ class MockClient implements ITunnelClient {
     private readonly groupId: string,
     private readonly peerId: string,
     private readonly state: SharedState,
-  ) { }
+  ) {}
 
   prepare(
     _input: PrepareReq,
@@ -115,7 +115,7 @@ class MockClient implements ITunnelClient {
   ): UnaryCall<SendReq, SendResp> {
     const msg = input.msg!;
     const hdr = msg.header!;
-    const otherId = `${hdr.groupId}:${hdr.otherPeerId}`;
+    const otherId = `${hdr.src?.groupId}:${hdr.dst?.peerId}`;
     this.state.getq(otherId).send(msg);
 
     // @ts-ignore: mock obj
@@ -219,8 +219,8 @@ describe("transport", () => {
     let payloadCountA = 0;
     let streamCountB = 0;
     peerA.onstream = (s) => {
-      expect(s.otherPeerId).toBe(peerB.peerId);
-      expect(s.otherConnId).toBe(peerB.connId);
+      expect(s.other.peerId).toBe(peerB.info.peerId);
+      expect(s.other.connId).toBe(peerB.info.connId);
       streamCountA++;
 
       s.onpayload = () => {
@@ -229,8 +229,8 @@ describe("transport", () => {
       };
     };
     peerB.onstream = (s) => {
-      expect(s.otherPeerId).toBe(peerA.peerId);
-      expect(s.otherConnId).toBe(peerA.connId);
+      expect(s.other.peerId).toBe(peerA.info.peerId);
+      expect(s.other.connId).toBe(peerA.info.connId);
       streamCountB++;
 
       s.send({
