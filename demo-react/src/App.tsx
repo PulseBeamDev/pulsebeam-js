@@ -35,12 +35,14 @@ export default function App() {
                     onChange={(e) => setPeerId(e.target.value)}
                   />
                 </div>
-                <button type="submit" disabled={!peer.localStream || peer.loading} value="Go Live">
+                <button
+                  type="submit"
+                  disabled={!peer.localStream || peer.loading}
+                  value="Go Live"
+                >
                   {peer.loading
                     ? <progress className="circle small"></progress>
-                    : <span>Go Live</span>
-                  }
-
+                    : <span>Go Live</span>}
                 </button>
               </nav>
             </form>
@@ -65,8 +67,7 @@ export default function App() {
                 <button type="submit" disabled={peer.loading}>
                   {peer.loading
                     ? <progress className="circle small"></progress>
-                    : <span>Connect</span>
-                  }
+                    : <span>Connect</span>}
                 </button>
                 <button className="secondary" onClick={() => peer.stop()}>
                   Stop
@@ -87,7 +88,7 @@ export default function App() {
           <VideoContainer
             key={s.key}
             className="s12 m6 no-padding"
-            title={s.sess.otherPeerId}
+            title={s.sess.other.peerId}
             stream={s.remoteStream}
             loading={s.loading}
           />
