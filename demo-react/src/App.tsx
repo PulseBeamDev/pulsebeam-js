@@ -26,7 +26,10 @@ function JoinPage() {
 
   return (
     <article style={{ height: "100vh" }}>
-      <div className="no-padding medium-width medium-height absolute center middle">
+      <div
+        className="vertical medium-width center-align auto-margin"
+        style={{ height: "100%" }}
+      >
         <VideoContainer
           className="no-padding"
           stream={peer.localStream}
