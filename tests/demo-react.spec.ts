@@ -44,14 +44,14 @@ async function waitForStableVideo(
 }
 
 async function connect(page: Page, peerId: string, otherPeerId: string) {
-  await page.getByPlaceholder("You").click();
-  await page.getByPlaceholder("You").fill(peerId);
+  await page.getByTestId("src-peerId").click();
+  await page.getByTestId("src-peerId").fill(peerId);
   await waitForStableVideo(page, peerId, 5_000);
 
-  await page.getByRole("button", { name: "Ready" }).click();
-  await page.getByPlaceholder("Other").click();
-  await page.getByPlaceholder("Other").fill(otherPeerId);
-  await page.getByRole("button", { name: "Connect" }).click();
+  await page.getByTestId("btn-ready").click();
+  await page.getByTestId("src-peerId").click();
+  await page.getByTestId("dst-peerId").fill(otherPeerId);
+  await page.getByTestId("btn-connect").click();
   await waitForStableVideo(page, otherPeerId, 10_000);
 
   return () => page.getByRole("button", { name: "End Call" }).click();

@@ -45,6 +45,7 @@ function JoinPage() {
                 type="text"
                 placeholder="Your Name"
                 value={peerId}
+                data-testid="src-peerId"
                 onChange={(e) => setPeerId(e.target.value)}
               />
             </div>
@@ -54,6 +55,7 @@ function JoinPage() {
               disabled={!peer.localStream || peer.loading ||
                 peerId.length === 0}
               value="Ready"
+              data-testid="btn-ready"
             >
               {peer.loading
                 ? <progress className="circle small"></progress>
@@ -143,12 +145,14 @@ function ConnectForm() {
             type="text"
             placeholder="Other Name"
             value={otherPeerId}
+            data-testid="dst-peerId"
             onChange={(e) => setOtherPeerId(e.target.value)}
           />
         </div>
         <button
           className="responsive small-round"
           type="submit"
+          data-testid="btn-connect"
           disabled={peer.loading || otherPeerId.length === 0}
         >
           {peer.loading
