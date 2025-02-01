@@ -13,6 +13,7 @@ const server = http.createServer((req, res) => {
       });
       res.end(token);
     } catch (e) {
+      console.log(e)
       res.writeHead(400, { "Content-Type": "text/plain" });
       res.end("Bad Request - groupId and peerId are required");
     }

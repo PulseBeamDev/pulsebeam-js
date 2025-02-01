@@ -40,6 +40,7 @@
     const params = new URLSearchParams(window.location.search);
     const baseUrl = params.get("baseUrl");
     const groupId = params.get("groupId") || "default";
+    const isSandbox = params.get("sandbox")==='true' ? true : false;
     const peerId = params.get("peerId") || `peer-${Math.floor(Math.random() * 100)}`;
     const otherGroupId = groupId;
     let otherPeerId = params.get("otherPeerId");
@@ -52,13 +53,14 @@
 
     refIdentity.textContent = `groupId=${groupId} peerId=${peerId}`;
 
-    const resp = await fetch(`/auth?groupId=${groupId}&peerId=${peerId}`);
+    const urlRoot = isSandbox ? `https://cloud.pulsebeam.dev/sandbox/token` : `/auth`
+    const resp = await fetch (`${urlRoot}?groupId=${groupId}&peerId=${peerId}`);
     const token = await resp.text();
     const peer = await createPeer({token, baseUrl});
 
     peer.onsession = (sess) => {
       const chOut = sess.createDataChannel("chat");
-      otherPeerId = sess.otherPeerId;
+      otherPeerId = sess.other.peerId;
 
       chOut.onopen = () => {
         refOtherIdentity.textContent = `connected to ${otherPeerId}`;
