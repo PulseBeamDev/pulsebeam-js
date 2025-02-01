@@ -2,7 +2,7 @@
 
 Simplifies real-time application development. Defines signaling protocol for connection establishment, handling media and data transmission, and provides infrastructure.
 
-### Features
+## Features
 
 - Media & Data Support: Transmit audio, video, and/or data channels within your applications.
 - Abstracted Signaling: Handles the exchange of information required to set up WebRTC connections, relieving you of low-level details.
@@ -55,10 +55,10 @@ import { Peer, createPeer } from "@pulsebeam/peer";
 
 // Obtain an authentication token (implementation specific)
 const authResponse = await fetch("/auth");
-const { groupId, peerId, token } = await authResponse.json();
+const { token } = await authResponse.json();
 
 // Create a Peer instance
-const peer = await createPeer({ groupId, peerId, token });
+const peer = await createPeer({ token });
 
 // Define handlers for incoming events (optional)
 peer.onsession = (session) => {
@@ -77,7 +77,7 @@ await peer.connect(groupId, "bob", abortController.signal);
 
 This example retrieves an authentication token (implementation details will vary depending on your setup), creates a Peer instance, and defines event handlers for receiving media streams, data channels, and connection state changes (optional). Finally, it starts connection attempts and connects to a specific peer identified by its ID within the group.
 
-# Documentation
+## Documentation
 
 For documentation, API keys, and usage scenarios, please refer to the official PulseBeam documentation:
 
