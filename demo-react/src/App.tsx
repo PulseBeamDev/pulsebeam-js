@@ -178,11 +178,11 @@ function VideoContainer(props: VideoContainerProps) {
   return (
     <article className={props.className}>
       {(props.stream === null || props.loading) && (
-        <progress className="relative circle"></progress>
+        <progress className="absolute top left circle"></progress>
       )}
       <video
         data-testid={props.title}
-        className="responsive"
+        className={props.loading ? "responsive large-opacity" : "responsive"}
         ref={videoRef}
         autoPlay
       />
