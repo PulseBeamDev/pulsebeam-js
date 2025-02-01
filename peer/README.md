@@ -9,6 +9,18 @@ Simplifies real-time application development. Defines signaling protocol for con
 - Automatic Reconnection: Maintains connection stability by automatically re-establishing connections when disruptions occur.
 - Opt out of Peer-to-Peer: Can configure to force server-relayed communication.
 
+> [!WARNING]
+> This SDK is currently in **Developer Preview**. During this phase:
+> - APIs are subject to breaking changes
+> - Stability issues may occur
+> - Core functionality is still being validated
+>
+> **We value your input!**  
+> Report bugs, suggest improvements, or collaborate directly with our team:
+> 
+> • [Create GitHub Issues](https://github.com/PulseBeamDev/pulsebeam-js/issues)  
+> • [Join PulseBeam Developer Discord](https://discord.gg/Bhd3t9afuB)  
+
 ## Installation
 
 Install and import the package using npm, deno, or yarn:
