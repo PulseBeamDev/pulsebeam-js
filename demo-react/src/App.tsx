@@ -19,7 +19,6 @@ function JoinPage() {
     (async () => {
       const s = await navigator.mediaDevices.getUserMedia({
         video: true,
-        audio: true,
       });
       peer.setLocalStream(s);
     })();
@@ -68,30 +67,13 @@ function JoinPage() {
 
 function SessionPage() {
   const peer = usePeerStore();
-  const [primaryStreamId, setPrimaryStreamId] = useState<string | null>(null);
-  const remoteStreams = Object.entries(peer.sessions).map(([_, s]) => (
-    <VideoContainer
-      key={s.key}
-      className="s12 l6 no-padding"
-      title={s.sess.other.peerId}
-      stream={s.remoteStream}
-      loading={s.loading}
-    />
-  ));
-
-  const primaryStream = primaryStreamId && peer.sessions[primaryStreamId];
-  const streamIds = Object.keys(peer.sessions);
-  if (primaryStreamId === null && streamIds.length > 0) {
-    setPrimaryStreamId(streamIds[0]);
-  }
+  const remoteStreams = Object.entries(peer.sessions);
 
   return (
     <div>
       {remoteStreams.length > 1 && (
         <nav className="left drawer">
-          {Object.entries(peer.sessions).filter(([id, _]) =>
-            id != primaryStreamId
-          ).map(([_, s]) => (
+          {remoteStreams.slice(1).map(([_, s]) => (
             <VideoContainer
               key={s.key}
               className="no-padding"
@@ -110,19 +92,19 @@ function SessionPage() {
           loading={false}
           title={peer.peerId}
         />
-        {primaryStream
+        {remoteStreams.length === 0
           ? (
-            <VideoContainer
-              className="s12 l6 no-padding"
-              title={primaryStream.sess.other.peerId}
-              stream={primaryStream.remoteStream}
-              loading={primaryStream.loading}
-            />
-          )
-          : (
             <div className="s12 l6 no-padding">
               <ConnectForm />
             </div>
+          )
+          : (
+            <VideoContainer
+              className="s12 l6 no-padding"
+              title={remoteStreams[0][1].sess.other.peerId}
+              stream={remoteStreams[0][1].remoteStream}
+              loading={remoteStreams[0][1].loading}
+            />
           )}
       </main>
 
@@ -194,17 +176,13 @@ function VideoContainer(props: VideoContainerProps) {
     }
   }, [props.stream]);
 
-  const loading = props.loading || props.stream === null;
   return (
     <article className={props.className}>
-      {loading ? <progress className="circle large"></progress> : (
-        <video
-          data-testid={props.title}
-          className="responsive"
-          ref={videoRef}
-          autoPlay
-        />
-      )}
+      <video
+        data-testid={props.title}
+        className="responsive"
+        ref={videoRef}
+      />
       <div className="absolute bottom left right padding white-text">
         <nav>
           <h5>{props.title}</h5>
