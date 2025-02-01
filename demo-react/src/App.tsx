@@ -172,7 +172,6 @@ function VideoContainer(props: VideoContainerProps) {
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.srcObject = props.stream;
-      videoRef.current.play();
     }
   }, [props.stream]);
 
@@ -182,6 +181,7 @@ function VideoContainer(props: VideoContainerProps) {
         data-testid={props.title}
         className="responsive"
         ref={videoRef}
+        autoPlay
       />
       <div className="absolute bottom left right padding white-text">
         <nav>

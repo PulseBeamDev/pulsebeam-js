@@ -48,13 +48,13 @@ async function connect(page: Page, peerId: string, otherPeerId: string) {
   await page.getByPlaceholder("You").fill(peerId);
   await waitForStableVideo(page, peerId, 5_000);
 
-  await page.getByRole("button", { name: "Go Live" }).click();
+  await page.getByRole("button", { name: "Ready" }).click();
   await page.getByPlaceholder("Other").click();
   await page.getByPlaceholder("Other").fill(otherPeerId);
   await page.getByRole("button", { name: "Connect" }).click();
   await waitForStableVideo(page, otherPeerId, 10_000);
 
-  return () => page.getByRole("button", { name: "Stop" }).click();
+  return () => page.getByRole("button", { name: "End Call" }).click();
 }
 
 function randId() {
