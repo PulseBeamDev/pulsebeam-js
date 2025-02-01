@@ -2,99 +2,178 @@ import { useEffect, useRef, useState } from "react";
 import { usePeerStore } from "./peer.ts";
 
 export default function App() {
-  const [peerId, setPeerId] = useState("");
-  const [otherPeerId, setOtherPeerId] = useState("");
   const peer = usePeerStore();
+
+  return (
+    <>
+      {(!peer.localStream || !peer.ref) ? <JoinPage /> : <SessionPage />}
+    </>
+  );
+}
+
+function JoinPage() {
+  const peer = usePeerStore();
+  const [peerId, setPeerId] = useState("");
 
   useEffect(() => {
     (async () => {
-      const s = await navigator.mediaDevices.getUserMedia({ video: true });
+      const s = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
       peer.setLocalStream(s);
     })();
   }, []);
 
   return (
-    <>
-      <nav className="bottom">
-        {(!peer.localStream || !peer.ref)
-          ? (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                peer.start(peerId);
-              }}
-              className="responsive"
-            >
-              <nav className="center-align">
-                <div className="field small border round">
-                  <input
-                    size={6}
-                    type="text"
-                    placeholder="You"
-                    value={peerId}
-                    onChange={(e) => setPeerId(e.target.value)}
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={!peer.localStream || peer.loading}
-                  value="Go Live"
-                >
-                  {peer.loading
-                    ? <progress className="circle small"></progress>
-                    : <span>Go Live</span>}
-                </button>
-              </nav>
-            </form>
-          )
-          : (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                peer.connect(otherPeerId);
-              }}
-            >
-              <nav className="max center-align">
-                <div className="field small border round">
-                  <input
-                    size={6}
-                    type="text"
-                    placeholder="Other"
-                    value={otherPeerId}
-                    onChange={(e) => setOtherPeerId(e.target.value)}
-                  />
-                </div>
-                <button type="submit" disabled={peer.loading}>
-                  {peer.loading
-                    ? <progress className="circle small"></progress>
-                    : <span>Connect</span>}
-                </button>
-                <button className="secondary" onClick={() => peer.stop()}>
-                  Stop
-                </button>
-              </nav>
-            </form>
-          )}
-      </nav>
-
-      <main className="responsive max grid">
+    <article style={{ height: "100vh" }}>
+      <div className="no-padding medium-width medium-height absolute center middle">
         <VideoContainer
-          className="s12 m6 no-padding"
+          className="no-padding"
           stream={peer.localStream}
           loading={false}
           title={peerId}
         />
-        {Object.entries(peer.sessions).map(([_, s]) => (
-          <VideoContainer
-            key={s.key}
-            className="s12 m6 no-padding"
-            title={s.sess.other.peerId}
-            stream={s.remoteStream}
-            loading={s.loading}
-          />
-        ))}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            peer.start(peerId);
+          }}
+        >
+          <nav className="vertical">
+            <div className="field border responsive">
+              <input
+                type="text"
+                placeholder="You"
+                value={peerId}
+                onChange={(e) => setPeerId(e.target.value)}
+              />
+            </div>
+            <button
+              className="responsive small-round no-margin"
+              type="submit"
+              disabled={!peer.localStream || peer.loading}
+              value="Ready"
+            >
+              {peer.loading
+                ? <progress className="circle small"></progress>
+                : <span>Ready</span>}
+            </button>
+          </nav>
+        </form>
+      </div>
+    </article>
+  );
+}
+
+function SessionPage() {
+  const peer = usePeerStore();
+  const [primaryStreamId, setPrimaryStreamId] = useState<string | null>(null);
+  const remoteStreams = Object.entries(peer.sessions).map(([_, s]) => (
+    <VideoContainer
+      key={s.key}
+      className="s12 l6 no-padding"
+      title={s.sess.other.peerId}
+      stream={s.remoteStream}
+      loading={s.loading}
+    />
+  ));
+
+  const primaryStream = primaryStreamId && peer.sessions[primaryStreamId];
+  const streamIds = Object.keys(peer.sessions);
+  if (primaryStreamId === null && streamIds.length > 0) {
+    setPrimaryStreamId(streamIds[0]);
+  }
+
+  return (
+    <div>
+      {remoteStreams.length > 1 && (
+        <nav className="left drawer">
+          {Object.entries(peer.sessions).filter(([id, _]) =>
+            id != primaryStreamId
+          ).map(([_, s]) => (
+            <VideoContainer
+              key={s.key}
+              className="no-padding"
+              title={s.sess.other.peerId}
+              stream={s.remoteStream}
+              loading={s.loading}
+            />
+          ))}
+        </nav>
+      )}
+
+      <main className="responsive max grid">
+        <VideoContainer
+          className="s12 l6 no-padding"
+          stream={peer.localStream}
+          loading={false}
+          title={peer.peerId}
+        />
+        {primaryStream
+          ? (
+            <VideoContainer
+              className="s12 l6 no-padding"
+              title={primaryStream.sess.other.peerId}
+              stream={primaryStream.remoteStream}
+              loading={primaryStream.loading}
+            />
+          )
+          : (
+            <div className="s12 l6 no-padding">
+              <ConnectForm />
+            </div>
+          )}
       </main>
-    </>
+
+      <nav className="bottom">
+        <button
+          className="error small-round"
+          onClick={() => peer.stop()}
+        >
+          <i>call_end</i>
+          End Call
+        </button>
+      </nav>
+    </div>
+  );
+}
+
+function ConnectForm() {
+  const [otherPeerId, setOtherPeerId] = useState("");
+  const peer = usePeerStore();
+
+  return (
+    <form
+      className="vertical medium-width center-align auto-margin"
+      style={{ height: "100%" }}
+      onSubmit={(e) => {
+        e.preventDefault();
+        peer.connect(otherPeerId);
+      }}
+    >
+      <nav className="vertical">
+        <h3>Who to connect to?</h3>
+        <div className="field border responsive">
+          <input
+            size={6}
+            type="text"
+            placeholder="Other"
+            value={otherPeerId}
+            onChange={(e) => setOtherPeerId(e.target.value)}
+          />
+        </div>
+        <button
+          className="responsive small-round"
+          type="submit"
+          disabled={peer.loading}
+        >
+          {peer.loading
+            ? <progress className="circle small"></progress>
+            : <span>Connect</span>}
+        </button>
+      </nav>
+    </form>
   );
 }
 
@@ -111,6 +190,7 @@ function VideoContainer(props: VideoContainerProps) {
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.srcObject = props.stream;
+      videoRef.current.play();
     }
   }, [props.stream]);
 
@@ -120,7 +200,7 @@ function VideoContainer(props: VideoContainerProps) {
       {loading ? <progress className="circle large"></progress> : (
         <video
           data-testid={props.title}
-          className="responsive max"
+          className="responsive"
           ref={videoRef}
           autoPlay
         />

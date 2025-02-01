@@ -12,7 +12,7 @@ interface SessionProps {
   loading: boolean;
 }
 
-interface PeerState {
+export interface PeerState {
   ref: Peer | null;
   loading: boolean;
   sessions: Record<string, SessionProps>;
@@ -21,6 +21,7 @@ interface PeerState {
   start: (peerId: string) => Promise<void>;
   stop: () => void;
   connect: (otherPeerId: string) => void;
+  peerId: string;
 }
 
 export const usePeerStore = create<PeerState>((set, get) => ({
@@ -28,6 +29,7 @@ export const usePeerStore = create<PeerState>((set, get) => ({
   sessions: {},
   loading: false,
   localStream: null,
+  peerId: "",
   setLocalStream: (localStream: MediaStream) => {
     set({ localStream });
   },
@@ -105,7 +107,7 @@ export const usePeerStore = create<PeerState>((set, get) => ({
       console.error("Error starting peer:", error);
     }
 
-    set({ loading: false });
+    set({ loading: false, peerId });
   },
   stop: () => {
     get().ref?.close();
