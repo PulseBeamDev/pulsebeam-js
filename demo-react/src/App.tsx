@@ -43,7 +43,7 @@ function JoinPage() {
             <div className="field border responsive">
               <input
                 type="text"
-                placeholder="You"
+                placeholder="Your Name"
                 value={peerId}
                 onChange={(e) => setPeerId(e.target.value)}
               />
@@ -51,7 +51,8 @@ function JoinPage() {
             <button
               className="responsive small-round no-margin"
               type="submit"
-              disabled={!peer.localStream || peer.loading}
+              disabled={!peer.localStream || peer.loading ||
+                peerId.length === 0}
               value="Ready"
             >
               {peer.loading
@@ -140,7 +141,7 @@ function ConnectForm() {
           <input
             size={6}
             type="text"
-            placeholder="Other"
+            placeholder="Other Name"
             value={otherPeerId}
             onChange={(e) => setOtherPeerId(e.target.value)}
           />
@@ -148,7 +149,7 @@ function ConnectForm() {
         <button
           className="responsive small-round"
           type="submit"
-          disabled={peer.loading}
+          disabled={peer.loading || otherPeerId.length === 0}
         >
           {peer.loading
             ? <progress className="circle small"></progress>
