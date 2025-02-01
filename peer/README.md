@@ -55,12 +55,11 @@ import { Peer, createPeer } from "@pulsebeam/peer";
 
 // Obtain an authentication token (implementation specific)
 const authResponse = await fetch("/auth");
-const { token } = await authResponse.json();
+const { groupId, token } = await authResponse.json();
 
 // Create a Peer instance
 const peer = await createPeer({ token });
 
-// Define handlers for incoming events (optional)
 peer.onsession = (session) => {
   session.ontrack = ({ streams }) => console.log("New media stream:", streams);
   session.ondatachannel = (event) => console.log("Data channel:", event.channel);
