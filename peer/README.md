@@ -9,7 +9,7 @@ Simplifies real-time application development. Defines signaling protocol for con
 - Automatic Reconnection: Maintains connection stability by automatically re-establishing connections when disruptions occur.
 - Opt out of Peer-to-Peer: Can configure to force server-relayed communication.
 
-# Installation
+## Installation
 
 Install and import the package using npm, deno, or yarn:
 
@@ -34,7 +34,7 @@ Import symbol
 `import * as peer from "@pulsebeam/peer";`
 
 
-# Usage
+## Usage
 
 Here's an example demonstrating how to use @pulsebeam/peer to establish a peer-to-peer connection:
 
@@ -71,7 +71,15 @@ For documentation, API keys, and usage scenarios, please refer to the official P
 
 * https://pulsebeam.dev/docs/
 
-# WebRTC Resources
+## Semantic Versioning
+
+This project adheres to [Semantic Versioning 2.0.0](https://semver.org/).
+
+* **MAJOR version (X.y.z):** Incompatible API changes.
+* **MINOR version (x.Y.z):** Functionality added in a backwards compatible manner.
+* **PATCH version (x.y.Z):** Backwards compatible bug fixes.
+
+## WebRTC Resources
 
 For a deeper understanding of WebRTC concepts, consult the official WebRTC documentation:
 
