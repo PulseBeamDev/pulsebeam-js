@@ -177,6 +177,9 @@ function VideoContainer(props: VideoContainerProps) {
 
   return (
     <article className={props.className}>
+      {(props.stream === null || props.loading) && (
+        <progress className="relative circle"></progress>
+      )}
       <video
         data-testid={props.title}
         className="responsive"
