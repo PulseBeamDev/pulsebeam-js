@@ -42,9 +42,12 @@ export const usePeerStore = create<PeerState>((set, get) => ({
       const urlParams = new URLSearchParams(window.location.search);
       const forceRelay = urlParams.get("forceRelay");
       const baseUrl = urlParams.get("baseUrl");
+      const sandbox = urlParams.get("sandbox");
 
       const resp = await fetch(
-        `/auth?groupId=${DEFAULT_GROUP}&peerId=${peerId}`,
+        sandbox === null
+          ? `/auth?groupId=${DEFAULT_GROUP}&peerId=${peerId}`
+          : `https://cloud.pulsebeam.dev/sandbox/token?groupId=${DEFAULT_GROUP}&peerId=${peerId}`,
       );
       const token = await resp.text();
       const p = await createPeer({

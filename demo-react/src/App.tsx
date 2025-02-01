@@ -117,6 +117,7 @@ function SessionPage() {
       <nav className="bottom">
         <button
           className="error small-round"
+          data-testid="btn-endCall"
           onClick={() => peer.stop()}
         >
           <i>call_end</i>

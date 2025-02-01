@@ -54,7 +54,7 @@ async function connect(page: Page, peerId: string, otherPeerId: string) {
   await page.getByTestId("btn-connect").click();
   await waitForStableVideo(page, otherPeerId, 10_000);
 
-  return () => page.getByRole("button", { name: "End Call" }).click();
+  return () => page.getByTestId("btn-endCall").click();
 }
 
 function randId() {
@@ -93,7 +93,7 @@ test.describe("basic", () => {
 
   for (const [bA, bB] of pairs) {
     test(`${bA}_${bB}`, async ({ baseURL }) => {
-      const url = baseURL + "?mock&baseUrl=" + PULSEBEAM_BASE_URL;
+      const url = baseURL + "?mock&sandbox&baseUrl=" + PULSEBEAM_BASE_URL;
       const peerA = `__${bA}_${randId()}`;
       const peerB = `__${bB}_${randId()}`;
 
@@ -124,6 +124,6 @@ test.describe("basic", () => {
 test(`load`, async ({ browser, browserName, baseURL }) => {
   const context = await browser.newContext();
   const page = await context.newPage();
-  await page.goto(baseURL! + "?mock");
+  await page.goto(baseURL! + "?mock&sandbox");
   await waitForStableVideo(page, "", 1000);
 });
