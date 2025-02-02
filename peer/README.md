@@ -9,6 +9,8 @@ Simplifies real-time application development. Defines signaling protocol for con
 - Automatic Reconnection: Maintains connection stability by automatically re-establishing connections when disruptions occur.
 - Opt out of Peer-to-Peer: Can configure to force server-relayed communication.
 
+## Status
+
 > [!WARNING]
 > This SDK is currently in **Developer Preview**. During this phase:
 > - APIs are subject to breaking changes
