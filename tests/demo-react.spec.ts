@@ -93,7 +93,7 @@ test.describe("basic", () => {
 
   for (const [bA, bB] of pairs) {
     test(`${bA}_${bB}`, async ({ baseURL }) => {
-      const url = baseURL + "?mock&sandbox&baseUrl=" + PULSEBEAM_BASE_URL;
+      const url = baseURL + "?mock&baseUrl=" + PULSEBEAM_BASE_URL;
       const peerA = `__${bA}_${randId()}`;
       const peerB = `__${bB}_${randId()}`;
 
@@ -124,6 +124,6 @@ test.describe("basic", () => {
 test(`load`, async ({ browser, browserName, baseURL }) => {
   const context = await browser.newContext();
   const page = await context.newPage();
-  await page.goto(baseURL! + "?mock&sandbox");
+  await page.goto(baseURL! + "?mock");
   await waitForStableVideo(page, "", 1000);
 });
