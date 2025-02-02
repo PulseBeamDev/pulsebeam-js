@@ -44,12 +44,32 @@ export const usePeerStore = create<PeerState>((set, get) => ({
       const baseUrl = urlParams.get("baseUrl");
       const sandbox = urlParams.get("sandbox");
 
-      const resp = await fetch(
-        sandbox === null
-          ? `/auth?groupId=${DEFAULT_GROUP}&peerId=${peerId}`
-          : `https://cloud.pulsebeam.dev/sandbox/token?groupId=${DEFAULT_GROUP}&peerId=${peerId}`,
-      );
-      const token = await resp.text();
+      let token;
+      if (sandbox !== null) {
+        // WARNING!
+        // PLEASE ONLY USE THIS FOR TESTING ONLY. FOR PRODUCTION,
+        // YOU MUST USE YOUR OWN AUTH SERVER TO GENERATE THE TOKEN.
+        const form = new URLSearchParams({
+          apiKey: "kid_<...>",
+          apiSecret: "sk_<...>",
+          groupId: DEFAULT_GROUP,
+          peerId: peerId,
+        });
+        const resp = await fetch(
+          "https://cloud.pulsebeam.dev/sandbox/token",
+          {
+            body: form,
+            method: "POST",
+          },
+        );
+        token = await resp.text();
+      } else {
+        const resp = await fetch(
+          `/auth?groupId=${DEFAULT_GROUP}&peerId=${peerId}`,
+        );
+        token = await resp.text();
+      }
+
       const p = await createPeer({
         baseUrl: baseUrl || undefined,
         token,

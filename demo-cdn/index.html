@@ -40,7 +40,7 @@
     const params = new URLSearchParams(window.location.search);
     const baseUrl = params.get("baseUrl");
     const groupId = params.get("groupId") || "default";
-    const isSandbox = params.get("sandbox")==='true' ? true : false;
+    const isSandbox = params.get("sandbox") === 'true' ? true : false;
     const peerId = params.get("peerId") || `peer-${Math.floor(Math.random() * 100)}`;
     const otherGroupId = groupId;
     let otherPeerId = params.get("otherPeerId");
@@ -53,9 +53,31 @@
 
     refIdentity.textContent = `groupId=${groupId} peerId=${peerId}`;
 
-    const urlRoot = isSandbox ? `https://cloud.pulsebeam.dev/sandbox/token` : `/auth`
-    const resp = await fetch (`${urlRoot}?groupId=${groupId}&peerId=${peerId}`);
-    const token = await resp.text();
+    let token;
+    if (isSandbox) {
+      // WARNING!
+      // PLEASE ONLY USE THIS FOR TESTING ONLY. FOR PRODUCTION,
+      // YOU MUST USE YOUR OWN AUTH SERVER TO GENERATE THE TOKEN.
+      const form = new URLSearchParams({
+        apiKey: "kid_<...>",
+        apiSecret: "sk_<...>",
+        groupId: DEFAULT_GROUP,
+        peerId: peerId,
+      });
+      const resp = await fetch(
+        "https://cloud.pulsebeam.dev/sandbox/token",
+        {
+          body: form,
+          method: "POST",
+        },
+      );
+      token = await resp.text();
+    } else {
+      const resp = await fetch(
+        `/auth?groupId=${DEFAULT_GROUP}&peerId=${peerId}`,
+      );
+      token = await resp.text();
+    }
     const peer = await createPeer({token, baseUrl});
 
     peer.onsession = (sess) => {
