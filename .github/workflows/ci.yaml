@@ -36,6 +36,9 @@ jobs:
       run: npx playwright install --with-deps
     - name: Run tests
       run: make test
+      env:
+        PULSEBEAM_API_KEY: ${{ secrets.PULSEBEAM_API_KEY }}
+        PULSEBEAM_API_SECRET: ${{ secrets.PULSEBEAM_API_SECRET }}
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
