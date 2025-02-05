@@ -40,7 +40,7 @@
     const params = new URLSearchParams(window.location.search);
     const baseUrl = params.get("baseUrl");
     const groupId = params.get("groupId") || "default";
-    const isSandbox = params.get("sandbox") === 'true' ? true : false;
+    const isDevelopment = params.get("development") === 'true' ? true : false;
     const peerId = params.get("peerId") || `peer-${Math.floor(Math.random() * 100)}`;
     const otherGroupId = groupId;
     let otherPeerId = params.get("otherPeerId");
@@ -54,14 +54,14 @@
     refIdentity.textContent = `groupId=${groupId} peerId=${peerId}`;
 
     let token;
-    if (isSandbox) {
+    if (isDevelopment) {
       // WARNING!
       // PLEASE ONLY USE THIS FOR TESTING ONLY. FOR PRODUCTION,
-      // YOU MUST USE YOUR OWN AUTH SERVER TO GENERATE THE TOKEN.
+      // YOU MUST USE YOUR OWN AUTH SERVER TO GENERATE TOKENS.
       const form = new URLSearchParams({
         apiKey: "kid_<...>",
         apiSecret: "sk_<...>",
-        groupId: DEFAULT_GROUP,
+        groupId: groupId,
         peerId: peerId,
       });
       const resp = await fetch(
@@ -74,7 +74,7 @@
       token = await resp.text();
     } else {
       const resp = await fetch(
-        `/auth?groupId=${DEFAULT_GROUP}&peerId=${peerId}`,
+        `/auth?groupId=${groupId}&peerId=${peerId}`,
       );
       token = await resp.text();
     }
