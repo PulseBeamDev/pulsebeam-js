@@ -78,7 +78,7 @@ function SessionPage() {
   return (
     <div>
       {remoteStreams.length > 1 && (
-        <nav className="left drawer">
+        <nav className="left drawer medium-space">
           {remoteStreams.slice(1).map(([_, s]) => (
             <VideoContainer
               key={s.key}
@@ -123,6 +123,15 @@ function SessionPage() {
           <i>call_end</i>
           End Call
         </button>
+
+        <a
+          target="_blank"
+          className="button secondary-container secondary-text small-round"
+          href="https://github.com/PulseBeamDev/pulsebeam-js/tree/main/demo-react"
+        >
+          <i>code</i>
+          Source Code
+        </a>
       </nav>
     </div>
   );
