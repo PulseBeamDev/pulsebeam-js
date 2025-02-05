@@ -82,7 +82,9 @@ This example retrieves an authentication token (implementation details will vary
 
 For documentation, API keys, and usage scenarios, please refer to the official PulseBeam documentation:
 
-* https://pulsebeam.dev/docs/
+* Guide: https://pulsebeam.dev/docs/
+* Client SDK Reference: https://jsr.io/@pulsebeam/peer
+* Server SDK Reference: https://jsr.io/@pulsebeam/server
 
 ## Semantic Versioning
 
