@@ -1,5 +1,5 @@
 {
-  "name": "@pulsebeam/peerjs-adapter",
+  "name": "@pulsebeam/adapter-peerjs",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -16,6 +16,5 @@
     "@pulsebeam/peer": "^0.0.17"
   },
   "devDependencies": {
-
   }
 }
