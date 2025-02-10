@@ -51,7 +51,10 @@ async function connect(page: Page, peerId: string, otherPeerId: string) {
   await page.getByTestId("btn-ready").click();
   await page.getByTestId("src-peerId").click();
   await page.getByTestId("dst-peerId").fill(otherPeerId);
+  await expect(page.getByTestId("dst-peerId")).toHaveValue(otherPeerId);
   await page.getByTestId("btn-connect").click();
+  await expect(page.getByTestId("btn-connect")).toHaveAttribute("disabled")
+  await expect(page.getByTestId("btn-connect")).not.toBeVisible() 
   await waitForStableVideo(page, otherPeerId, 10_000);
 
   return () => page.getByTestId("btn-endCall").click();
