@@ -1,0 +1,21 @@
+{
+  "name": "@pulsebeam/peerjs-adapter",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "Gabrielle Herman support@pulsebeam.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PulseBeamDev/pulsebeam-js.git"
+  },
+  "homepage": "https://pulsebeam.dev",
+  "scripts": {
+  },
+  "dependencies": {
+    "@pulsebeam/peer": "^0.0.17"
+  },
+  "devDependencies": {
+
+  }
+}
