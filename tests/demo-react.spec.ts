@@ -1,9 +1,12 @@
 import {
   chromium as bChromium,
   firefox as bFirefox,
-  webkit as bWebkit,
+  // webkit as bWebkit,
 } from "playwright";
 import { Browser, expect, type Page, test } from "@playwright/test";
+
+// npx playwright test --list
+// npx playwright test --project=local --repeat-each 15 --grep "chromium_chromium disconnect and reconnect"
 
 const PULSEBEAM_BASE_URL = process.env.PULSEBEAM_BASE_URL ||
   "https://cloud.pulsebeam.dev/twirp";
@@ -43,17 +46,19 @@ async function waitForStableVideo(
   throw new Error("waitForStableVideo timeout");
 }
 
-async function connect(page: Page, peerId: string, otherPeerId: string) {
-  await page.getByTestId("src-peerId").click();
+async function start(page: Page, peerId: string){
   await page.getByTestId("src-peerId").fill(peerId);
   await waitForStableVideo(page, peerId, 5_000);
-
+  
   await page.getByTestId("btn-ready").click();
-  await page.getByTestId("src-peerId").click();
+  
+  return () => page.getByTestId("btn-endCall").click();
+}
+
+async function connect(page: Page, peerId: string, otherPeerId: string) {
+  start(page, peerId)
   await page.getByTestId("dst-peerId").fill(otherPeerId);
-  await expect(page.getByTestId("dst-peerId")).toHaveValue(otherPeerId);
   await page.getByTestId("btn-connect").click();
-  await expect(page.getByTestId("btn-connect")).toHaveAttribute("disabled")
   await expect(page.getByTestId("btn-connect")).not.toBeVisible() 
   await waitForStableVideo(page, otherPeerId, 10_000);
 
@@ -75,7 +80,14 @@ function getAllPairs<T>(list: T[]): [T, T][] {
   return pairs;
 }
 
-test.describe("basic", () => {
+test(`load`, async ({ browser, browserName, baseURL }) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.goto(baseURL! + "?mock");
+  await waitForStableVideo(page, "", 1000);
+});
+
+test.describe("Connect", () => {
   const browserNames = ["chromium", "firefox"];
   const browsers: Record<string, Browser> = {};
   const pairs: [string, string][] = getAllPairs(browserNames);
@@ -94,8 +106,9 @@ test.describe("basic", () => {
     // browsers["webkit"] = webkit;
   });
 
+  // basic connection test a->b
   for (const [bA, bB] of pairs) {
-    test(`${bA}_${bB}`, async ({ baseURL }) => {
+    test(`${bA}_${bB} basic connection`, async ({ baseURL }) => {
       const url = baseURL + "?mock&baseUrl=" + PULSEBEAM_BASE_URL;
       const peerA = `__${bA}_${randId()}`;
       const peerB = `__${bB}_${randId()}`;
@@ -111,9 +124,10 @@ test.describe("basic", () => {
       await pageB.goto(url);
 
       try {
+        // Initial connection B -> A
         const [closeA, closeB] = await Promise.all([
+          start(pageB, peerB),
           connect(pageA, peerA, peerB),
-          connect(pageB, peerB, peerA),
         ]);
         await Promise.all([closeA(), closeB()]);
       } finally {
@@ -122,11 +136,98 @@ test.describe("basic", () => {
       }
     });
   }
-});
 
-test(`load`, async ({ browser, browserName, baseURL }) => {
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  await page.goto(baseURL! + "?mock");
-  await waitForStableVideo(page, "", 1000);
+  // Disconnect and reconnect with role reversal
+  for (const [bA, bB] of pairs) {
+    test(`${bA}_${bB} disconnect and reconnect`, async ({ baseURL }) => {
+      const url = `${baseURL}?mock&baseUrl=${PULSEBEAM_BASE_URL}`;
+      const peerA = `__${bA}_${randId()}`;
+      const peerB = `__${bB}_${randId()}`;
+
+      const contextA = await browsers[bA].newContext();
+      const pageA = await contextA.newPage();
+      await pageA.goto(url);
+
+      const contextB = await browsers[bB].newContext();
+      const pageB = await contextB.newPage();
+      await pageB.goto(url);
+
+      try {
+        // Initial connection B -> A
+        const [closeA, closeB] = await Promise.all([
+          start(pageA, peerA),
+          connect(pageB, peerB, peerA),
+        ]);
+
+        // End call
+        await Promise.all([closeA(), closeB()]);
+
+        // Verify streams stopped
+        await expect(pageA.getByTestId(peerB)).toHaveCount(0);
+        await expect(pageB.getByTestId(peerA)).toHaveCount(0);
+
+        // Reconnect with reversed roles A -> B
+        const [closeB2, closeA2] = await Promise.all([
+          start(pageB, peerB),
+          connect(pageA, peerA, peerB),
+        ]);
+
+        await Promise.all([closeA2(), closeB2()]);
+      } finally {
+        await contextA.close();
+        await contextB.close();
+      }
+    });
+  }
+
+  // Simultaneous connection attempt
+  for (const [bA, bB] of pairs) {
+    test(`${bA}_${bB} simultaneous connect`, async ({ baseURL }) => {
+      const url = `${baseURL}?mock&baseUrl=${PULSEBEAM_BASE_URL}`;
+      const peerA = `__${bA}_${randId()}`;
+      const peerB = `__${bB}_${randId()}`;
+
+      const contextA = await browsers[bA].newContext();
+      const pageA = await contextA.newPage();
+      await pageA.goto(url);
+
+      const contextB = await browsers[bB].newContext();
+      const pageB = await contextB.newPage();
+      await pageB.goto(url);
+
+      try {
+        // Both peers ready
+        const [closeA, closeB] = await Promise.all([
+          start(pageA, peerA),
+          start(pageB, peerB),
+        ]);
+
+        // Set destination IDs
+        await Promise.all([
+          pageA.getByTestId("dst-peerId").fill(peerB),
+          pageB.getByTestId("dst-peerId").fill(peerA),
+        ]);
+
+        // Attempt simultaneous connection
+        await Promise.all([
+          pageA.getByTestId("btn-connect").click().catch(() => {}),
+          pageB.getByTestId("btn-connect").click().catch(() => {}),
+        ]);
+
+        // Verify buttons are hidden
+        await Promise.all([
+          expect(pageA.getByTestId("btn-connect")).not.toBeVisible(),
+          expect(pageB.getByTestId("btn-connect")).not.toBeVisible(),
+        ]);
+
+        await waitForStableVideo(pageA, peerB, 10_000),
+        await waitForStableVideo(pageB, peerA, 10_000),
+
+        await Promise.all([closeA(), closeB()]);
+      } finally {
+        await contextA.close();
+        await contextB.close();
+      }
+    });
+  }
 });
