@@ -53,6 +53,7 @@
 
     refIdentity.textContent = `groupId=${groupId} peerId=${peerId}`;
 
+    // See https://pulsebeam.dev/docs/ for learning about token management
     let token;
     if (isDevelopment) {
       // WARNING!
@@ -64,6 +65,8 @@
         groupId: groupId,
         peerId: peerId,
       });
+      // See https://pulsebeam.dev/docs/getting-started/what-happened/
+      // For explanation of this token-serving method
       const resp = await fetch(
         "https://cloud.pulsebeam.dev/sandbox/token",
         {
@@ -73,6 +76,8 @@
       );
       token = await resp.text();
     } else {
+      // See https://pulsebeam.dev/docs/guides/token/#example-nodejs-http-server
+      // For explanation of this token-serving method
       const resp = await fetch(
         `/auth?groupId=${groupId}&peerId=${peerId}`,
       );

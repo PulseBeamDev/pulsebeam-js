@@ -42,10 +42,11 @@ export const usePeerStore = create<PeerState>((set, get) => ({
       const urlParams = new URLSearchParams(window.location.search);
       const forceRelay = urlParams.get("forceRelay");
       const baseUrl = urlParams.get("baseUrl");
-      const sandbox = urlParams.get("sandbox");
+      const isDevelopment = urlParams.get("development");
 
+      // See https://pulsebeam.dev/docs/ for learning about token management
       let token;
-      if (sandbox !== null) {
+      if (isDevelopment !== null) {
         // WARNING!
         // PLEASE ONLY USE THIS FOR TESTING ONLY. FOR PRODUCTION,
         // YOU MUST USE YOUR OWN AUTH SERVER TO GENERATE THE TOKEN.
@@ -55,6 +56,8 @@ export const usePeerStore = create<PeerState>((set, get) => ({
           groupId: DEFAULT_GROUP,
           peerId: peerId,
         });
+        // See https://pulsebeam.dev/docs/getting-started/what-happened/
+        // For explanation of this token-serving method
         const resp = await fetch(
           "https://cloud.pulsebeam.dev/sandbox/token",
           {
@@ -64,6 +67,8 @@ export const usePeerStore = create<PeerState>((set, get) => ({
         );
         token = await resp.text();
       } else {
+        // See https://pulsebeam.dev/docs/guides/token/#example-nodejs-http-server
+        // For explanation of this token-serving method
         const resp = await fetch(
           `/auth?groupId=${DEFAULT_GROUP}&peerId=${peerId}`,
         );
