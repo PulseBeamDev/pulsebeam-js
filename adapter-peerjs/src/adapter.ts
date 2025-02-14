@@ -8,14 +8,14 @@ import { jwtDecode } from "jwt-decode";
 
 import { Peer as PeerJSPeer, PeerEvents, DataConnection as PeerJSDataConnection, MediaConnection as PeerJSMediaConnection, PeerJSOption, PeerConnectOption, ConnectionType, SerializationType, Util as PeerJSUtil } from './types';
 
-const GROUP_ID = 'default';
+export const GROUP_ID = 'default';
 
-interface ConnectOptions extends PeerConnectOption {
+export interface ConnectOptions extends PeerConnectOption {
     serialization: SerializationType
 }
 
 // Define types and interfaces to match PeerJS API as much as possible
-interface PulseBeamOptions extends PeerJSOption {
+export interface PulseBeamOptions extends PeerJSOption {
   /**
    * PulseBeam authentication configuration
    * @require Either token or insecureAuth
@@ -36,7 +36,7 @@ interface PulseBeamOptions extends PeerJSOption {
         }
 }
 
-class Peer extends PeerJSPeer{
+export class Peer extends PeerJSPeer{
     private pulseBeamPeer: PulseBeamPeer;
     private groupId: string;
     private eventListeners: { [event in PeerEvents]?: ((...args: any[]) => void)[] } = {};
@@ -44,7 +44,7 @@ class Peer extends PeerJSPeer{
     private mediaConnections: { [peerId: string]: PeerJSMediaConnection } = {}; // Track media connections - consider if PulseBeam manages this
     public connections: { [peerId: string]: PeerJSDataConnection[] | PeerJSMediaConnection[] } = {}; // Mimic peer.connections for PeerJS API compat
 
-    constructor(id: string, options?: PulseBeamOptions) {
+    constructor(id?: string, options?: PulseBeamOptions) {
         super();
        
         if (!options) {
@@ -218,7 +218,7 @@ class Peer extends PeerJSPeer{
 }
 
 
-class DataConnection extends PeerJSDataConnection {
+export class DataConnection extends PeerJSDataConnection {
     private session: ISession | undefined; // Session can be undefined initially for outgoing connections
     private channel: RTCDataChannel | undefined; // undefined initally
     public label: string = ''; // PulseBeam doesn't seem to have labels like PeerJS, might need to generate or ignore.
@@ -317,7 +317,7 @@ class DataConnection extends PeerJSDataConnection {
 }
 
 
-class MediaConnectionAdapter extends PeerJSMediaConnection {
+export class MediaConnectionAdapter extends PeerJSMediaConnection {
     // ... (Implement MediaConnectionAdapter if media calls are needed, similar to DataConnectionAdapter)
     private session: ISession | undefined;
     private eventListeners: { [event in MediaConnectionEvent]?: ((...args: any[]) => void)[] } = {};
@@ -394,7 +394,7 @@ class MediaConnectionAdapter extends PeerJSMediaConnection {
 
 
 // Example usage (Conceptual - adjust based on your actual needs)
-async function exampleUsage() {
+export async function exampleUsage() {
     const pulsebeamOptions: PeerJSOption = {
         groupId: 'test-group', // Replace with your group ID
         peerId: 'peerjs-adapter-peer1', // Optional, or let PulseBeam generate
