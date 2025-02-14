@@ -37,34 +37,32 @@ export interface PulseBeamOptions extends PeerJSOption {
 }
 
 export class Peer extends PeerJSPeer{
-    private pulseBeamPeer: PulseBeamPeer;
-    private groupId: string;
-    private eventListeners: { [event in PeerEvents]?: ((...args: any[]) => void)[] } = {};
-    private dataConnections: { [peerId: string]: PeerJSDataConnection } = {}; // Track data connections - consider if PulseBeam manages this
-    private mediaConnections: { [peerId: string]: PeerJSMediaConnection } = {}; // Track media connections - consider if PulseBeam manages this
-    public connections: { [peerId: string]: PeerJSDataConnection[] | PeerJSMediaConnection[] } = {}; // Mimic peer.connections for PeerJS API compat
+    private pulseBeamPeer: PulseBeamPeer | undefined;
+    private groupId: string | undefined;
+    private eventTargets: { [event in PeerEvents] : EventTarget };
+    public connections: { [peerId: string]: (PeerJSDataConnection |PeerJSMediaConnection)[] } = {};
 
     constructor(id?: string, options?: PulseBeamOptions) {
         super();
        
+        this.eventTargets = {}
+        for (const e in PeerEvents){
+            this.eventTargets [e] = new EventTarget()
+        }
+
         if (!options) {
             throw('PeerConstructor: Options required');
-            return;
         }
 
         try {
             (async () => {
-                const token = await this.resolveToken(options)
+                const token = await this.resolveToken(options, id)
                 this.pulseBeamPeer = await pulseBeamCreatePeer({token})
             })();
         } catch (e) {
             throw(`Failed to create PulseBeam Peer: ${e.message}`);
         }
-        const peerId = this.pulseBeamPeer.peerId
 
-        if (id !== peerId){
-            throw(`Unexpected state. id ${id} != tokenId ${peerId}`)
-        }
     }
 
     private async resolveToken(options: PulseBeamOptions, id?: string): Promise<string> {
@@ -115,10 +113,11 @@ export class Peer extends PeerJSPeer{
     }
 
     public get destroyed(): boolean {
+        if (!this.pulseBeamPeer) {return true}
         return this.pulseBeamPeer.state === 'closed'
     }
 
-    // connect to peer with id. 
+    // connect to peer with id
     // If you overrode the groupId on this peer, be sure the peer you
     // connect to is in the same group as this peer
     connect(id: string, options?: any): PeerJSDataConnection {
@@ -134,18 +133,23 @@ export class Peer extends PeerJSPeer{
             if (options?.reliable){ delete config["maxRetransmitts"] }
             if (options?.serialization){ config["protocol"] = options.serialization}
             const chOut = sess.createDataChannel(options?.label || "data", config);
-            const otherPeerId = sess.otherPeerId;
+            dataConnection._setChannel(chOut)
+            const otherPeerId = sess.other.peerId;
+            if (!this.connections[otherPeerId]) this.connections[otherPeerId] = [dataConnection]
+            else this.connections[otherPeerId].concat(dataConnection)
         };
         const ac = new AbortController();
         // Initiate the connection
         try {
+            if (!this.groupId) {
+                throw(new Error("Error with groupId, check PulseBeam token"))
+            }
             this.pulseBeamPeer.connect(this.groupId, id, ac.signal);
         } catch (error) {
             throw(error);
         }
         return dataConnection;
     };
-}
     // private handleNewSession(session: ISession) {
     //     const peerId = session.otherpeerId; // Get the peerId from PulseBeam session info.
     //     const dataConnectionAdapter = new DataConnection(session, this); // Create a DataConnectionAdapter
@@ -182,27 +186,22 @@ export class Peer extends PeerJSPeer{
         return dataConnection;
     }
 
-    on(event: PeerJSEvent, callback: (...args: any[]) => void): void {
-        if (!this.eventListeners[event]) {
-            this.eventListeners[event] = [];
-        }
-        this.eventListeners[event]!.push(callback);
+    on(event: PeerEvents, callback: (...args: any[]) => void): void {
+        this.eventTargets[event].addEventListener(event, callback)
     }
 
-    emit(event: PeerEvents, ...args: any[]) {
-        this.eventListeners[event]?.forEach(callback => callback(...args));
+    emit(event: PeerEvents, args?: any) {
+        this.eventTargets[event].dispatchEvent(new Event(event, args))
     }
-
 
     disconnect(): void {
         if (!this.pulseBeamPeer) return;
         this.pulseBeamPeer.close(); // PulseBeam close should handle disconnection
-        this.disconnected = true;
         this.emit('disconnected'); // Emit 'disconnected' event
     }
 
     reconnect(): void {
-        throw new Error("Method not implemented."); // Reconnect might be complex, check PulseBeam if it supports reconnect and how to map it
+        // PulseBeam does reconnect automatically
     }
 
     destroy(): void {
@@ -211,8 +210,11 @@ export class Peer extends PeerJSPeer{
 
         this.pulseBeamPeer.close();
         
-        this.dataConnections = {};
-        this.mediaConnections = {};
+        for (const peer in this.connections){
+            for (const c in this.connections[peer]){
+                c.close()
+            }
+        }
         this.connections = {};
     }
 }
@@ -236,6 +238,8 @@ export class DataConnection extends PeerJSDataConnection {
     public _setSession(sess: ISession){
         this.session = sess
     }
+
+    public _setChannel(chan: RTCDataChannel){this.channel = chan}
 
     private initializeSessionEvents(session: ISession) {
         session.ondatachannel = (event) => {
