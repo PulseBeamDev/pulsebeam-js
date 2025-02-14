@@ -10,11 +10,41 @@
     "url": "https://github.com/PulseBeamDev/pulsebeam-js.git"
   },
   "homepage": "https://pulsebeam.dev",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/pulsebeam-adapter-peerjs.umd.cjs",
+  "module": "./dist/pulsebeam-adapter-peerjs.js",
+  "exports": {
+    ".": {
+      "import": "./dist/pulsebeam-adapter-peerjs.js",
+      "require": "./dist/pulsebeam-adapter-peerjs.umd.cjs"
+    }
+  },
+  "browserslist": {
+    "production": [
+      "chrome >= 83",
+      "edge >= 83",
+      "firefox >= 80",
+      "safari >= 15"
+    ],
+    "msgpack": [
+      "chrome >= 83",
+      "edge >= 83",
+      "firefox >= 102",
+      "safari >= 15"
+    ]
+  },
   "scripts": {
+    "build": "vite build"
   },
   "dependencies": {
     "@pulsebeam/peer": "^0.0.17"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^3.0.5",
+    "vite": "^6.1.0",
+    "vite-plugin-dts": "^4.5.0",
+    "vitest": "^3.0.5"
   }
 }
