@@ -1,12 +1,19 @@
 import { AccessToken, PeerClaims, PeerPolicy } from "@pulsebeam/server/node";
 
-// default values are only used for testing only!!
-const appId = process.env["PULSEBEAM_API_KEY"] || "kid_bc74ea55b2ffe97c";
-const appSecret = process.env["PULSEBEAM_API_SECRET"] ||
-  "sk_360e45d1d7cb3ea840789f56f6502b4154f22aa89b67b557fa9427363968ffe4";
+let missingKeysError = false;
+const appId = process.env["PULSEBEAM_API_KEY"] || "kid_<...>";
+const appSecret = process.env["PULSEBEAM_API_SECRET"] || "sk_<...>";
+
+if (appId === "kid_<...>" || appSecret === 'sk_<...>'){
+  missingKeysError = true;
+  console.error("ERROR: Keys not set see https://pulsebeam.dev/docs/getting-started/quick-start/")
+}
+
 const app = new AccessToken(appId, appSecret);
 
 export function auth(url) {
+  if (missingKeysError) { throw new Error("Keys are required to generate tokens") }
+
   const groupId = url.searchParams.get("groupId");
   const peerId = url.searchParams.get("peerId");
 

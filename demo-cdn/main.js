@@ -14,8 +14,13 @@ const server = http.createServer((req, res) => {
       res.end(token);
     } catch (e) {
       console.log(e)
-      res.writeHead(400, { "Content-Type": "text/plain" });
-      res.end("Bad Request - groupId and peerId are required");
+      if (e.message.includes("Key")){
+        res.writeHead(500, { "Content-Type": "text/plain" });
+        res.end("Server Error - keys are required");
+      } else {
+        res.writeHead(400, { "Content-Type": "text/plain" });
+        res.end("Bad Request - groupId and peerId are required");
+      }
     }
     return;
   }
