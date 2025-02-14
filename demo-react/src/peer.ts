@@ -56,6 +56,9 @@ export const usePeerStore = create<PeerState>((set, get) => ({
           groupId: DEFAULT_GROUP,
           peerId: peerId,
         });
+        if (form.get('apiKey') === "kid_<...>" || form.get('appSecret') === 'sk_<...>') {
+          console.error("ERROR: Keys not set see https://pulsebeam.dev/docs/getting-started/quick-start/")
+        }
         // See https://pulsebeam.dev/docs/getting-started/what-happened/
         // For explanation of this token-serving method
         const resp = await fetch(
