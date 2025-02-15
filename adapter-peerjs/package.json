@@ -36,7 +36,8 @@
     ]
   },
   "scripts": {
-    "build": "vite build"
+    "build": "vite build",
+    "test": "vitest"
   },
   "dependencies": {
     "@pulsebeam/peer": "^0.0.17"
