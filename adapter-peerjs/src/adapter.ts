@@ -6,7 +6,7 @@ import {
 } from '@pulsebeam/peer';
 import { jwtDecode } from "jwt-decode";
 
-import { Peer as PeerJSPeer, PeerEvents, DataConnection as PeerJSDataConnection, MediaConnection as PeerJSMediaConnection, PeerJSOption, PeerConnectOption, ConnectionType, SerializationType, Util as PeerJSUtil } from './types';
+import { Peer as PeerJSPeer, PeerEvents, DataConnection as PeerJSDataConnection, MediaConnection as PeerJSMediaConnection, PeerJSOption, PeerConnectOption, ConnectionType, SerializationType, Util as PeerJSUtil, DataConnectionEvents, MediaConnectionEvents, PeerError, DataConnectionErrorType, PeerErrorType, BaseConnectionErrorType } from './types';
 
 export const GROUP_ID = 'default';
 
@@ -36,19 +36,34 @@ export interface PulseBeamOptions extends PeerJSOption {
         }
 }
 
+type PeerEventType = keyof PeerEvents;
+// Helper type to extract event argument types
+type PeerEventArgs<E extends PeerEventType> = 
+  Parameters<PeerEvents[E]> extends [] ? never : Parameters<PeerEvents[E]>[0];
+
 export class Peer extends PeerJSPeer{
     private pulseBeamPeer: PulseBeamPeer | undefined;
     private groupId: string | undefined;
-    private eventTargets: { [event in PeerEvents] : EventTarget };
-    public connections: { [peerId: string]: (PeerJSDataConnection |PeerJSMediaConnection)[] } = {};
+    private eventTargets: Record<PeerEventType, EventTarget>;
+    private _connections: { [peerId: string]: (MediaConnection|DataConnection)[] } = {};
+    private _options: PulseBeamOptions | undefined;
+
+    get id(){return this.pulseBeamPeer?.peerId || ""}
+    get options(){return {...this._options}}
+    get connections(){return this._connections}
 
     constructor(id?: string, options?: PulseBeamOptions) {
         super();
+        this._options = options;
        
-        this.eventTargets = {}
-        for (const e in PeerEvents){
-            this.eventTargets [e] = new EventTarget()
-        }
+        this.eventTargets = {
+            open: new EventTarget(),
+            connection: new EventTarget(),
+            call: new EventTarget(),
+            close: new EventTarget(),
+            disconnected: new EventTarget(),
+            error: new EventTarget(),
+        };
 
         if (!options) {
             throw('PeerConstructor: Options required');
@@ -112,11 +127,6 @@ export class Peer extends PeerJSPeer{
         return resp.text();
     }
 
-    public get destroyed(): boolean {
-        if (!this.pulseBeamPeer) {return true}
-        return this.pulseBeamPeer.state === 'closed'
-    }
-
     // connect to peer with id
     // If you overrode the groupId on this peer, be sure the peer you
     // connect to is in the same group as this peer
@@ -135,8 +145,8 @@ export class Peer extends PeerJSPeer{
             const chOut = sess.createDataChannel(options?.label || "data", config);
             dataConnection._setChannel(chOut)
             const otherPeerId = sess.other.peerId;
-            if (!this.connections[otherPeerId]) this.connections[otherPeerId] = [dataConnection]
-            else this.connections[otherPeerId].concat(dataConnection)
+            if (!this._connections[otherPeerId]) this._connections[otherPeerId] = [dataConnection]
+            else this._connections[otherPeerId].concat(dataConnection)
         };
         const ac = new AbortController();
         // Initiate the connection
@@ -165,16 +175,20 @@ export class Peer extends PeerJSPeer{
         if (!this.pulseBeamPeer) {
             throw(new Error("Peer not initialized yet."));
         }
-        const dataConnection: DataConnection = new DataConnection(this, {
+        const mediaConnection: MediaConnection = new MediaConnection(this, {
                 ...options
             });
         this.pulseBeamPeer.onsession = (sess) => {
-            dataConnection._setSession(sess)
+            mediaConnection._setSession(sess)
             const config: any = {maxRetransmitts: 0}
             if (options?.reliable){ delete config["maxRetransmitts"] }
             if (options?.serialization){ config["protocol"] = options.serialization}
-            const chOut = sess.createDataChannel(options?.label || "data", config);
-            const otherPeerId = sess.otherPeerId;
+            // const chOut = sess.createDataChannel(options?.label || "data", config);
+            
+            // Store connection in internal state
+            const otherPeerId = sess.other.peerId;
+            if (!this._connections[otherPeerId]) this._connections[otherPeerId] = [mediaConnection]
+            else this._connections[otherPeerId].concat(mediaConnection)
         };
         const ac = new AbortController();
         // Initiate the connection
@@ -183,42 +197,74 @@ export class Peer extends PeerJSPeer{
         } catch (error) {
             throw(error);
         }
-        return dataConnection;
+        return mediaConnection;
     }
 
-    on(event: PeerEvents, callback: (...args: any[]) => void): void {
-        this.eventTargets[event].addEventListener(event, callback)
+     on<E extends PeerEventType>(event: E, callback: PeerEvents[E]): void {
+        const handler = (e: Event) => {
+        const customEvent = e as CustomEvent<PeerEventArgs<E>>;
+        // Type-safe argument passing
+        if (customEvent.detail !== undefined) {
+            (callback as any)(customEvent.detail);
+        } else {
+            (callback as any)();
+        }
+        };
+        
+        this.eventTargets[event].addEventListener(event, handler);
     }
 
-    emit(event: PeerEvents, args?: any) {
-        this.eventTargets[event].dispatchEvent(new Event(event, args))
+    private emit<E extends PeerEventType>(
+        event: E,
+        data?: PeerEventArgs<E>
+    ): void {
+        const eventInit = data !== undefined ? { detail: data } : undefined;
+        const customEvent = new CustomEvent(event, eventInit);
+        this.eventTargets[event].dispatchEvent(customEvent);
     }
-
+    
     disconnect(): void {
-        if (!this.pulseBeamPeer) return;
-        this.pulseBeamPeer.close(); // PulseBeam close should handle disconnection
-        this.emit('disconnected'); // Emit 'disconnected' event
+        this.emit('disconnected');
     }
 
     reconnect(): void {
-        // PulseBeam does reconnect automatically
+        // PulseBeam JS SDK reconnects automatically
     }
 
+    get open(){
+        if (!this.pulseBeamPeer) return false;
+        if (this.pulseBeamPeer.state === 'new') return true;
+        return false
+    }
+    get disconnected(){
+        return this.destroyed
+    }
+    get destroyed(){
+        if (!this.pulseBeamPeer) return true;
+        if (this.pulseBeamPeer.state === 'closed') return true;
+        return false
+    }
+    
     destroy(): void {
         if (!this.pulseBeamPeer) return;
         if (this.pulseBeamPeer.state === 'closed') return;
 
-        this.pulseBeamPeer.close();
+        this.disconnect()
         
-        for (const peer in this.connections){
-            for (const c in this.connections[peer]){
+        for (const peer in this._connections){
+            for (const c in this._connections[peer]){
+                // @ts-ignore
                 c.close()
             }
         }
-        this.connections = {};
+        this._connections = {};
     }
 }
 
+type DataConnectionEventsType = keyof DataConnectionEvents;
+// Helper type to extract event argument types
+type DataConnectionEventsArgs<E extends DataConnectionEventsType> = 
+  Parameters<DataConnectionEvents[E]> extends [] ? never : Parameters<DataConnectionEvents[E]>[0];
 
 export class DataConnection extends PeerJSDataConnection {
     private session: ISession | undefined; // Session can be undefined initially for outgoing connections
@@ -229,10 +275,19 @@ export class DataConnection extends PeerJSDataConnection {
     public reliable: boolean = false; // Reliability setting? PulseBeam options for data channels?
     public serialization: string = 'binary'; // Serialization? PulseBeam handling?
     public bufferSize: number = 0; // Buffer size tracking if needed
+    private eventTargets: Record<DataConnectionEventsType, EventTarget>;
+
 
     _send() {}
     constructor(peer: Peer, options?: any) {
         super(peer.id, peer, options);
+        this.eventTargets = {
+            open: new EventTarget(),
+            error: new EventTarget(),
+            close: new EventTarget(),
+            iceStateChanged: new EventTarget(),
+            data: new EventTarget(),
+        };
     }
     
     public _setSession(sess: ISession){
@@ -273,18 +328,29 @@ export class DataConnection extends PeerJSDataConnection {
         };
     }
 
-
     send(data: any): void {
         if (!this.dataChannel || this.dataChannel.readyState !== 'open') {
-            console.warn("Data channel not ready or open. Cannot send data.");
-            return; // Or throw an error? Check PeerJS behavior.
+            this.emit('error', new PeerError(DataConnectionErrorType["NotOpenYet"], "Data channel not ready or open. Cannot send data."))
         }
         try {
              this.dataChannel.send(data); // Data might need to be serialized differently based on PeerJS serialization options.
-        } catch (error) {
-            this.emit('error', error); // Map send error to DataConnection 'error' event
+        } catch (e) {
+            // (method) RTCDataChannel.send(data: string) See error types in MDN Reference
+            if (e instanceof DOMException){
+                if (e.name === "InvalidStateError"){
+                    this.emit('error', new PeerError(DataConnectionErrorType["NotOpenYet"], e))
+                } else if (e.name === "NetworkError"){
+                    this.emit('error', new PeerError(BaseConnectionErrorType["ConnectionClosed"], e))
+                } else {
+                    this.emit('error')
+                }
+            }
+            if (e instanceof TypeError){
+                this.emit('error', new PeerError(DataConnectionErrorType["MessageToBig"], e))
+            }
         }
     }
+
     close(options? : {flush?: boolean }): void {
         if (options?.flush) {
 			this.send({
@@ -297,40 +363,59 @@ export class DataConnection extends PeerJSDataConnection {
         if (this.dataChannel && this.dataChannel.readyState === 'open') {
             this.dataChannel.close();
         }
-        if (this.session) {
-            this.session.close(); // Close PulseBeam session as well.
-        }
         if (this.open) {
-
             this.emit('close');
         }
     }
 
-    on(event: DataConnectionEvent, callback: (...args: any[]) => void): void {
-        if (!this.eventListeners[event]) {
-            this.eventListeners[event] = [];
+    on<E extends DataConnectionEventsType>(event: E, callback: DataConnectionEvents[E]): void {
+        const handler = (e: Event) => {
+        const customEvent = e as CustomEvent<DataConnectionEventsArgs<E>>;
+        // Type-safe argument passing
+        if (customEvent.detail !== undefined) {
+            (callback as any)(customEvent.detail);
+        } else {
+            (callback as any)();
         }
-        this.eventListeners[event]!.push(callback);
+        };
+        
+        this.eventTargets[event].addEventListener(event, handler);
     }
 
-    private emit(event: DataConnectionEvent, ...args: any[]) {
-        this.eventListeners[event]?.forEach(callback => callback(...args));
+    private emit<E extends DataConnectionEventsType>(
+        event: E,
+        data?: DataConnectionEventsArgs<E>
+    ): void {
+        const eventInit = data !== undefined ? { detail: data } : undefined;
+        const customEvent = new CustomEvent(event, eventInit);
+        this.eventTargets[event].dispatchEvent(customEvent);
     }
-
-
 }
 
+type MediaConnectionEventsType = keyof MediaConnectionEvents;
+// Helper type to extract event argument types
+type MediaConnectionEventsArgs<E extends MediaConnectionEventsType> = 
+  Parameters<MediaConnectionEvents[E]> extends [] ? never : Parameters<MediaConnectionEvents[E]>[0];
 
-export class MediaConnectionAdapter extends PeerJSMediaConnection {
-    // ... (Implement MediaConnectionAdapter if media calls are needed, similar to DataConnectionAdapter)
+export class MediaConnection extends PeerJSMediaConnection {
     private session: ISession | undefined;
-    private eventListeners: { [event in MediaConnectionEvent]?: ((...args: any[]) => void)[] } = {};
-    public open: boolean = false;
+    private eventTargets: Record<MediaConnectionEventsType, EventTarget>;
     public metadata: any = null;
     public peer: string;
-    public type: 'media' = 'media';
 
-    constructor(session: ISession | undefined, private parentPeer: Peer) {
+    get type(){ return ConnectionType.Media }
+
+    constructor(session: ISession | undefined, private parentPeer: Peer, options?: any) {
+        super(parentPeer.id, parentPeer, options)
+        //     constructor(peer: Peer, options?: any) {
+        // super(peer.id, peer, options);
+        this.eventTargets = {
+            stream: new EventTarget(),
+            error: new EventTarget(),
+            close: new EventTarget(),
+            iceStateChanged: new EventTarget(),
+            willCloseOnRemote: new EventTarget(),
+        };
         this.session = session;
         if (session) {
              this.peer = session.other().peerId;
@@ -368,6 +453,14 @@ export class MediaConnectionAdapter extends PeerJSMediaConnection {
         }
         this.open = true; // Consider when MediaConnection is 'open' after answering. Check PulseBeam flow
     }
+
+    get open(){
+        if (this.session){
+            return this.session.connectionState === 'connected'
+        }
+        return false
+    }
+
     close(): void {
          if (this.session) {
             this.session.close();
@@ -384,15 +477,28 @@ export class MediaConnectionAdapter extends PeerJSMediaConnection {
              }
         }
     }
-    on(event: MediaConnectionEvent, callback: (...args: any[]) => void): void {
-        if (!this.eventListeners[event]) {
-            this.eventListeners[event] = [];
+
+    on<E extends MediaConnectionEventsType>(event: E, callback: MediaConnectionEvents[E]): void {
+        const handler = (e: Event) => {
+        const customEvent = e as CustomEvent<DataConnectionEventsArgs<E>>;
+        // Type-safe argument passing
+        if (customEvent.detail !== undefined) {
+            (callback as any)(customEvent.detail);
+        } else {
+            (callback as any)();
         }
-        this.eventListeners[event]!.push(callback);
+        };
+        
+        this.eventTargets[event].addEventListener(event, handler);
     }
 
-    private emit(event: MediaConnectionEvent, ...args: any[]) {
-        this.eventListeners[event]?.forEach(callback => callback(...args));
+    private emit<E extends MediaConnectionEventsType>(
+        event: E,
+        data?: MediaConnectionEventsArgs<E>
+    ): void {
+        const eventInit = data !== undefined ? { detail: data } : undefined;
+        const customEvent = new CustomEvent(event, eventInit);
+        this.eventTargets[event].dispatchEvent(customEvent);
     }
 }
 
