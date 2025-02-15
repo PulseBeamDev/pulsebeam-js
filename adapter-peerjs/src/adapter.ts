@@ -130,7 +130,7 @@ export class Peer extends PeerJSPeer{
     // connect to peer with id
     // If you overrode the groupId on this peer, be sure the peer you
     // connect to is in the same group as this peer
-    connect(id: string, options?: any): PeerJSDataConnection {
+    connect(id: string, options?: any): DataConnection {
         if (!this.pulseBeamPeer) {
             throw(new Error("Peer not initialized yet."));
         }
@@ -171,11 +171,11 @@ export class Peer extends PeerJSPeer{
     //     this.emit('connection', dataConnectionAdapter); // Emit 'connection' event with DataConnectionAdapter
     // }
 
-    call(id: string, stream: MediaStream, options?: any): PeerJSMediaConnection {
+    call(id: string, stream: MediaStream, options?: any): MediaConnection {
         if (!this.pulseBeamPeer) {
             throw(new Error("Peer not initialized yet."));
         }
-        const mediaConnection: MediaConnection = new MediaConnection(this, {
+        const mediaConnection: MediaConnection = new MediaConnection(undefined, this, {
                 ...options
             });
         this.pulseBeamPeer.onsession = (sess) => {
@@ -277,7 +277,10 @@ export class DataConnection extends PeerJSDataConnection {
     public bufferSize: number = 0; // Buffer size tracking if needed
     private eventTargets: Record<DataConnectionEventsType, EventTarget>;
 
-
+    // TODO make compatible
+    // Type 'DataConnection' is missing the following properties from type 'DataConnection':
+    //  session, channel, bufferSize, eventTargets, and 5 more.ts(2345)
+    
     _send() {}
     constructor(peer: Peer, options?: any) {
         super(peer.id, peer, options);
@@ -403,6 +406,7 @@ export class MediaConnection extends PeerJSMediaConnection {
     public metadata: any = null;
     public peer: string;
 
+    public _setSession(sess: ISession){this.session = sess}
     get type(){ return ConnectionType.Media }
 
     constructor(session: ISession | undefined, private parentPeer: Peer, options?: any) {
