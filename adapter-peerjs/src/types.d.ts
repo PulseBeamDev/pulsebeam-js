@@ -294,7 +294,7 @@ declare abstract class BaseConnection<SubClassEvents extends ValidEventTypes, Er
      * */
     abstract _initializeDataChannel(dc: RTCDataChannel): void;
 }
-interface DataConnectionEvents extends EventsWithError<DataConnectionErrorType | BaseConnectionErrorType>, BaseConnectionEvents<DataConnectionErrorType | BaseConnectionErrorType> {
+export interface DataConnectionEvents extends EventsWithError<DataConnectionErrorType | BaseConnectionErrorType>, BaseConnectionEvents<DataConnectionErrorType | BaseConnectionErrorType> {
     /**
      * Emitted when data is received from the remote peer.
      */
@@ -376,7 +376,7 @@ export interface CallOption {
      */
     sdpTransform?: Function;
 }
-interface MediaConnectionEvents extends BaseConnectionEvents<never> {
+export interface MediaConnectionEvents extends BaseConnectionEvents<never> {
     /**
      * Emitted when a connection to the PeerServer is established.
      *
