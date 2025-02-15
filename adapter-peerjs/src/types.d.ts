@@ -1,5 +1,114 @@
-import * as BinaryPack from "peerjs-js-binarypack";
-import { EventEmitter, ValidEventTypes } from "eventemitter3";
+declare namespace BinaryPack {
+export type Packable = null | undefined | string | number | boolean | Date | ArrayBuffer | Blob | Array<Packable> | {
+    [key: string]: Packable;
+} | ({
+    BYTES_PER_ELEMENT: number;
+} & ArrayBufferView);
+export type Unpackable = null | undefined | string | number | boolean | ArrayBuffer | Array<Unpackable> | {
+    [key: string]: Unpackable;
+};
+export function unpack<T extends Unpackable>(data: ArrayBuffer): T;
+export function pack(data: Packable): ArrayBuffer | Promise<ArrayBuffer | SharedArrayBuffer>;
+export class Packer {
+    getBuffer(): ArrayBufferLike;
+    pack(value: Packable): Promise<void> | undefined;
+    pack_bin(blob: Uint8Array): void;
+    pack_string(str: string): void;
+    pack_array(ary: Packable[]): void | Promise<void>;
+    pack_integer(num: number): void;
+    pack_double(num: number): void;
+    pack_object(obj: {
+        [key: string]: Packable;
+    }): void | Promise<void>;
+    pack_uint8(num: number): void;
+    pack_uint16(num: number): void;
+    pack_uint32(num: number): void;
+    pack_uint64(num: number): void;
+    pack_int8(num: number): void;
+    pack_int16(num: number): void;
+    pack_int32(num: number): void;
+    pack_int64(num: number): void;
+}
+}
+//# sourceMappingURL=binarypack.d.ts.map
+declare class EventEmitter<
+  EventTypes extends EventEmitter.ValidEventTypes = string | symbol,
+  Context extends any = any
+> {
+  static prefixed: string | boolean;
+  eventNames(): Array<EventEmitter.EventNames<EventTypes>>;
+  listeners<T extends EventEmitter.EventNames<EventTypes>>(
+    event: T
+  ): Array<EventEmitter.EventListener<EventTypes, T>>;
+  listenerCount(event: EventEmitter.EventNames<EventTypes>): number;
+  emit<T extends EventEmitter.EventNames<EventTypes>>(
+    event: T,
+    ...args: EventEmitter.EventArgs<EventTypes, T>
+  ): boolean;
+  on<T extends EventEmitter.EventNames<EventTypes>>(
+    event: T,
+    fn: EventEmitter.EventListener<EventTypes, T>,
+    context?: Context
+  ): this;
+  addListener<T extends EventEmitter.EventNames<EventTypes>>(
+    event: T,
+    fn: EventEmitter.EventListener<EventTypes, T>,
+    context?: Context
+  ): this;
+  once<T extends EventEmitter.EventNames<EventTypes>>(
+    event: T,
+    fn: EventEmitter.EventListener<EventTypes, T>,
+    context?: Context
+  ): this;
+  removeListener<T extends EventEmitter.EventNames<EventTypes>>(
+    event: T,
+    fn?: EventEmitter.EventListener<EventTypes, T>,
+    context?: Context,
+    once?: boolean
+  ): this;
+  off<T extends EventEmitter.EventNames<EventTypes>>(
+    event: T,
+    fn?: EventEmitter.EventListener<EventTypes, T>,
+    context?: Context,
+    once?: boolean
+  ): this;
+  removeAllListeners(event?: EventEmitter.EventNames<EventTypes>): this;
+}
+declare namespace EventEmitter {
+  export interface ListenerFn<Args extends any[] = any[]> {
+    (...args: Args): void;
+  }
+  export interface EventEmitterStatic {
+    new <
+      EventTypes extends ValidEventTypes = string | symbol,
+      Context = any
+    >(): EventEmitter<EventTypes, Context>;
+  }
+  export type ValidEventTypes = string | symbol | object;
+  export type EventNames<T extends ValidEventTypes> = T extends string | symbol
+    ? T
+    : keyof T;
+  export type ArgumentMap<T extends object> = {
+    [K in keyof T]: T[K] extends (...args: any[]) => void
+      ? Parameters<T[K]>
+      : T[K] extends any[]
+      ? T[K]
+      : any[];
+  };
+  export type EventListener<
+    T extends ValidEventTypes,
+    K extends EventNames<T>
+  > = T extends string | symbol
+    ? (...args: any[]) => void
+    : (
+        ...args: ArgumentMap<Exclude<T, string | symbol>>[Extract<K, keyof T>]
+      ) => void;
+  export type EventArgs<
+    T extends ValidEventTypes,
+    K extends EventNames<T>
+  > = Parameters<EventListener<T, K>>;
+  export const EventEmitter: EventEmitterStatic;
+}
 declare class BinaryPackChunker {
     readonly chunkedMTU = 16300;
     chunk: (blob: ArrayBuffer) => {
@@ -252,7 +361,7 @@ interface BaseConnectionEvents<ErrorType extends string = BaseConnectionErrorTyp
     error: (error: PeerError<`${ErrorType}`>) => void;
     iceStateChanged: (state: RTCIceConnectionState) => void;
 }
-declare abstract class BaseConnection<SubClassEvents extends ValidEventTypes, ErrorType extends string = never> extends EventEmitterWithError<ErrorType | BaseConnectionErrorType, SubClassEvents & BaseConnectionEvents<BaseConnectionErrorType | ErrorType>> {
+declare abstract class BaseConnection<SubClassEvents extends EventEmitter.ValidEventTypes, ErrorType extends string = never> extends EventEmitterWithError<ErrorType | BaseConnectionErrorType, SubClassEvents & BaseConnectionEvents<BaseConnectionErrorType | ErrorType>> {
     /**
      * The ID of the peer on the other end of this connection.
      */
