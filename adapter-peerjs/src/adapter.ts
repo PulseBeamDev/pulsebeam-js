@@ -200,15 +200,15 @@ export class Peer extends PeerJSPeer{
         return mediaConnection;
     }
 
-     on<E extends PeerEventType>(event: E, callback: PeerEvents[E]): void {
+    public on<E extends PeerEventType>(event: E, callback: PeerEvents[E]): void {
         const handler = (e: Event) => {
-        const customEvent = e as CustomEvent<PeerEventArgs<E>>;
-        // Type-safe argument passing
-        if (customEvent.detail !== undefined) {
-            (callback as any)(customEvent.detail);
-        } else {
-            (callback as any)();
-        }
+            const customEvent = e as CustomEvent<PeerEventArgs<E>>;
+            // Type-safe argument passing
+            if (customEvent.detail !== undefined) {
+                (callback as any)(customEvent.detail);
+            } else {
+                (callback as any)();
+            }
         };
         
         this.eventTargets[event].addEventListener(event, handler);
@@ -368,15 +368,15 @@ export class DataConnection extends PeerJSDataConnection {
         }
     }
 
-    on<E extends DataConnectionEventsType>(event: E, callback: DataConnectionEvents[E]): void {
+    public on<E extends DataConnectionEventsType>(event: E, callback: DataConnectionEvents[E]): void {
         const handler = (e: Event) => {
-        const customEvent = e as CustomEvent<DataConnectionEventsArgs<E>>;
-        // Type-safe argument passing
-        if (customEvent.detail !== undefined) {
-            (callback as any)(customEvent.detail);
-        } else {
-            (callback as any)();
-        }
+            const customEvent = e as CustomEvent<DataConnectionEventsArgs<E>>;
+            // Type-safe argument passing
+            if (customEvent.detail !== undefined) {
+                (callback as any)(customEvent.detail);
+            } else {
+                (callback as any)();
+            }
         };
         
         this.eventTargets[event].addEventListener(event, handler);
@@ -480,13 +480,13 @@ export class MediaConnection extends PeerJSMediaConnection {
 
     on<E extends MediaConnectionEventsType>(event: E, callback: MediaConnectionEvents[E]): void {
         const handler = (e: Event) => {
-        const customEvent = e as CustomEvent<DataConnectionEventsArgs<E>>;
-        // Type-safe argument passing
-        if (customEvent.detail !== undefined) {
-            (callback as any)(customEvent.detail);
-        } else {
-            (callback as any)();
-        }
+            const customEvent = e as CustomEvent<DataConnectionEventsArgs<E>>;
+            // Type-safe argument passing
+            if (customEvent.detail !== undefined) {
+                (callback as any)(customEvent.detail);
+            } else {
+                (callback as any)();
+            }
         };
         
         this.eventTargets[event].addEventListener(event, handler);
@@ -501,79 +501,3 @@ export class MediaConnection extends PeerJSMediaConnection {
         this.eventTargets[event].dispatchEvent(customEvent);
     }
 }
-
-
-// Example usage (Conceptual - adjust based on your actual needs)
-export async function exampleUsage() {
-    const pulsebeamOptions: PeerJSOption = {
-        groupId: 'test-group', // Replace with your group ID
-        peerId: 'peerjs-adapter-peer1', // Optional, or let PulseBeam generate
-        token: 'YOUR_PULSEBEAM_TOKEN', // Replace with your PulseBeam token
-        debug: 3, // Enable debug logging level 3
-    };
-
-    const peer = new Peer(pulsebeamOptions);
-
-    peer.on('open', (id) => {
-        console.log('PeerJS Peer opened with ID:', id);
-
-        const connectToPeerId = 'peerjs-adapter-peer2'; // Replace with the peerId you want to connect to in the same group
-        const dc = peer.connect(connectToPeerId);
-
-        dc.on('open', () => {
-            console.log('Data channel opened');
-            dc.send('Hello from PeerJS Adapter!');
-        });
-
-        dc.on('data', (data) => {
-            console.log('Data received:', data);
-        });
-
-        dc.on('close', () => {
-            console.log('Data channel closed');
-        });
-
-        dc.on('error', (err) => {
-            console.error('Data channel error:', err);
-        });
-    });
-
-    peer.on('connection', (dataConnection: DataConnection) => {
-        console.log('Incoming connection from:', dataConnection.peer);
-
-        dataConnection.on('data', (data) => {
-            console.log('Received data on incoming connection:', data);
-            dataConnection.send('Hello back from incoming!');
-        });
-
-        dataConnection.on('open', () => {
-            console.log('Incoming data channel opened');
-        });
-        dataConnection.on('close', () => {
-            console.log('Incoming data channel closed');
-        });
-
-        dataConnection.on('error', (err) => {
-            console.error('Incoming data channel error:', err);
-        });
-    });
-
-
-    peer.on('disconnected', () => {
-        console.log('Peer disconnected from server');
-    });
-
-    peer.on('close', () => {
-        console.log('Peer closed');
-    });
-
-    peer.on('error', (err) => {
-        console.error('Peer error:', err);
-    });
-
-    // To connect from another Peer instance (e.g., standard PulseBeam or another PeerJS adapter instance)
-    // You would use the 'peerjs-adapter-peer2' (or whatever peerId you set) as the target peerId
-}
-
-// Run example usage (uncomment to test)
-// exampleUsage();

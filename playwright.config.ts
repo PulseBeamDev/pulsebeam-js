@@ -1,4 +1,4 @@
-import { defineConfig, devices } from "@playwright/test";
+import { defineConfig } from "@playwright/test";
 
 /**
  * Read environment variables from file.
@@ -55,7 +55,7 @@ export default defineConfig({
     {
       name: "production",
       use: {
-        baseURL: "https://meet.lukas-coding.us/",
+        baseURL: "https://meet.pulsebeam.dev/",
       },
       retries: 2,
     },
