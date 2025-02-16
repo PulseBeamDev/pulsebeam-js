@@ -76,7 +76,7 @@ const PREPARE_MAX_RETRY = 3;
  *  access to underlying media tracks, data channels, and connection state.
  *
  * Usage:
- * @example `peer.onsession = (session) => {console.log(session.otherPeerId())};`
+ * @example `peer.onsession = (session) => {console.log(session.other.peerId)};`
  */
 export interface ISession {
   /**
