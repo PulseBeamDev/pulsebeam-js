@@ -75,9 +75,8 @@ export class Peer extends PeerJSPeer{
                 this.pulseBeamPeer = await pulseBeamCreatePeer({token})
             })();
         } catch (e) {
-            throw(`Failed to create PulseBeam Peer: ${e.message}`);
+            throw(`Failed to create PulseBeam Peer: ${e instanceof Error ? e.message : e}`);
         }
-
     }
 
     private async resolveToken(options: PulseBeamOptions, id?: string): Promise<string> {
@@ -127,10 +126,14 @@ export class Peer extends PeerJSPeer{
         return resp.text();
     }
 
+//     Property 'connect' in type 'Peer' is not assignable to the same property in base type 'Peer'.
+//   Type '(id: string, options?: any) => DataConnection' is not assignable to type '(peer: string, options?: PeerConnectOption | undefined) => DataConnection'.
+//     Type 'import("/home/gabe/pulsebeam/pulsebeam-js/adapter-peerjs/src/adapter").DataConnection' is not assignable to type 'import("/home/gabe/pulsebeam/pulsebeam-js/adapter-peerjs/src/types").DataConnection'.
+//       Property 'emit' is private in type 'DataConnection' but not in type 'DataConnection'
     // connect to peer with id
     // If you overrode the groupId on this peer, be sure the peer you
     // connect to is in the same group as this peer
-    connect(id: string, options?: any): DataConnection {
+    connect(id: string, options?: PeerConnectOption | undefined): DataConnection {
         if (!this.pulseBeamPeer) {
             throw(new Error("Peer not initialized yet."));
         }
@@ -214,7 +217,7 @@ export class Peer extends PeerJSPeer{
         this.eventTargets[event].addEventListener(event, handler);
     }
 
-    private emit<E extends PeerEventType>(
+    emit<E extends PeerEventType>(
         event: E,
         data?: PeerEventArgs<E>
     ): void {
@@ -385,7 +388,7 @@ export class DataConnection extends PeerJSDataConnection {
         this.eventTargets[event].addEventListener(event, handler);
     }
 
-    private emit<E extends DataConnectionEventsType>(
+    emit<E extends DataConnectionEventsType>(
         event: E,
         data?: DataConnectionEventsArgs<E>
     ): void {
