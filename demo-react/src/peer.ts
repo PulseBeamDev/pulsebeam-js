@@ -22,6 +22,8 @@ export interface PeerState {
   stop: () => void;
   connect: (otherPeerId: string) => void;
   peerId: string;
+  isMuted: boolean;
+  toggleMute: () => void;
 }
 
 export const usePeerStore = create<PeerState>((set, get) => ({
@@ -154,5 +156,15 @@ export const usePeerStore = create<PeerState>((set, get) => ({
     await get().ref?.connect(DEFAULT_GROUP, otherPeerId, abort.signal);
     window.clearTimeout(timeoutId);
     set({ loading: false });
+  },
+  isMuted: true,
+  toggleMute: () => {
+    set(produce((state: PeerState) => {
+      const isMuted = !state.isMuted;
+      state.localStream?.getAudioTracks().forEach(track => {
+        track.enabled = !isMuted;
+      });
+      state.isMuted = isMuted;
+    }));
   },
 }));

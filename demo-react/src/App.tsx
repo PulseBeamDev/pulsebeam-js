@@ -19,7 +19,9 @@ function JoinPage() {
     (async () => {
       const s = await navigator.mediaDevices.getUserMedia({
         video: true,
+        audio: true,
       });
+      s.getAudioTracks().forEach(track => track.enabled = false); // Mute by default
       peer.setLocalStream(s);
     })();
   }, []);
@@ -115,6 +117,15 @@ function SessionPage() {
       </main>
 
       <nav className="bottom">
+        <button
+          className="secondary small-round"
+          onClick={() => peer.toggleMute()}
+          data-testid="btn-mute"
+        >
+          <i>{peer.isMuted ? 'mic_off' : 'mic'}</i>
+          {peer.isMuted ? ' Unmute' : ' Mute'}
+        </button>
+
         <button
           className="error small-round"
           data-testid="btn-endCall"
