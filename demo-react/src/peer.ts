@@ -87,6 +87,8 @@ export const usePeerStore = create<PeerState>((set, get) => ({
       });
 
       p.onsession = (s) => {
+        // For you app consider your UI/UX in what you want to support
+        // In this app, we only support multiple sessions at a time.
         const id = `${s.other.peerId}:${s.other.connId}`;
 
         s.ontrack = ({ streams }) => {

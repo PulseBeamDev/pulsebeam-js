@@ -35,7 +35,7 @@
   </article>
 
   <script type="module">
-    import {createPeer} from "https://esm.sh/jsr/@pulsebeam/peer@0.0.16";
+    import { createPeer } from "https://esm.sh/jsr/@pulsebeam/peer@0.0.17";
 
     const params = new URLSearchParams(window.location.search);
     const baseUrl = params.get("baseUrl");
@@ -81,50 +81,96 @@
     } else {
       // See https://pulsebeam.dev/docs/guides/token/#example-nodejs-http-server
       // For explanation of this token-serving method
-      const resp = await fetch(
-        `/auth?groupId=${groupId}&peerId=${peerId}`,
-      );
+      const resp = await fetch(`/auth?groupId=${groupId}&peerId=${peerId}`);
       token = await resp.text();
     }
+
     const peer = await createPeer({token, baseUrl});
+    let currentSession = null;
+    let currentChannel = null;
+
+    function updateUIState() {
+        const isConnected = !!currentSession;
+        refAction.textContent = isConnected ? "Disconnect" : "Connect";
+        refData.disabled = !isConnected;
+        if (!isConnected) {
+            refData.value = '';
+            refOtherIdentity.textContent = '';
+        }
+    }
 
     peer.onsession = (sess) => {
-      const chOut = sess.createDataChannel("chat");
-      otherPeerId = sess.other.peerId;
+        // For you app consider your UI/UX in what you want to support
+        // In this app, we only support one session at a time.
+        // Closes any incoming sessions (connections) in favor of maintaining current session
+        if (currentSession) {
+            sess.close();
+            // currentSession.close() //TODO: Seems like a bug when in this state
+        }
+        
+        currentSession = sess;
+        otherPeerId = sess.other.peerId;
+        
+        updateUIState()
+        const chOut = sess.createDataChannel("chat");
+        currentChannel = chOut;
 
-      chOut.onopen = () => {
-        refOtherIdentity.textContent = `connected to ${otherPeerId}`;
-        refData.addEventListener("input", (e) => {
-          chOut.send(e.target.value);
-        });
-      };
-
-      sess.ondatachannel = (e) => {
-        const chIn = e.channel;
-        chIn.onmessage = ({data}) => {
-          refData.value = data;
+        chOut.onopen = () => {
+            refOtherIdentity.textContent = `connected to ${otherPeerId}`;
+            const inputHandler = (e) => chOut.send(e.target.value);
+            refData.addEventListener("input", inputHandler);
+            chOut._inputHandler = inputHandler;
+            updateUIState();
         };
-      };
+
+        chOut.onclose = cleanup;
+        sess.onclose = cleanup;
+        sess.ondatachannel = (e) => {
+            const chIn = e.channel;
+            chIn.onmessage = ({data}) => {
+                refData.value = data;
+            };
+            chIn.onclose = cleanup;
+        };
     };
-    peer.start();
+
+    function cleanup() {
+        if (currentChannel) {
+            if (currentChannel._inputHandler) {
+                refData.removeEventListener("input", currentChannel._inputHandler);
+            }
+            currentChannel.close();
+            currentChannel = null;
+        }
+        if (currentSession) {
+            currentSession.close();
+            currentSession = null;
+        }
+        updateUIState();
+    }
 
     let ac = new AbortController();
-    let connecting = false;
     action.addEventListener("click", async () => {
-      if (connecting) {
-        ac.abort();
-        ac = new AbortController();
-        refAction.textContent = "Connect"
-        connecting = false;
-        return;
-      };
+        if (currentSession || refAction.textContent === "Connecting...") {
+            cleanup();
+            ac.abort();
+            ac = new AbortController();
+            return;
+        }
 
-      connecting = true;
-      refAction.textContent = "Cancel"
-      otherPeerId = refInput.value;
-      console.log(`connecting to ${otherGroupId}:${otherPeerId}`);
-      await peer.connect(otherGroupId, otherPeerId, ac.signal);
+        // Only initiate connection if not already connected
+        try {
+            refAction.textContent = "Connecting...";
+            otherPeerId = refInput.value;
+            console.log(`connecting to ${otherGroupId}:${otherPeerId}`);
+            await peer.connect(otherGroupId, otherPeerId, ac.signal);
+        } catch (e) {
+            console.error(`Error in connecting to other peer: ${e}`)
+            cleanup();
+        }
     });
+
+    peer.start();
   </script>
 </body>
 
