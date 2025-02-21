@@ -113,6 +113,7 @@ export class Peer extends PeerJSPeer{
         // Create session handler that handles both data channels and media
         this.pulseBeamPeer.onsession = (session) => {
             const peerId = session.other.peerId;
+            this.emit('open', peerId)
             this.sessions.set(peerId, session);
             
             // Handle incoming communication
@@ -417,14 +418,11 @@ export class DataConnection extends PeerJSDataConnection {
 					type: "close",
 				},
 			});
-			return;
 		}
         if (this.dataChannel && this.dataChannel.readyState === 'open') {
             this.dataChannel.close();
         }
-        if (this.open) {
-            this.emit('close');
-        }
+        this.emit('close');
     }
     public on<T extends DataConnectionEventsType>(
         event: T,
