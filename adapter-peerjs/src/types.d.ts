@@ -344,7 +344,7 @@ export class PeerError<T extends string> extends Error {
     constructor(type: T, err: Error | string);
     type: T;
 }
-interface BaseConnectionEvents<ErrorType extends string = BaseConnectionErrorType> extends EventsWithError<ErrorType> {
+export interface BaseConnectionEvents<ErrorType extends string = BaseConnectionErrorType> extends EventsWithError<ErrorType> {
     /**
      * Emitted when either you or the remote peer closes the connection.
      *
