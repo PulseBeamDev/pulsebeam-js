@@ -21,8 +21,8 @@ import {
     MediaConnectionEvents, 
     PeerError, 
     DataConnectionErrorType, 
-    PeerErrorType, 
     BaseConnectionErrorType,
+    UtilSupportsObj,
 } from './types';
 
 export const GROUP_ID = 'default';
@@ -537,5 +537,40 @@ export class MediaConnection extends PeerJSMediaConnection {
         const eventInit = args.length > 0 ? { detail: args } : undefined;
         const customEvent = new CustomEvent(event, eventInit);
         return this.eventTargets[event].dispatchEvent(customEvent);
+    }
+}
+
+export class Util extends PeerJSUtil {
+    public browser: string;
+    public supports: UtilSupportsObj;
+
+    constructor(){
+        super()
+        //  The current browser. util.browser can currently have the values 'firefox', 'chrome', 'safari', 'edge', 'Not a supported browser.', 'Not a browser.' (unknown WebRTC-compatible agent). 
+        this.browser = 'Firefox'
+        // A hash of WebRTC features mapped to booleans that correspond to 
+        // whether the feature is supported by the current browser. 
+        this.supports = {
+            browser: true,
+            webRTC: true,
+            /**
+             * True if the current browser supports media streams and PeerConnection.
+             */
+            audioVideo: true,
+            /**
+             * True if the current browser supports DataChannel and PeerConnection.
+             */
+            data: true,
+            /**
+             *  True if the current browser supports binary DataChannels.  
+             */
+            binaryBlob:true,
+            // @ts-ignore PeerJS docs say this should be here, mismatch in PeerJS docs & code.
+            binary: true,
+            /**
+             * True if the current browser supports reliable DataChannels.
+             */
+            reliable: true,
+        }
     }
 }
