@@ -7,34 +7,35 @@
 // }}})
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
+import { dirname, resolve} from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
   build: {
     outDir: 'dist',
     target: 'es2020',
     lib: {
-      entry: {
-        'bundler': 'lib/exports.ts',
-        'peerjs': 'lib/global.ts',
-        'serializer.msgpack': 'lib/dataconnection/StreamConnection/MsgPack.ts'
-      },
-      formats: ['es', 'cjs', 'umd']
+      entry: resolve(__dirname, 'lib/exports.ts'),
+      name: 'PeerJS',
     },
+    sourcemap: true,
     rollupOptions: {
-      external: ['eventemitter3'],
+      external: [
+        '@pulsebeam/peer',
+      ],
       output: [
         // CJS
         {
           entryFileNames: 'bundler.cjs',
           format: 'cjs',
-          sourcemap: true,
           inlineSources: true
         },
         // ESM
         {
           entryFileNames: 'bundler.mjs',
           format: 'es',
-          sourcemap: true,
           inlineSources: true
         },
         // UMD (unminified)
@@ -42,21 +43,18 @@ export default defineConfig({
           entryFileNames: 'peerjs.js',
           format: 'umd',
           name: 'PeerJS',
-          sourcemap: true
         },
         // UMD (minified with esbuild)
         {
           entryFileNames: 'peerjs.min.js',
           format: 'umd',
           name: 'PeerJS',
-          sourcemap: true,
           minify: true
         },
         // MsgPack ESM (minified)
         {
           entryFileNames: 'serializer.msgpack.mjs',
           format: 'es',
-          sourcemap: true,
           minify: true
         }
       ]
