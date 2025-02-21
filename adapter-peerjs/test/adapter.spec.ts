@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { GROUP_ID, Peer, DataConnection } from "../src/adapter";
+import { GROUP_ID, Peer, DataConnection } from "../lib/adapter";
 
 async function getToken(peerId: string){
   // See https://pulsebeam.dev/docs/guides/token/#example-nodejs-http-server
