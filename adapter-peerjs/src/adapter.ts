@@ -1,6 +1,5 @@
 import {
     Peer as PulseBeamPeer,
-    PeerOptions as PulseBeamPeerOptions,
     createPeer as pulseBeamCreatePeer,
     ISession,
 } from '@pulsebeam/peer';
@@ -23,6 +22,7 @@ import {
     DataConnectionErrorType, 
     BaseConnectionErrorType,
     UtilSupportsObj,
+    AnswerOption,
 } from './types';
 
 export const GROUP_ID = 'default';
@@ -68,12 +68,11 @@ export class Peer extends PeerJSPeer{
     private pulseBeamPeer: PulseBeamPeer | undefined;
     private groupId: string | undefined;
     private eventTargets: Record<PeerEventType, EventTarget>;
-    private _connections: { [peerId: string]: (MediaConnection|DataConnection)[] } = {};
     private _options: PulseBeamOptions | undefined;
 
     get id(){return this.pulseBeamPeer?.peerId || ""}
     get options(){return {...this._options}}
-    get connections(){return this._connections}
+    get connections(){return []}
 
     constructor(id?: string, options?: PulseBeamOptions) {
         super();
@@ -100,6 +99,24 @@ export class Peer extends PeerJSPeer{
         } catch (e) {
             throw(`Failed to create PulseBeam Peer: ${e instanceof Error ? e.message : e}`);
         }
+
+        if (!this.pulseBeamPeer) throw(`Failed to init`);
+        // Create session handler that handles both data channels and media
+        this.pulseBeamPeer.onsession = (sess) => {
+            // mediaConnection._setSession(sess)
+
+            // Store connection in internal state
+            const otherPeerId = sess.other.peerId;
+            sess.ontrack = (e) => {
+                e.transceiver;
+            };
+            
+            // private handleNewSession(session: ISession) {
+            //     const peerId = session.other.peerId; // Get the peerId from PulseBeam session info.
+            //     const dataConnectionAdapter = new DataConnection(this, this); // Create a DataConnectionAdapter
+            //     this.emit('connection', dataConnectionAdapter); // Emit 'connection' event with DataConnectionAdapter
+            // }
+        };
     }
 
     private async resolveToken(options: PulseBeamOptions, id?: string): Promise<string> {
@@ -149,13 +166,6 @@ export class Peer extends PeerJSPeer{
         return resp.text();
     }
 
-//     Property 'connect' in type 'Peer' is not assignable to the same property in base type 'Peer'.
-//   Type '(id: string, options?: any) => DataConnection' is not assignable to type '(peer: string, options?: PeerConnectOption | undefined) => DataConnection'.
-//     Type 'import("/home/gabe/pulsebeam/pulsebeam-js/adapter-peerjs/src/adapter").DataConnection' is not assignable to type 'import("/home/gabe/pulsebeam/pulsebeam-js/adapter-peerjs/src/types").DataConnection'.
-//       Property 'emit' is private in type 'DataConnection' but not in type 'DataConnection'
-    // connect to peer with id
-    // If you overrode the groupId on this peer, be sure the peer you
-    // connect to is in the same group as this peer
     connect(id: string, options?: PeerConnectOption | undefined): DataConnection {
         if (!this.pulseBeamPeer) {
             throw(new Error("Peer not initialized yet."));
@@ -170,9 +180,6 @@ export class Peer extends PeerJSPeer{
             if (options?.serialization){ config["protocol"] = options.serialization}
             const chOut = sess.createDataChannel(options?.label || "data", config);
             dataConnection._setChannel(chOut)
-            const otherPeerId = sess.other.peerId;
-            if (!this._connections[otherPeerId]) this._connections[otherPeerId] = [dataConnection]
-            else this._connections[otherPeerId].concat(dataConnection)
         };
         const ac = new AbortController();
         // Initiate the connection
@@ -186,36 +193,12 @@ export class Peer extends PeerJSPeer{
         }
         return dataConnection;
     };
-    // private handleNewSession(session: ISession) {
-    //     const peerId = session.otherpeerId; // Get the peerId from PulseBeam session info.
-    //     const dataConnectionAdapter = new DataConnection(session, this); // Create a DataConnectionAdapter
-    //     this.dataConnections[peerId] = dataConnectionAdapter;
-    //     if (!this.connections[peerId]) {
-    //         this.connections[peerId] = [];
-    //     }
-    //     this.connections[peerId].push(dataConnectionAdapter); // Add to connections map
-    //     this.emit('connection', dataConnectionAdapter); // Emit 'connection' event with DataConnectionAdapter
-    // }
 
     call(id: string, stream: MediaStream, options?: any): MediaConnection {
         if (!this.pulseBeamPeer) {
             throw(new Error("Peer not initialized yet."));
         }
-        const mediaConnection: MediaConnection = new MediaConnection(undefined, this, {
-                ...options
-            });
-        this.pulseBeamPeer.onsession = (sess) => {
-            mediaConnection._setSession(sess)
-            const config: any = {maxRetransmitts: 0}
-            if (options?.reliable){ delete config["maxRetransmitts"] }
-            if (options?.serialization){ config["protocol"] = options.serialization}
-            // const chOut = sess.createDataChannel(options?.label || "data", config);
-            
-            // Store connection in internal state
-            const otherPeerId = sess.other.peerId;
-            if (!this._connections[otherPeerId]) this._connections[otherPeerId] = [mediaConnection]
-            else this._connections[otherPeerId].concat(mediaConnection)
-        };
+        const mediaConnection: MediaConnection = new MediaConnection(undefined, this, options);
         const ac = new AbortController();
         // Initiate the connection
         try {
@@ -277,16 +260,8 @@ export class Peer extends PeerJSPeer{
     destroy(): void {
         if (!this.pulseBeamPeer) return;
         if (this.pulseBeamPeer.state === 'closed') return;
-
-        this.disconnect()
-        
-        for (const peer in this._connections){
-            for (const c in this._connections[peer]){
-                // @ts-ignore
-                c.close()
-            }
-        }
-        this._connections = {};
+        this.pulseBeamPeer.close()
+        this.emit('close')
     }
 }
 
@@ -434,17 +409,21 @@ type MediaConnectionEventParams<T extends MediaConnectionEventsType> =
 
 export class MediaConnection extends PeerJSMediaConnection {
     private session: ISession | undefined;
+    private sender: RTCRtpSender | undefined;
+    private transceiver: RTCRtpTransceiver | undefined;
     private eventTargets: Record<MediaConnectionEventsType, EventTarget>;
     public metadata: any = null;
-    public peer: string;
+    private otherPeerId: string | undefined;
 
-    public _setSession(sess: ISession){this.session = sess}
+    public _setSession(sess: ISession){
+        this.session = sess
+        this.otherPeerId = sess.other.peerId;
+    }
+    public _setTransceiver(t: RTCRtpTransceiver){this.transceiver = t}
     get type(){ return ConnectionType.Media }
 
-    constructor(session: ISession | undefined, private parentPeer: Peer, options?: any) {
+    constructor(session: ISession | undefined, parentPeer: Peer, options?: any) {
         super(parentPeer.id, parentPeer, options)
-        //     constructor(peer: Peer, options?: any) {
-        // super(peer.id, peer, options);
         this.eventTargets = {
             stream: new EventTarget(),
             error: new EventTarget(),
@@ -454,10 +433,8 @@ export class MediaConnection extends PeerJSMediaConnection {
         };
         this.session = session;
         if (session) {
-             this.peer = session.other.peerId;
-             this.initializeSessionEvents(session);
-        } else {
-            this.peer = 'unknown';
+             this.otherPeerId = session.other.peerId;
+            //  this.initializeSessionEvents(session);
         }
     }
 
@@ -477,17 +454,21 @@ export class MediaConnection extends PeerJSMediaConnection {
      }
 
 
-    answer(stream?: MediaStream, options?: any): void {
+    answer(stream?: MediaStream, options?: AnswerOption): void {
+        if (options?.sdpTransform){
+            console.error("MediaConnectionAdapter does not support sdpTransform.");
+            return;
+            // Let us know if you need this supported https://pulsebeam.dev/docs/community-and-support/support/
+        }
          if (!this.session) {
-             console.warn("MediaConnectionAdapter not properly initialized with a session.");
+             console.error("MediaConnectionAdapter not properly initialized with a session.");
              return;
          }
         if (stream) {
             stream.getTracks().forEach(track => {
-                this.session?.addTrack(track, stream); // Add tracks from the provided stream to the session
+                this.sender = this.session?.addTrack(track, stream);
             });
         }
-        // this.open = true; // Consider when MediaConnection is 'open' after answering. Check PulseBeam flow
     }
 
     get open(){
@@ -498,19 +479,21 @@ export class MediaConnection extends PeerJSMediaConnection {
     }
 
     close(): void {
-         if (this.session) {
-            this.session.close();
-        }
-        if (this.open) {
-            // this.open = false;
+        // Cleanup media stream
+        if (this.open){
+            try {
+                this.transceiver?.stop()
+            } catch (error) {
+                console.error(`Error closing Media Connection (in): ${error}`)
+            }
+            if (this.session && this.sender) {
+                try {
+                    this.session.removeTrack(this.sender)
+                } catch (error) {
+                    console.error(`Error closing Media Connection (outgoing): ${error}`)
+                }
+            }
             this.emit('close');
-        }
-        // Remove from parent peer connections if needed.
-        if (this.parentPeer.connections[this.peer]) {
-             this.parentPeer.connections[this.peer] = this.parentPeer.connections[this.peer].filter(conn => conn !== this);
-             if (this.parentPeer.connections[this.peer].length === 0) {
-                 delete this.parentPeer.connections[this.peer];
-             }
         }
     }
 
