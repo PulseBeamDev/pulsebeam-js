@@ -68,6 +68,8 @@ export class Peer extends PeerJSPeer{
     private pulseBeamPeer: PulseBeamPeer | undefined;
     private groupId: string | undefined;
     private eventTargets: Record<PeerEventType, EventTarget>;
+    private sessions = new Map<string, ISession>(); // peerID -> session
+    private pendingConnections = new Map<string, Array<() => void>>();
     private _options: PulseBeamOptions | undefined;
 
     get id(){return this.pulseBeamPeer?.peerId || ""}
@@ -101,29 +103,99 @@ export class Peer extends PeerJSPeer{
         }
 
         if (!this.pulseBeamPeer) throw(`Failed to init`);
-        // Create session handler that handles both data channels and media
-        this.pulseBeamPeer.onsession = (sess) => {
-            // mediaConnection._setSession(sess)
 
-            // Store connection in internal state
-            const otherPeerId = sess.other.peerId;
-            sess.ontrack = (e) => {
-                e.transceiver;
-            };
+        this.pulseBeamPeer.onstatechange = () => {
+            if (this.pulseBeamPeer?.state === 'closed') {
+                this.emit('close')
+                // Should we emit on data / media children?
+            }
+        }
+        // Create session handler that handles both data channels and media
+        this.pulseBeamPeer.onsession = (session) => {
+            const peerId = session.other.peerId;
+            this.sessions.set(peerId, session);
             
-            // private handleNewSession(session: ISession) {
-            //     const peerId = session.other.peerId; // Get the peerId from PulseBeam session info.
-            //     const dataConnectionAdapter = new DataConnection(this, this); // Create a DataConnectionAdapter
-            //     this.emit('connection', dataConnectionAdapter); // Emit 'connection' event with DataConnectionAdapter
-            // }
+            // Handle incoming communication
+            session.ondatachannel = (event) => this.handleIncomingDataChannel(session, event);
+            session.ontrack = (event) => this.handleIncomingMedia(session, event);
+            
+            // Process pending connections
+            this.processPending(peerId);
+
+            session.onconnectionstatechange = () => {
+                if (session.connectionState === 'closed') {
+                    this.sessions.delete(session.other.peerId);
+                    session.ondatachannel = null;
+                    session.ontrack = null;
+                    this.emit('close')
+                    // Emit close on all media / data channels?
+                }
+            };
         };
     }
+    private handleIncomingDataChannel(session: ISession, event: RTCDataChannelEvent) {
+        const dc = new DataConnection(this, {
+            label: event.channel.label,
+            serialization: event.channel.protocol as SerializationType
+        });
+        
+        dc._setSession(session);
+        dc._setChannel(event.channel);
+        this.emit('connection', dc);
+    }
+    private handleIncomingMedia(session: ISession, event: RTCTrackEvent) {
+        const mc = new MediaConnection(this);
+        mc._setSession(session);
+        mc._setTransceiver(event.transceiver)
+        event.streams.forEach( (stream) => {
+            mc.emit('stream', stream);
+        })
+        this.emit('call', mc);
+    }
 
+    private processPending(peerId: string) {
+        const pending = this.pendingConnections.get(peerId) || [];
+        while (pending.length > 0) pending.shift()!();
+        this.pendingConnections.delete(peerId);
+    }
+    private async getSession(peerId: string): Promise<ISession> {
+        // Existing session
+        if (this.sessions.has(peerId)) {
+            return this.sessions.get(peerId)!;
+        }
+        
+        // New connection
+        return new Promise((resolve, reject) => {
+            const cleanup = () => {
+                this.pendingConnections.delete(peerId);
+                controller.abort();
+            };
+            
+            const controller = new AbortController();
+            const pending = this.pendingConnections.get(peerId) || [];
+            
+            pending.push(() => {
+                cleanup();
+                resolve(this.sessions.get(peerId)!);
+            });
+            
+            this.pendingConnections.set(peerId, pending);
+            
+            try {
+                this.pulseBeamPeer!.connect(
+                    this.groupId!,
+                    peerId,
+                    controller.signal
+                );
+            } catch (err) {
+                cleanup();
+                reject(err);
+            }
+        });
+    }
     private async resolveToken(options: PulseBeamOptions, id?: string): Promise<string> {
         if (options.pulsebeam?.token) {
-            // TODO: should we add an api for groupId in pulsebeam js sdk?
             const token = options.pulsebeam.token
-
             interface JwtClaims {
                 gid: string;
                 pid: string;
@@ -165,49 +237,36 @@ export class Peer extends PeerJSPeer{
         );
         return resp.text();
     }
+    connect(peerId: string, options?: PeerConnectOption): DataConnection {
+        const config: any = {maxRetransmitts: 0}
+        if (options?.reliable){ delete config["maxRetransmitts"] }
+        if (options?.serialization){ config["protocol"] = options.serialization}
+        const dc = new DataConnection(this, options);
+        
+        this.getSession(peerId).then(session => {
+            const channel = session.createDataChannel(options?.label || "data", config);
+            dc._setSession(session);
+            dc._setChannel(channel);
+        }).catch(err => {
+            dc.emit('error', err);
+        });
 
-    connect(id: string, options?: PeerConnectOption | undefined): DataConnection {
-        if (!this.pulseBeamPeer) {
-            throw(new Error("Peer not initialized yet."));
-        }
-        const dataConnection: DataConnection = new DataConnection(this, {
-                ...options
+        return dc;
+    }
+
+    call(peerId: string, stream: MediaStream): MediaConnection {
+        const mc = new MediaConnection(this);
+        
+        this.getSession(peerId).then(session => {
+            stream.getTracks().forEach(track => {
+                session.addTrack(track, stream);
             });
-        this.pulseBeamPeer.onsession = (sess) => {
-            dataConnection._setSession(sess)
-            const config: any = {maxRetransmitts: 0}
-            if (options?.reliable){ delete config["maxRetransmitts"] }
-            if (options?.serialization){ config["protocol"] = options.serialization}
-            const chOut = sess.createDataChannel(options?.label || "data", config);
-            dataConnection._setChannel(chOut)
-        };
-        const ac = new AbortController();
-        // Initiate the connection
-        try {
-            if (!this.groupId) {
-                throw(new Error("Error with groupId, check PulseBeam token"))
-            }
-            this.pulseBeamPeer.connect(this.groupId, id, ac.signal);
-        } catch (error) {
-            throw(error);
-        }
-        return dataConnection;
-    };
-
-    call(id: string, stream: MediaStream, options?: any): MediaConnection {
-        if (!this.pulseBeamPeer) {
-            throw(new Error("Peer not initialized yet."));
-        }
-        const mediaConnection: MediaConnection = new MediaConnection(undefined, this, options);
-        const ac = new AbortController();
-        // Initiate the connection
-        try {
-            if (!this.groupId) {throw(new Error("Issue connecting, missing group id"))}
-            this.pulseBeamPeer.connect(this.groupId, id, ac.signal);
-        } catch (error) {
-            throw(error);
-        }
-        return mediaConnection;
+            mc._setSession(session);
+        }).catch(err => {
+            mc.emit('error', err);
+        });
+        
+        return mc;
     }
 
     public on<T extends PeerEventType>(
@@ -301,39 +360,29 @@ export class DataConnection extends PeerJSDataConnection {
         this.session = sess
     }
 
-    public _setChannel(chan: RTCDataChannel){this.channel = chan}
-
-    private initializeSessionEvents(session: ISession) {
-        session.ondatachannel = (event) => {
-            if (event.channel.label === '') { // Assuming default data channel if label is empty or based on some criteria.
-                this.dataChannel = event.channel;
-                this.dataChannel.onmessage = (messageEvent) => {
-                    this.emit('data', messageEvent.data);
-                };
-                this.dataChannel.onopen = () => {
-                    // this.open = true;
-                    this.emit('open');
-                };
-                this.dataChannel.onclose = () => {
-                    // this.open = false;
-                    this.emit('close');
-                };
-                this.dataChannel.onerror = (error) => {
-                    const err = error.error;
-                    // PeerJS typing does not allow many types, this one matches best
-                    this.emit('error', new PeerError(DataConnectionErrorType["NotOpenYet"], err)); // Map RTCDataChannel error to DataConnection 'error' event
-                };
-                 this.emit('open'); // Emit 'open' event when data channel is ready - check if this is the right moment.  Maybe on datachannel open event instead
-            }
+    public _setChannel(chan: RTCDataChannel){
+        this.channel = chan;
+        chan.onmessage = (messageEvent) => {
+            this.emit('data', messageEvent.data);
         };
-        session.onconnectionstatechange = (event) => {
-            if (session.connectionState === 'closed' || session.connectionState === 'failed' || session.connectionState === 'disconnected') {
-                if (this.open) { // Only close if it was open to prevent double 'close' events.
-                    // this.open = false;
-                    this.emit('close'); // Emit 'close' event when connection state changes to closed/failed.
-                }
-            }
+        chan.onopen = () => {
+            this.emit('open');
         };
+        chan.onclose = () => {
+            this.emit('close');
+        };
+        chan.onerror = (error) => {
+            const err = error.error;
+            console.error(`RTC Error Recieved: ${err}`)
+            // PeerJS typing does not allow many types, this one matches best
+            this.emit('error', new PeerError(DataConnectionErrorType["NotOpenYet"], err));
+        };
+        // if (this.session?.connectionState === 'connected' && chan.readyState === 'open'){
+        //      this.emit('open');
+        // }
+        // if (this.session?.connectionState === 'closed' || chan.readyState === 'closed'){
+        //     this.emit('close')
+        // }
     }
 
     send(data: any): void {
@@ -419,10 +468,10 @@ export class MediaConnection extends PeerJSMediaConnection {
         this.session = sess
         this.otherPeerId = sess.other.peerId;
     }
-    public _setTransceiver(t: RTCRtpTransceiver){this.transceiver = t}
+    public _setTransceiver(t: RTCRtpTransceiver){this.transceiver = t;}
     get type(){ return ConnectionType.Media }
 
-    constructor(session: ISession | undefined, parentPeer: Peer, options?: any) {
+    constructor(parentPeer: Peer, options?: any) {
         super(parentPeer.id, parentPeer, options)
         this.eventTargets = {
             stream: new EventTarget(),
@@ -431,28 +480,7 @@ export class MediaConnection extends PeerJSMediaConnection {
             iceStateChanged: new EventTarget(),
             willCloseOnRemote: new EventTarget(),
         };
-        this.session = session;
-        if (session) {
-             this.otherPeerId = session.other.peerId;
-            //  this.initializeSessionEvents(session);
-        }
     }
-
-     private initializeSessionEvents(session: ISession) {
-        session.ontrack = (event) => {
-            this.emit('stream', event.streams[0]); // Assuming first stream is relevant, or track.streams[0]
-            // this.open = true; // Consider when MediaConnection is truly 'open' in PulseBeam context
-        };
-        session.onconnectionstatechange = (event) => {
-             if (session.connectionState === 'closed' || session.connectionState === 'failed' || session.connectionState === 'disconnected') {
-                if (this.open) {
-                    // this.open = false;
-                    this.emit('close');
-                }
-            }
-        };
-     }
-
 
     answer(stream?: MediaStream, options?: AnswerOption): void {
         if (options?.sdpTransform){
