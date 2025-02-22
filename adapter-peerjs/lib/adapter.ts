@@ -224,7 +224,7 @@ export class Peer implements PeerJSPeer {
     }
     private handleIncomingMedia(session: ISession, event: RTCTrackEvent) {
         const otherPeerId = session.other.peerId;
-        const mc = new MediaConnection(this, otherPeerId);
+        const mc = new MediaConnection(otherPeerId, this);
         mc._setSession(session);
         mc._setTransceiver(event.transceiver)
         event.streams.forEach( (stream) => {
@@ -342,7 +342,7 @@ export class Peer implements PeerJSPeer {
                 session.addTrack(track, stream);
             });
             const otherPeerId = session.other.peerId;
-            mc = new MediaConnection(this, otherPeerId);
+            mc = new MediaConnection(otherPeerId, this, options);
             mc._setSession(session);
             return mc;
         })
@@ -413,7 +413,6 @@ type DataConnectionEventParams<T extends DataConnectionEventsType> =
 interface BaseConnectionCompatible {
     close(): void;
     get open(): boolean;
-    peerConnection: RTCPeerConnection;
     /**
      * The optional label passed in or assigned by PeerJS when the connection was initiated.
      */
@@ -424,11 +423,12 @@ interface BaseConnectionCompatible {
      * The ID of the peer on the other end of this connection.
     */
    readonly peer: string;
-    /**
-     * For media connections, this is always 'media'.
-     * For data connections, this is always 'data'.
-     */
-    get type(): ConnectionType;
+   /**
+    * For media connections, this is always 'media'.
+    * For data connections, this is always 'data'.
+   */
+  get type(): ConnectionType;
+  // Not supported - peerConnection: RTCPeerConnection;
 }
 interface PeerJSDataConnectionCompatible  extends BaseConnectionCompatible {
     /**
@@ -471,6 +471,8 @@ export class DataConnection implements PeerJSDataConnectionCompatible {
     //  session, channel, bufferSize, eventTargets, and 5 more.ts(2345)
     
     _send() {}
+    // peer = otherpeerid
+    // protected constructor(peer: string, provider: Peer, options: any);
     constructor(peer: Peer, options?: any) {
         this.eventTargets = {
             open: new EventTarget(),
@@ -586,9 +588,10 @@ export class MediaConnection implements PeerJSMediaConnectionCompatible {
     private sender: RTCRtpSender | undefined;
     private transceiver: RTCRtpTransceiver | undefined;
     private eventTargets: Record<MediaConnectionEventsType, EventTarget>;
-    public metadata: any = null;
-    private otherPeerId: string | undefined;
-    public readonly peer: string;
+    readonly peer: string;
+    metadata: any = null;
+    readonly label: string;
+    readonly options: any;
 
     public _setSession(sess: ISession){
         this.session = sess
@@ -596,7 +599,9 @@ export class MediaConnection implements PeerJSMediaConnectionCompatible {
     public _setTransceiver(t: RTCRtpTransceiver){this.transceiver = t;}
     get type(){ return ConnectionType.Media }
 
-    constructor(parentPeer: Peer, otherPeerId: string, options?: any) {
+    constructor(otherPeerId: string, parentPeer: Peer, options?: any) {
+        this.label = options.label || "";
+        this.metadata = options.metadata || {}
         this.eventTargets = {
             stream: new EventTarget(),
             error: new EventTarget(),
