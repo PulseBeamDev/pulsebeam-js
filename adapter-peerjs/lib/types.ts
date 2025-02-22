@@ -30,7 +30,6 @@ export class Packer {
     pack_int64(num: number): void;
 }
 }
-//# sourceMappingURL=binarypack.d.ts.map
 declare class EventEmitter<
   EventTypes extends EventEmitter.ValidEventTypes = string | symbol,
   Context extends any = any
@@ -148,7 +147,7 @@ export interface UtilSupportsObj {
      */
     reliable: boolean;
 }
-export class Util extends BinaryPackChunker {
+export declare class Util extends BinaryPackChunker {
     noop(): void;
     readonly CLOUD_HOST = "0.peerjs.com";
     readonly CLOUD_PORT = 443;
@@ -195,7 +194,7 @@ export class Util extends BinaryPackChunker {
  * We don't consider these to be breaking changes.
  * :::
  */
-export const util: Util;
+export declare const util: Util;
 export enum LogLevel {
     /**
      * Prints no logs.
@@ -337,7 +336,7 @@ declare class EventEmitterWithError<ErrorType extends string, Events extends Eve
  * A PeerError is emitted whenever an error occurs.
  * It always has a `.type`, which can be used to identify the error.
  */
-export class PeerError<T extends string> extends Error {
+export declare class PeerError<T extends string> extends Error {
     /**
      * @internal
      */
@@ -416,7 +415,7 @@ export interface DataConnectionEvents extends EventsWithError<DataConnectionErro
 /**
  * Wraps a DataChannel between two Peers.
  */
-export abstract class DataConnection extends BaseConnection<DataConnectionEvents, DataConnectionErrorType> {
+export declare abstract class DataConnection extends BaseConnection<DataConnectionEvents, DataConnectionErrorType> {
     protected static readonly ID_PREFIX = "dc_";
     protected static readonly MAX_BUFFERED_AMOUNT: number;
     abstract readonly serialization: string;
@@ -505,7 +504,7 @@ export interface MediaConnectionEvents extends BaseConnectionEvents<never> {
  * Wraps WebRTC's media streams.
  * To get one, use {@apilink Peer.call} or listen for the {@apilink PeerEvents | `call`} event.
  */
-export class MediaConnection extends BaseConnection<MediaConnectionEvents> {
+export declare class MediaConnection extends BaseConnection<MediaConnectionEvents> {
     readonly label: string;
     /**
      * For media connections, this is always 'media'.
@@ -540,7 +539,7 @@ export class MediaConnection extends BaseConnection<MediaConnectionEvents> {
      */
     close(): void;
 }
-export abstract class BufferedConnection extends DataConnection {
+export declare abstract class BufferedConnection extends DataConnection {
     get bufferSize(): number;
     _initializeDataChannel(dc: RTCDataChannel): void;
     protected abstract _handleDataMessage(e: MessageEvent): void;
@@ -629,7 +628,7 @@ export interface PeerEvents {
 /**
  * A peer who can initiate connections with other peers.
  */
-export class Peer extends EventEmitterWithError<PeerErrorType, PeerEvents> {
+export declare class Peer extends EventEmitterWithError<PeerErrorType, PeerEvents> {
     protected readonly _serializers: SerializerMapping;
     /**
      * The brokering ID of this peer
@@ -733,20 +732,18 @@ export class Peer extends EventEmitterWithError<PeerErrorType, PeerEvents> {
 /**
  * @experimental
  */
-export class MsgPackPeer extends Peer {
+export declare class MsgPackPeer extends Peer {
     _serializers: SerializerMapping;
 }
-export abstract class StreamConnection extends DataConnection {
+export declare abstract class StreamConnection extends DataConnection {
     protected writer: WritableStreamDefaultWriter<Uint8Array>;
     protected _rawReadStream: ReadableStream<ArrayBuffer>;
     protected constructor(peerId: string, provider: Peer, options: any);
     _initializeDataChannel(dc: any): void;
 }
-export class MsgPack extends StreamConnection {
+export declare class MsgPack extends StreamConnection {
     readonly serialization = "MsgPack";
     constructor(peerId: string, provider: Peer, options: any);
     protected _send(data: any): Promise<void>;
 }
 export default Peer;
-
-//# sourceMappingURL=types.d.ts.map
