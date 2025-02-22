@@ -5,7 +5,7 @@ import {
 } from '@pulsebeam/peer';
 import { jwtDecode } from "jwt-decode";
 
-import type {
+import {
     Peer as PeerJSPeer, 
     PeerEvents, 
     BaseConnectionEvents, 
@@ -53,7 +53,7 @@ export interface ConnectOptions extends PeerConnectOption {
 }
 
 // Define types and interfaces to match PeerJS API as much as possible
-export class PeerOptions implements PeerJSPeerOptions, PulseBeamOptions {
+export class PeerOptions implements PeerJSPeerOptions, PeerJSOption {
     /**
      * Prints log messages depending on the debug level passed in.
      */
@@ -110,7 +110,7 @@ export class PeerOptions implements PeerJSPeerOptions, PulseBeamOptions {
         }
     }
 }
-interface PulseBeamOptions extends IPeerJSPeerOption {
+interface PeerJSOption extends IPeerJSPeerOption {
   /**
    * PulseBeam authentication configuration
    * @require Either token or insecureAuth
@@ -130,7 +130,7 @@ interface PulseBeamOptions extends IPeerJSPeerOption {
         token?: never  // Block token when insecureAuth exists
         }
 }
-export { PulseBeamOptions as PeerJSOption };
+export { PeerJSOption };
 
 type PeerEventType = keyof PeerEvents;
 type PeerEventParams<T extends PeerEventType> = 
@@ -223,7 +223,8 @@ export class Peer implements PeerJSPeer {
         this.emit('connection', dc);
     }
     private handleIncomingMedia(session: ISession, event: RTCTrackEvent) {
-        const mc = new MediaConnection(this);
+        const otherPeerId = session.other.peerId;
+        const mc = new MediaConnection(this, otherPeerId);
         mc._setSession(session);
         mc._setTransceiver(event.transceiver)
         event.streams.forEach( (stream) => {
@@ -272,7 +273,7 @@ export class Peer implements PeerJSPeer {
             }
         });
     }
-    private async resolveToken(options: PulseBeamOptions, id?: string): Promise<string> {
+    private async resolveToken(options: PeerJSOption, id?: string): Promise<string> {
         if (options.pulsebeam?.token) {
             const token = options.pulsebeam.token
             interface JwtClaims {
@@ -333,19 +334,21 @@ export class Peer implements PeerJSPeer {
         return dc;
     }
 
-    call(peerId: string, stream: MediaStream, options?: CallOption): MediaConnection {
-        const mc = new MediaConnection(this);
-        
+    call(peer: string, stream: MediaStream, options?: CallOption): MediaConnection {
+        let mc: MediaConnection | undefined = undefined
+        const peerId = peer; // Keep param names consistent with PeerJS, alias here for clarity
         this.getSession(peerId).then(session => {
             stream.getTracks().forEach(track => {
                 session.addTrack(track, stream);
             });
+            const otherPeerId = session.other.peerId;
+            mc = new MediaConnection(this, otherPeerId);
             mc._setSession(session);
-        }).catch(err => {
-            mc.emit('error', err);
-        });
+            return mc;
+        })
+        if (!mc) throw(new Error("AGH")) // TODO fix this
+        else return mc
         // TODO: handle options
-        return mc;
     }
 
     public on<T extends PeerEventType>(
@@ -407,8 +410,52 @@ export class Peer implements PeerJSPeer {
 type DataConnectionEventsType = keyof DataConnectionEvents;
 type DataConnectionEventParams<T extends DataConnectionEventsType> = 
   ArgumentMap<DataConnectionEvents>[T];
-
-export class DataConnection implements PeerJSDataConnection {
+interface BaseConnectionCompatible {
+    close(): void;
+    get open(): boolean;
+    peerConnection: RTCPeerConnection;
+    /**
+     * The optional label passed in or assigned by PeerJS when the connection was initiated.
+     */
+    readonly label: string;
+    readonly options: any;
+    readonly metadata: any;
+    /**
+     * The ID of the peer on the other end of this connection.
+    */
+   readonly peer: string;
+    /**
+     * For media connections, this is always 'media'.
+     * For data connections, this is always 'data'.
+     */
+    get type(): ConnectionType;
+}
+interface PeerJSDataConnectionCompatible  extends BaseConnectionCompatible {
+    /**
+     * serialized by BinaryPack by default and sent to the remote peer.
+     * @param data any type of data, including objects, strings, and blobs.
+     * @param chunked 
+     */
+    send(data: any, chunked?: boolean): void | Promise<void>;
+    /**
+     * A reference to the RTCDataChannel object associated with the connection.
+     */
+    dataChannel: RTCDataChannel;
+    /**
+     * Whether the underlying data channels are reliable; defined when the connection was initiated.
+    */
+    readonly reliable: boolean;
+    /**
+     * The serialization format of the data sent over the connection. Can be binary (default), binary-utf8, json, or none.
+     */
+    readonly serialization: string;  // Test this, abstractness?
+    /**
+     * The number of messages queued to be sent once the browser buffer is no longer full.
+     */
+    get bufferSize(): number;
+    on<T extends 'data' | 'open' | 'error' | 'close' | 'iceStateChanged'>(event: T, fn: (...args: { data: [data: unknown]; open: []; error: [error: PeerError<'not-open-yet' | 'message-too-big' | 'negotiation-failed' | 'connection-closed'>]; close: []; iceStateChanged: [state: RTCIceConnectionState]; }[Extract<T, 'data' | 'open' | 'error' | 'close' | 'iceStateChanged'>]) => void, context?: undefined): this;
+}
+export class DataConnection implements PeerJSDataConnectionCompatible {
     private session: ISession | undefined; // Session can be undefined initially for outgoing connections
     private channel: RTCDataChannel | undefined; // undefined initally
     public label: string = ''; // PulseBeam doesn't seem to have labels like PeerJS, might need to generate or ignore.
@@ -530,23 +577,26 @@ export class DataConnection implements PeerJSDataConnection {
 type MediaConnectionEventsType = keyof MediaConnectionEvents;
 type MediaConnectionEventParams<T extends MediaConnectionEventsType> = 
   ArgumentMap<MediaConnectionEvents & BaseConnectionEvents<BaseConnectionErrorType>>[T];
-
-export class MediaConnection implements PeerJSMediaConnection {
+interface PeerJSMediaConnectionCompatible extends BaseConnectionCompatible {
+    answer(stream?: MediaStream, options?: AnswerOption): void;
+    on<T extends 'stream' | 'willCloseOnRemote' | 'close' | 'error' | 'iceStateChanged'>(event: T, fn: (...args: { stream: [stream: MediaStream]; willCloseOnRemote: []; close: []; error: [error: PeerError<'negotiation-failed' | 'connection-closed'>]; iceStateChanged: [state: RTCIceConnectionState]; }[Extract<T, 'stream' | 'willCloseOnRemote' | 'close' | 'error' | 'iceStateChanged'>]) => void, context?: undefined): this;
+}
+export class MediaConnection implements PeerJSMediaConnectionCompatible {
     private session: ISession | undefined;
     private sender: RTCRtpSender | undefined;
     private transceiver: RTCRtpTransceiver | undefined;
     private eventTargets: Record<MediaConnectionEventsType, EventTarget>;
     public metadata: any = null;
     private otherPeerId: string | undefined;
+    public readonly peer: string;
 
     public _setSession(sess: ISession){
         this.session = sess
-        this.otherPeerId = sess.other.peerId;
     }
     public _setTransceiver(t: RTCRtpTransceiver){this.transceiver = t;}
     get type(){ return ConnectionType.Media }
 
-    constructor(parentPeer: Peer, options?: any) {
+    constructor(parentPeer: Peer, otherPeerId: string, options?: any) {
         this.eventTargets = {
             stream: new EventTarget(),
             error: new EventTarget(),
@@ -554,6 +604,7 @@ export class MediaConnection implements PeerJSMediaConnection {
             iceStateChanged: new EventTarget(),
             willCloseOnRemote: new EventTarget(),
         };
+        this.peer = otherPeerId
     }
 
     answer(stream?: MediaStream, options?: AnswerOption): void {
