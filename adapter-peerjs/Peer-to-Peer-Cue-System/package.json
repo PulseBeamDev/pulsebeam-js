@@ -1,0 +1,21 @@
+{
+  "name": "@pulsebeam/cue",
+  "version": "1.0.0",
+  "main": "main.js",
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PulseBeamDev/pulsebeam-js.git"
+  },
+  "homepage": "https://pulsebeam.dev",
+  "scripts": {
+    "start": "node --experimental-wasm-modules main.js"
+  },
+  "keywords": [],
+  "description": "",
+  "dependencies": {
+    "@pulsebeam/demo-server": "file:../../demo-server",
+    "serve-handler": "^6.1.6"
+  }
+}

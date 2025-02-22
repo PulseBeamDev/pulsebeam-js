@@ -1,3 +1,5 @@
+import { Peer, GROUP_ID } from "http://localhost:8000/index.js";
+
 var lastPeerId = null;
 var peer = null; // Own peer object
 var peerId = null;
@@ -13,16 +15,30 @@ var sendMessageBox = document.getElementById("sendMessageBox");
 var sendButton = document.getElementById("sendButton");
 var clearMsgsButton = document.getElementById("clearMsgsButton");
 
+
+async function getToken(peerId){
+  // See https://pulsebeam.dev/docs/guides/token/#example-nodejs-http-server
+  // For explanation of this token-serving method
+  const resp = await fetch(
+    `http://localhost:3000/auth?groupId=${GROUP_ID}&peerId=${peerId}`,
+  );
+  const token = await resp.text();
+  return token
+}
 /**
  * Create the Peer object for our end of the connection.
  *
  * Sets up callbacks that handle any events related to our
  * peer object.
  */
-function initialize() {
+async function initialize() {
+    const peerId = "reciever"
+    const token = await getToken(peerId)
+    console.log(token)
     // Create own peer object with connection to shared PeerJS server
-    peer = new Peer(null, {
+    peer = new Peer(peerId, {
         debug: 2,
+        pulsebeam: {token},
         host: "/",
         port: 9000
     });
