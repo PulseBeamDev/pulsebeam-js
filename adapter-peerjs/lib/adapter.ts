@@ -54,10 +54,50 @@ export interface ConnectOptions extends PeerConnectOption {
 }
 
 // Define types and interfaces to match PeerJS API as much as possible
-export class PeerOptions  extends PeerJSPeerOptions implements PulseBeamOptions{
-    public pulsebeam: { token: string; insecureAuth?: never; } | { insecureAuth: { apiKey: string; apiSecret: string; authEndpoint?: string; groupId?: string; }; token?: never; };
+export class PeerOptions implements PeerJSPeerOptions, PulseBeamOptions {
+    /**
+     * Prints log messages depending on the debug level passed in.
+     */
+    debug?: LogLevel;
+    /**
+     * Server host. Defaults to `0.peerjs.com`.
+     * Also accepts `'/'` to signify relative hostname.
+     */
+    host?: string;
+    /**
+     * Server port. Defaults to `443`.
+     */
+    port?: number;
+    /**
+     * The path where your self-hosted PeerServer is running. Defaults to `'/'`
+     */
+    path?: string;
+    /**
+     * API key for the PeerServer.
+     * This is not used anymore.
+     * @deprecated
+     */
+    key?: string;
+    token?: string;
+    /**
+     * Configuration hash passed to RTCPeerConnection.
+     * This hash contains any custom ICE/TURN server configuration.
+     *
+     * Defaults to {@apilink util.defaultConfig}
+     */
+    config?: RTCConfiguration;
+    /**
+     * Set to true `true` if you're using TLS.
+     * :::danger
+     * If possible *always use TLS*
+     * :::
+     */
+    secure?: boolean;
+    pingInterval?: number;
+    referrerPolicy?: ReferrerPolicy;
+    logFunction?: (logLevel: LogLevel, ...rest: any[]) => void;
+    pulsebeam: { token: string; insecureAuth?: never; } | { insecureAuth: { apiKey: string; apiSecret: string; authEndpoint?: string; groupId?: string; }; token?: never; };
     constructor(token?: string, apiKey?: string, apiSecret?: string, authEndpoint?: string, groupId?: string){
-        super()
         if (token){
             this.pulsebeam = {token: token}
         } else {
@@ -110,13 +150,13 @@ export class Peer implements PeerJSPeer {
     private eventTargets: Record<PeerEventType, EventTarget>;
     private sessions = new Map<string, ISession>(); // peerID -> session
     private pendingConnections = new Map<string, Array<() => void>>();
-    private _options: PulseBeamOptions | undefined;
+    private _options: PeerOptions | undefined;
 
     get id(){return this.pulseBeamPeer?.peerId || ""}
     get options(){return {...this._options}}
     get connections(){return []}
 
-    constructor(id?: string, options?: PulseBeamOptions) {
+    constructor(id?: string, options?: PeerOptions) {
         this._options = options;
        
         this.eventTargets = {
