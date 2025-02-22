@@ -5,7 +5,7 @@ import {
 } from '@pulsebeam/peer';
 import { jwtDecode } from "jwt-decode";
 
-import { 
+import type { 
     Peer as PeerJSPeer, 
     PeerEvents, 
     BaseConnectionEvents, 
@@ -104,7 +104,7 @@ type ArgumentMap<T extends Record<string, any>> = {
       ? T[K] 
       : never;
 };
-export class Peer extends PeerJSPeer{
+export class Peer implements PeerJSPeer {
     private pulseBeamPeer: PulseBeamPeer | undefined;
     private groupId: string | undefined;
     private eventTargets: Record<PeerEventType, EventTarget>;
@@ -117,7 +117,6 @@ export class Peer extends PeerJSPeer{
     get connections(){return []}
 
     constructor(id?: string, options?: PulseBeamOptions) {
-        super();
         this._options = options;
        
         this.eventTargets = {
@@ -370,7 +369,7 @@ type DataConnectionEventsType = keyof DataConnectionEvents;
 type DataConnectionEventParams<T extends DataConnectionEventsType> = 
   ArgumentMap<DataConnectionEvents>[T];
 
-export class DataConnection extends PeerJSDataConnection {
+export class DataConnection implements PeerJSDataConnection {
     private session: ISession | undefined; // Session can be undefined initially for outgoing connections
     private channel: RTCDataChannel | undefined; // undefined initally
     public label: string = ''; // PulseBeam doesn't seem to have labels like PeerJS, might need to generate or ignore.
@@ -387,7 +386,6 @@ export class DataConnection extends PeerJSDataConnection {
     
     _send() {}
     constructor(peer: Peer, options?: any) {
-        super(peer.id, peer, options);
         this.eventTargets = {
             open: new EventTarget(),
             error: new EventTarget(),
@@ -494,7 +492,7 @@ type MediaConnectionEventsType = keyof MediaConnectionEvents;
 type MediaConnectionEventParams<T extends MediaConnectionEventsType> = 
   ArgumentMap<MediaConnectionEvents & BaseConnectionEvents<BaseConnectionErrorType>>[T];
 
-export class MediaConnection extends PeerJSMediaConnection {
+export class MediaConnection implements PeerJSMediaConnection {
     private session: ISession | undefined;
     private sender: RTCRtpSender | undefined;
     private transceiver: RTCRtpTransceiver | undefined;
@@ -510,7 +508,6 @@ export class MediaConnection extends PeerJSMediaConnection {
     get type(){ return ConnectionType.Media }
 
     constructor(parentPeer: Peer, options?: any) {
-        super(parentPeer.id, parentPeer, options)
         this.eventTargets = {
             stream: new EventTarget(),
             error: new EventTarget(),
@@ -589,12 +586,11 @@ export class MediaConnection extends PeerJSMediaConnection {
     }
 }
 
-export class Util extends PeerJSUtil {
+export class Util implements PeerJSUtil {
     public browser: string;
     public supports: UtilSupportsObj;
 
     constructor(){
-        super()
         //  The current browser. util.browser can currently have the values 'firefox', 'chrome', 'safari', 'edge', 'Not a supported browser.', 'Not a browser.' (unknown WebRTC-compatible agent). 
         this.browser = 'Firefox'
         // A hash of WebRTC features mapped to booleans that correspond to 
