@@ -143,20 +143,83 @@ type ArgumentMap<T extends Record<string, any>> = {
       ? T[K] 
       : never;
 };
-export class Peer implements PeerJSPeer {
+interface PeerJSPeerCompatible {
+    /**
+     * The brokering ID of this peer
+     *
+     * If no ID was specified in {@apilink Peer | the constructor},
+     * this will be `undefined` until the {@apilink PeerEvents | `open`} event is emitted.
+     */
+    get id(): string;
+    get options(): PeerOptions;
+    /**
+     * Connects to the remote peer specified by id and returns a data connection.
+     * @param peer The brokering ID of the remote peer (their {@apilink Peer.id}).
+     * @param options for specifying details about Peer Connection
+     */
+    connect(peer: string, options?: PeerConnectOption): DataConnection;
+    /**
+     * Calls the remote peer specified by id and returns a media connection.
+     * @param peer The brokering ID of the remote peer (their peer.id).
+     * @param stream The caller's media stream
+     * @param options Metadata associated with the connection, passed in by whoever initiated the connection.
+     */
+    call(peer: string, stream: MediaStream, options?: CallOption): MediaConnection;
+    on<T extends keyof PeerEvents>(event: T, fn: (...args: { open: [id: string]; connection: [dataConnection: PeerJSDataConnection]; call: [mediaConnection: PeerJSMediaConnection]; close: []; disconnected: [currentId: string]; error: [error: PeerError<'disconnected' | 'browser-incompatible' | 'invalid-id' | 'invalid-key' | 'network' | 'peer-unavailable' | 'ssl-unavailable' | 'server-error' | 'socket-error' | 'socket-closed' | 'unavailable-id' | 'webrtc'>]; }[Extract<T, keyof PeerEvents>]) => void, context?: undefined): this;
+        /**
+     * Destroys the Peer: closes all active connections as well as the connection
+     * to the server.
+     *
+     * :::caution
+     * This cannot be undone; the respective peer object will no longer be able
+     * to create or receive any connections, its ID will be forfeited on the server,
+     * and all of its data and media connections will be closed.
+     * :::
+     */
+    destroy(): void;
+    /**
+     * Disconnects the Peer's connection to the PeerServer. Does not close any
+     *  active connections.
+     * Warning: The peer can no longer create or accept connections after being
+     *  disconnected. It also cannot reconnect to the server.
+     */
+    disconnect(): void;
+    /** Attempts to reconnect with the same ID.
+     *
+     * Only {@apilink Peer.disconnect | disconnected peers} can be reconnected.
+     * Destroyed peers cannot be reconnected.
+     * If the connection fails (as an example, if the peer's old ID is now taken),
+     * the peer's existing connections will not close, but any associated errors events will fire.
+     */
+    reconnect(): void;
+    /**
+     * A hash of all connections associated with this peer, keyed by the remote peer's ID.
+     * @deprecated
+     * Return type will change from Object to Map<string,[]>
+     */
+    get connections(): Object;
+    /**
+     * true if this peer and all of its connections can no longer be used.
+     */
+    get destroyed(): boolean;
+    /**
+     * false if there is an active connection to the PeerServer.
+     */
+    get disconnected(): boolean;
+}
+export class Peer implements PeerJSPeerCompatible {
     private pulseBeamPeer: PulseBeamPeer | undefined;
     private groupId: string | undefined;
     private eventTargets: Record<PeerEventType, EventTarget>;
     private sessions = new Map<string, ISession>(); // peerID -> session
     private pendingConnections = new Map<string, Array<() => void>>();
-    private _options: PeerOptions | undefined;
+    public options: PeerOptions;
 
     get id(){return this.pulseBeamPeer?.peerId || ""}
-    get options(){return {...this._options}}
     get connections(){return []}
 
-    constructor(id?: string, options?: PeerOptions) {
-        this._options = options;
+    constructor(id: string | undefined, options: PeerOptions) {
+        this.options = options;
        
         this.eventTargets = {
             open: new EventTarget(),
@@ -218,6 +281,7 @@ export class Peer implements PeerJSPeer {
             label: event.channel.label,
             serialization: event.channel.protocol as SerializationType
         });
+        // @ts-ignore
         this.emit('connection', dc);
     }
     private handleIncomingMedia(session: ISession, event: RTCTrackEvent) {
@@ -228,6 +292,7 @@ export class Peer implements PeerJSPeer {
         event.streams.forEach( (stream) => {
             mc.emit('stream', stream);
         })
+        // @ts-ignore
         this.emit('call', mc);
     }
 
