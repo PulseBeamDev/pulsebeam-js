@@ -213,13 +213,11 @@ export class Peer implements PeerJSPeer {
         };
     }
     private handleIncomingDataChannel(session: ISession, event: RTCDataChannelEvent) {
-        const dc = new DataConnection(this, {
+        const otherPeerId = session.other.peerId;
+        const dc = new DataConnection(otherPeerId, this, event.channel, {
             label: event.channel.label,
             serialization: event.channel.protocol as SerializationType
         });
-        
-        dc._setSession(session);
-        dc._setChannel(event.channel);
         this.emit('connection', dc);
     }
     private handleIncomingMedia(session: ISession, event: RTCTrackEvent) {
@@ -321,16 +319,16 @@ export class Peer implements PeerJSPeer {
         const config: any = {maxRetransmitts: 0}
         if (options?.reliable){ delete config["maxRetransmitts"] }
         if (options?.serialization){ config["protocol"] = options.serialization}
-        const dc = new DataConnection(this, options);
+        let dc: DataConnection | undefined = undefined;
         
         this.getSession(peerId).then(session => {
             const channel = session.createDataChannel(options?.label || "data", config);
-            dc._setSession(session);
-            dc._setChannel(channel);
-        }).catch(err => {
-            dc.emit('error', err);
-        });
+            const otherPeerId = session.other.peerId;
+            const dc = new DataConnection(otherPeerId, this, channel, options);
+            return dc
+        })
 
+        if (!dc) throw(new Error('Argh'))
         return dc;
     }
 
@@ -456,8 +454,7 @@ interface PeerJSDataConnectionCompatible  extends BaseConnectionCompatible {
     on<T extends 'data' | 'open' | 'error' | 'close' | 'iceStateChanged'>(event: T, fn: (...args: { data: [data: unknown]; open: []; error: [error: PeerError<'not-open-yet' | 'message-too-big' | 'negotiation-failed' | 'connection-closed'>]; close: []; iceStateChanged: [state: RTCIceConnectionState]; }[Extract<T, 'data' | 'open' | 'error' | 'close' | 'iceStateChanged'>]) => void, context?: undefined): this;
 }
 export class DataConnection implements PeerJSDataConnectionCompatible {
-    private session: ISession | undefined; // Session can be undefined initially for outgoing connections
-    private channel: RTCDataChannel | undefined; // undefined initally
+    dataChannel: RTCDataChannel;
     public label: string = ''; // PulseBeam doesn't seem to have labels like PeerJS, might need to generate or ignore.
     public metadata: any = null; // PulseBeam metadata handling?
     // public peer: string; // PulseBeam peerId of the remote peer
@@ -465,15 +462,24 @@ export class DataConnection implements PeerJSDataConnectionCompatible {
     public serialization: string = 'binary'; // Serialization? PulseBeam handling?
     public bufferSize: number = 0; // Buffer size tracking if needed
     private eventTargets: Record<DataConnectionEventsType, EventTarget>;
-
+    readonly options: any;
+    readonly peer: string;
     // TODO make compatible
-    // Type 'DataConnection' is missing the following properties from type 'DataConnection':
-    //  session, channel, bufferSize, eventTargets, and 5 more.ts(2345)
-    
-    _send() {}
-    // peer = otherpeerid
-    // protected constructor(peer: string, provider: Peer, options: any);
-    constructor(peer: Peer, options?: any) {
+
+    get open(): boolean {return true}  // TODO
+    get type(){ return ConnectionType.Data }
+
+
+    /**
+     * 
+     * @param peer other peer id - the id of the peer on the other end of the connection, the non-local peer
+     * @param provider parent peer, peer that this DataConnection belongs to
+     * @param options options on the DataConnection
+     */
+    constructor(peer: string, provider: Peer, dataChannel: RTCDataChannel, options?: any) {
+        this.peer = peer
+        this.dataChannel = dataChannel;
+        this.options = options || {}
         this.eventTargets = {
             open: new EventTarget(),
             error: new EventTarget(),
@@ -483,22 +489,17 @@ export class DataConnection implements PeerJSDataConnectionCompatible {
         };
     }
     
-    public _setSession(sess: ISession){
-        this.session = sess
-    }
-
-    public _setChannel(chan: RTCDataChannel){
-        this.channel = chan;
-        chan.onmessage = (messageEvent) => {
+    private setChanEvents(){
+        this.dataChannel.onmessage = (messageEvent) => {
             this.emit('data', messageEvent.data);
         };
-        chan.onopen = () => {
+        this.dataChannel.onopen = () => {
             this.emit('open');
         };
-        chan.onclose = () => {
+        this.dataChannel.onclose = () => {
             this.emit('close');
         };
-        chan.onerror = (error) => {
+        this.dataChannel.onerror = (error) => {
             const err = error.error;
             console.error(`RTC Error Recieved: ${err}`)
             // PeerJS typing does not allow many types, this one matches best
