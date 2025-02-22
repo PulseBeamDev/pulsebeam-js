@@ -50,6 +50,9 @@
     "minify": true,
     "sourcemap": true,
     "target": "esnext",
-    "outDir": "dist"
+    "outDir": "dist",
+    "clean": true,
+    "platform": "browser",
+    "noExternal": ["@pulsebeam/peer"]
   }
 }
