@@ -19,6 +19,7 @@ export {
     SocketEventType,
     ServerMessageType,
     LogLevel,
+    GROUP_ID,
 } from "./adapter";
 
 // TODO: Decide how to handle this

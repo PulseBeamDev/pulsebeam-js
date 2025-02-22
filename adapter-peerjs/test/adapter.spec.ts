@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { GROUP_ID, Peer, DataConnection } from "../lib/adapter";
+import { GROUP_ID, Peer, DataConnection, PeerOptions } from "../lib/exports";
 
 async function getToken(peerId: string){
   // See https://pulsebeam.dev/docs/guides/token/#example-nodejs-http-server
@@ -11,78 +11,78 @@ async function getToken(peerId: string){
   return token
 }
 
-// async function exampleUsage() {
-//   const peerId = "peerjs-adapter-peer1"
-//   const token = await getToken(peerId);
-//   const pulsebeamOptions: PulseBeamOptions = {
-//     pulsebeam:{
-//       token, 
-//     },
-//     debug: 3, // Enable debug logging level 3
-//   };
+async function exampleUsage() {
+  const peerId = "peerjs-adapter-peer1"
+  const token = await getToken(peerId);
+  const peerOptions: PeerOptions = {
+    pulsebeam:{
+      token, 
+    },
+    debug: 3, // Enable debug logging level 3
+  };
 
-//   const peer = new Peer(undefined, pulsebeamOptions);
+  const peer = new Peer(undefined, peerOptions);
 
-//   peer.on('open', (id) => {
-//       console.log('PeerJS Peer opened with ID:', id);
+  peer.on('open', (id) => {
+      console.log('PeerJS Peer opened with ID:', id);
 
-//       const connectToPeerId = 'peerjs-adapter-peer2'; // Replace with the peerId you want to connect to in the same group
-//       const dc = peer.connect(connectToPeerId);
+      const connectToPeerId = 'peerjs-adapter-peer2'; // Replace with the peerId you want to connect to in the same group
+      const dc = peer.connect(connectToPeerId);
 
-//       dc.on('open', () => {
-//           console.log('Data channel opened');
-//           dc.send('Hello from PeerJS Adapter!');
-//       });
+      dc.on('open', () => {
+          console.log('Data channel opened');
+          dc.send('Hello from PeerJS Adapter!');
+      });
 
-//       dc.on('data', (data) => {
-//           console.log('Data received:', data);
-//       });
+      dc.on('data', (data) => {
+          console.log('Data received:', data);
+      });
 
-//       dc.on('close', () => {
-//           console.log('Data channel closed');
-//       });
+      dc.on('close', () => {
+          console.log('Data channel closed');
+      });
 
-//       dc.on('error', (err) => {
-//           console.error('Data channel error:', err);
-//       });
-//   });
+      dc.on('error', (err) => {
+          console.error('Data channel error:', err);
+      });
+  });
 
-//   peer.on('connection', (dataConnection: DataConnection) => {
-//       console.log('Incoming connection from:', dataConnection.peer);
+  peer.on('connection', (dataConnection: DataConnection) => {
+      console.log('Incoming connection from:', dataConnection.peer);
 
-//       dataConnection.on('data', (data) => {
-//           console.log('Received data on incoming connection:', data);
-//           dataConnection.send('Hello back from incoming!');
-//       });
+      dataConnection.on('data', (data) => {
+          console.log('Received data on incoming connection:', data);
+          dataConnection.send('Hello back from incoming!');
+      });
 
-//       dataConnection.on('open', () => {
-//           console.log('Incoming data channel opened');
-//       });
-//       dataConnection.on('close', () => {
-//           console.log('Incoming data channel closed');
-//       });
+      dataConnection.on('open', () => {
+          console.log('Incoming data channel opened');
+      });
+      dataConnection.on('close', () => {
+          console.log('Incoming data channel closed');
+      });
 
-//       dataConnection.on('error', (err) => {
-//           console.error('Incoming data channel error:', err);
-//       });
-//   });
+      dataConnection.on('error', (err) => {
+          console.error('Incoming data channel error:', err);
+      });
+  });
 
 
-//   peer.on('disconnected', () => {
-//       console.log('Peer disconnected from server');
-//   });
+  peer.on('disconnected', () => {
+      console.log('Peer disconnected from server');
+  });
 
-//   peer.on('close', () => {
-//       console.log('Peer closed');
-//   });
+  peer.on('close', () => {
+      console.log('Peer closed');
+  });
 
-//   peer.on('error', (err) => {
-//       console.error('Peer error:', err);
-//   });
+  peer.on('error', (err) => {
+      console.error('Peer error:', err);
+  });
 
-//   // To connect from another Peer instance (e.g., standard PulseBeam or another PeerJS adapter instance)
-//   // You would use the 'peerjs-adapter-peer2' (or whatever peerId you set) as the target peerId
-// }
+  // To connect from another Peer instance (e.g., standard PulseBeam or another PeerJS adapter instance)
+  // You would use the 'peerjs-adapter-peer2' (or whatever peerId you set) as the target peerId
+}
 const cuesend = { 'initalize': 
   async function initialize(peerId: string): Promise<(string)=> void>{
     let conn: undefined | DataConnection = undefined;
