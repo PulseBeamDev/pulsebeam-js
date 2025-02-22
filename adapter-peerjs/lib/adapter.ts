@@ -5,7 +5,7 @@ import {
 } from '@pulsebeam/peer';
 import { jwtDecode } from "jwt-decode";
 
-import type { 
+import type {
     Peer as PeerJSPeer, 
     PeerEvents, 
     BaseConnectionEvents, 
@@ -16,7 +16,6 @@ import type {
     PeerConnectOption, 
     ConnectionType, 
     SerializationType, 
-    Util as PeerJSUtil, 
     DataConnectionEvents, 
     MediaConnectionEvents, 
     PeerError, 
@@ -626,9 +625,13 @@ export class MediaConnection implements PeerJSMediaConnection {
     }
 }
 
-export class Util implements PeerJSUtil {
-    public browser: string;
-    public supports: UtilSupportsObj;
+interface PeerJSUtilCompatible {
+    readonly browser: string;
+    readonly supports: UtilSupportsObj;
+}
+export class Util implements PeerJSUtilCompatible {
+    readonly browser: string;
+    readonly supports: UtilSupportsObj;
 
     constructor(){
         //  The current browser. util.browser can currently have the values 'firefox', 'chrome', 'safari', 'edge', 'Not a supported browser.', 'Not a browser.' (unknown WebRTC-compatible agent). 
