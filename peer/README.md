@@ -9,6 +9,10 @@ Simplifies real-time application development. Defines signaling protocol for con
 - Automatic Reconnection: Maintains connection stability by automatically re-establishing connections when disruptions occur.
 - Opt out of Peer-to-Peer: Can configure to force server-relayed communication.
 
+## Roadmap
+
+The project is in active development, please refer to the [roadmap](https://github.com/PulseBeamDev/pulsebeam-js/issues/6) to track our major milestones. 
+
 ## Status
 
 > [!WARNING]
