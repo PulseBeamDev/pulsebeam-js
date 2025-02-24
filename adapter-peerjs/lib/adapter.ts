@@ -6,7 +6,6 @@ import {
 import { jwtDecode } from "jwt-decode";
 
 import {
-    Peer as PeerJSPeer, 
     PeerEvents, 
     BaseConnectionEvents, 
     DataConnection as PeerJSDataConnection, 
@@ -47,10 +46,6 @@ export {
 }
 
 export const GROUP_ID = 'default';
-
-export interface ConnectOptions extends PeerConnectOption {
-    serialization: SerializationType
-}
 
 // Define types and interfaces to match PeerJS API as much as possible
 export class PeerOptions implements PeerJSPeerOptions, PeerJSOption {
@@ -208,19 +203,37 @@ interface PeerJSPeerCompatible {
     get disconnected(): boolean;
 }
 export class Peer implements PeerJSPeerCompatible {
-    private pulseBeamPeer: PulseBeamPeer | undefined;
-    private groupId: string | undefined;
+    public pulseBeamPeer: PulseBeamPeer | undefined; // just for debugging todo make private
+    private _groupId: string | undefined;
     private eventTargets: Record<PeerEventType, EventTarget>;
     private sessions = new Map<string, ISession>(); // peerID -> session
     private pendingConnections = new Map<string, Array<() => void>>();
     public options: PeerOptions;
-
+    get groupId(){return this._groupId || ""}
     get id(){return this.pulseBeamPeer?.peerId || ""}
     get connections(){return []}
 
-    constructor(id: string | undefined, options: PeerOptions) {
-        this.options = options;
-       
+    static async createPeer(id?: string, options?: PeerOptions): Promise<Peer> {
+        if (!options) {
+            throw('Peer Constructor: Options required');
+        }
+        let peer: PulseBeamPeer | undefined = undefined;
+
+        try {
+            const token = await Peer.resolveToken(options, id)
+            const groupId = getGroupId(token);
+
+            peer = await pulseBeamCreatePeer({token})
+
+            if (!peer) throw(`Failed to init`);
+            if (id && (peer.peerId!==id))throw(`Id mismatch: Use constructor param or use token id or ensure id's match`)
+
+        } catch (e) {
+            throw(`Failed to create PulseBeam Peer: ${e instanceof Error ? e.message : e}`);
+        }
+        return new Peer(peer, id, options)
+    }
+    constructor(pulseBeamPeer: PulseBeamPeer, id?: string, options?: PeerOptions) {
         this.eventTargets = {
             open: new EventTarget(),
             connection: new EventTarget(),
@@ -229,21 +242,13 @@ export class Peer implements PeerJSPeerCompatible {
             disconnected: new EventTarget(),
             error: new EventTarget(),
         };
-
         if (!options) {
-            throw('PeerConstructor: Options required');
+            throw('Peer Constructor: Options required');
         }
 
-        try {
-            (async () => {
-                const token = await this.resolveToken(options, id)
-                this.pulseBeamPeer = await pulseBeamCreatePeer({token})
-            })();
-        } catch (e) {
-            throw(`Failed to create PulseBeam Peer: ${e instanceof Error ? e.message : e}`);
-        }
+        this.options = options;
 
-        if (!this.pulseBeamPeer) throw(`Failed to init`);
+        this.pulseBeamPeer = pulseBeamPeer
 
         this.pulseBeamPeer.onstatechange = () => {
             if (this.pulseBeamPeer?.state === 'closed') {
@@ -274,6 +279,7 @@ export class Peer implements PeerJSPeerCompatible {
                 }
             };
         };
+
     }
     private handleIncomingDataChannel(session: ISession, event: RTCDataChannelEvent) {
         const otherPeerId = session.other.peerId;
@@ -326,7 +332,7 @@ export class Peer implements PeerJSPeerCompatible {
             
             try {
                 this.pulseBeamPeer!.connect(
-                    this.groupId!,
+                    this._groupId!,
                     peerId,
                     controller.signal
                 );
@@ -336,40 +342,41 @@ export class Peer implements PeerJSPeerCompatible {
             }
         });
     }
-    private async resolveToken(options: PeerJSOption, id?: string): Promise<string> {
+    getGroupId(token: string): string {
+        interface JwtClaims {
+            gid: string;
+            pid: string;
+        }
+
+        const decoded = jwtDecode<JwtClaims>(token);
+        return decoded.gid
+    }
+    static async resolveToken(options: PeerJSOption, id?: string): Promise<string> {
+        const peerId = id ? id : crypto.randomUUID();
         if (options.pulsebeam?.token) {
             const token = options.pulsebeam.token
-            interface JwtClaims {
-                gid: string;
-                pid: string;
-            }
-
-            const decoded = jwtDecode<JwtClaims>(token);
-            this.groupId= decoded.gid
-
             return new Promise(()=>token)
         }
-        const peerId = id ? id : self.crypto.randomUUID();
         if (options.pulsebeam?.insecureAuth){ 
             console.warn('WARNING: Using insecure authentication method - for development only!');
-            return this.createInsecureToken({...options.pulsebeam.insecureAuth, peerId: peerId});
+            return Peer.createInsecureToken({...options.pulsebeam.insecureAuth, peerId: peerId});
         }
         throw new Error('Authentication required: Provide pulsebeam config');
     }
 
-    private async createInsecureToken(options: {
+    static async createInsecureToken(options: {
         apiKey: string;
         apiSecret: string;
         peerId: string;
         authEndpoint?: string;
         groupId?: string;
     }): Promise<string> {
-        this.groupId = options.groupId || GROUP_ID;
+        const groupId = options.groupId || GROUP_ID;
         const form = new URLSearchParams({
             apiKey: options.apiKey,
             apiSecret: options.apiSecret,
             peerId: options.peerId,
-            groupId: this.groupId
+            groupId: groupId
         });
         const resp = await fetch(
             options.authEndpoint || "https://cloud.pulsebeam.dev/sandbox/token",
@@ -380,6 +387,7 @@ export class Peer implements PeerJSPeerCompatible {
         );
         return resp.text();
     }
+
     connect(peerId: string, options?: PeerConnectOption): DataConnection {
         const config: any = {maxRetransmitts: 0}
         if (options?.reliable){ delete config["maxRetransmitts"] }

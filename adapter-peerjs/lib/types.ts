@@ -746,4 +746,4 @@ export declare class MsgPack extends StreamConnection {
     constructor(peerId: string, provider: Peer, options: any);
     protected _send(data: any): Promise<void>;
 }
-export default Peer;
+// export default Peer;

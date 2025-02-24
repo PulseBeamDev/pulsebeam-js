@@ -34,7 +34,6 @@ async function getToken(peerId){
 async function initialize() {
     const peerId = "reciever"
     const token = await getToken(peerId)
-    console.log(token)
     // Create own peer object with connection to shared PeerJS server
     peer = new Peer(peerId, {
         debug: 2,
@@ -42,8 +41,20 @@ async function initialize() {
         host: "/",
         port: 9000
     });
-
+    console.log(peer)
+    // console.log(peer.status)
+    console.log(peer.id)
+    setTimeout(_ => 
+        {
+            console.log(peer.pulseBeamPeer.peerId)
+            console.log("here")
+        }, 5000)
+    Promise.resolve().then(_ => {
+        console.log(peer.pulseBeamPeer.peerId)
+        console.log("here")
+    })
     peer.on('open', function (id) {
+        console.log(id)
         // Workaround for peer.reconnect deleting previous id
         if (peer.id === null) {
             console.log('Received null id from peer open');

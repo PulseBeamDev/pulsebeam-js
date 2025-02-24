@@ -47,7 +47,7 @@
       "cjs"
     ],
     "dts": true,
-    "minify": true,
+    "minify": false,
     "sourcemap": true,
     "target": "esnext",
     "outDir": "dist",
