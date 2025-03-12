@@ -4,8 +4,8 @@ import type {
   MessageHeader,
   MessagePayload,
   PeerInfo,
-} from "./tunnel.ts";
-import { ITunnelClient } from "./tunnel.client.ts";
+} from "./signaling.ts";
+import { ISignalingClient } from "./signaling.client.ts";
 import type { Logger } from "./logger.ts";
 import { asleep, joinSignals, retry, RetryOptions } from "./util.ts";
 import { RpcOptions } from "@protobuf-ts/runtime-rpc";
@@ -113,7 +113,7 @@ export class Transport {
   public onclosed = (_reason: string) => {};
 
   constructor(
-    private readonly client: ITunnelClient,
+    private readonly client: ISignalingClient,
     public readonly opts: TransportOptions,
   ) {
     this.asleep = opts.asleep || defaultAsleep;
@@ -154,26 +154,17 @@ export class Transport {
       abort: this.abort.signal,
       timeout: POLL_TIMEOUT_MS,
     };
-    const retryOpt: RetryOptions = {
-      baseDelay: POLL_RETRY_BASE_DELAY_MS,
-      maxDelay: POLL_RETRY_MAX_DELAY_MS,
-      maxRetries: -1,
-      abortSignal: this.abort.signal,
-      isRecoverable: this.isRecoverable,
-    };
 
     while (!this.abort.signal.aborted) {
       try {
-        const resp = await retry(async () =>
-          await this.client.recv({
-            src: this.info,
-          }, rpcOpt), retryOpt);
-        if (resp === null) {
-          break;
-        }
+        const recvStream = this.client.recv({
+          src: this.info,
+        }, rpcOpt);
 
-        // make sure to not block polling loop
-        new Promise(() => this.handleMessages(resp.response.msgs));
+        recvStream.responses.onMessage((m) =>
+          !!m.msg && this.handleMessages(m.msg)
+        );
+        await recvStream;
       } catch (err) {
         this.logger.error("unrecoverable error, force closing", { err });
         this.close();
@@ -194,60 +185,58 @@ export class Transport {
     this.onclosed(reason);
   }
 
-  private handleMessages = (msgs: Message[]) => {
-    for (const msg of msgs) {
-      this.logger.debug("received", { msg: msg });
-      if (this.abort.signal.aborted) return;
-      if (!msg.header) continue;
-      const src = msg.header.src;
-      const dst = msg.header.dst;
-      if (!src || !dst) continue;
+  private handleMessages = (msg: Message) => {
+    this.logger.debug("received", { msg: msg });
+    if (this.abort.signal.aborted) return;
+    if (!msg.header) return;
+    const src = msg.header.src;
+    const dst = msg.header.dst;
+    if (!src || !dst) return;
 
-      if (
-        dst.connId >= ReservedConnId.Max &&
-        dst.connId != this.info.connId
-      ) {
-        this.logger.warn(
-          "received messages from a stale connection, ignoring",
-          { receivedConnID: dst.connId },
-        );
-        continue;
-      }
-
-      let stream: Stream | null = null;
-      for (const s of this.streams) {
-        if (
-          src.groupId === s.other.groupId &&
-          src.peerId === s.other.peerId &&
-          src.connId === s.other.connId
-        ) {
-          stream = s;
-          break;
-        }
-      }
-
-      if (!stream) {
-        this.logger.debug(
-          `session not found, creating one for ${src.peerId}:${src.connId}`,
-        );
-
-        if (src.peerId == this.info.peerId) {
-          this.logger.warn("loopback detected, ignoring messages");
-          return;
-        }
-
-        stream = new Stream(
-          this,
-          this.info,
-          src,
-          this.logger,
-        );
-        this.streams.push(stream);
-        this.onstream(stream);
-      }
-
-      stream.enqueue(msg);
+    if (
+      dst.connId >= ReservedConnId.Max &&
+      dst.connId != this.info.connId
+    ) {
+      this.logger.warn(
+        "received messages from a stale connection, ignoring",
+        { receivedConnID: dst.connId },
+      );
+      return;
     }
+
+    let stream: Stream | null = null;
+    for (const s of this.streams) {
+      if (
+        src.groupId === s.other.groupId &&
+        src.peerId === s.other.peerId &&
+        src.connId === s.other.connId
+      ) {
+        stream = s;
+        break;
+      }
+    }
+
+    if (!stream) {
+      this.logger.debug(
+        `session not found, creating one for ${src.peerId}:${src.connId}`,
+      );
+
+      if (src.peerId == this.info.peerId) {
+        this.logger.warn("loopback detected, ignoring messages");
+        return;
+      }
+
+      stream = new Stream(
+        this,
+        this.info,
+        src,
+        this.logger,
+      );
+      this.streams.push(stream);
+      this.onstream(stream);
+    }
+
+    stream.enqueue(msg);
   };
 
   async connect(

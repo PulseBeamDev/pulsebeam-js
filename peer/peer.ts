@@ -1,17 +1,17 @@
-import { type ITunnelClient, TunnelClient } from "./tunnel.client.ts";
+import { type ISignalingClient, SignalingClient } from "./signaling.client.ts";
 import { Transport } from "./transport.ts";
-import type { PeerInfo } from "./tunnel.ts";
+import type { PeerInfo } from "./signaling.ts";
 import { DEFAULT_LOG_SINK, Logger, PRETTY_LOG_SINK } from "./logger.ts";
 import { Session } from "./session.ts";
 import { RpcError, RpcOptions, UnaryCall } from "@protobuf-ts/runtime-rpc";
 import {
-  TwirpErrorCode,
-  TwirpFetchTransport,
-} from "@protobuf-ts/twirp-transport";
+  GrpcStatusCode,
+  GrpcWebFetchTransport,
+} from "@protobuf-ts/grpcweb-transport";
 import { retry } from "./util.ts";
 import { jwtDecode } from "jwt-decode";
 
-export type { PeerInfo } from "./tunnel.ts";
+export type { PeerInfo } from "./signaling.ts";
 
 /**
  * Streamline real-time application development.`@pulsebeam/peer` abstracts
@@ -255,7 +255,7 @@ export class Peer {
    */
   constructor(
     logger: Logger,
-    client: ITunnelClient,
+    client: ISignalingClient,
     opts: PeerOptionsFull,
     isRecoverable: (_err: unknown) => boolean,
   ) {
@@ -353,17 +353,15 @@ export class Peer {
   }
 }
 
-const TWIRP_FATAL_ERRORS: string[] = [
-  TwirpErrorCode[TwirpErrorCode.permission_denied],
-  TwirpErrorCode[TwirpErrorCode.invalid_argument],
-  TwirpErrorCode[TwirpErrorCode.aborted],
-  TwirpErrorCode[TwirpErrorCode.bad_route],
-  TwirpErrorCode[TwirpErrorCode.malformed],
-  TwirpErrorCode[TwirpErrorCode.not_found],
-  TwirpErrorCode[TwirpErrorCode.unauthenticated],
+const GRPCWEB_FATAL_ERRORS: string[] = [
+  GrpcStatusCode[GrpcStatusCode.PERMISSION_DENIED],
+  GrpcStatusCode[GrpcStatusCode.INVALID_ARGUMENT],
+  GrpcStatusCode[GrpcStatusCode.ABORTED],
+  GrpcStatusCode[GrpcStatusCode.NOT_FOUND],
+  GrpcStatusCode[GrpcStatusCode.UNAUTHENTICATED],
 ];
 
-function isTwirpRecoverable(err: unknown): boolean {
+function isRecoverable(err: unknown): boolean {
   if (!(err instanceof Error)) {
     return false;
   }
@@ -372,7 +370,7 @@ function isTwirpRecoverable(err: unknown): boolean {
     return true;
   }
 
-  return !TWIRP_FATAL_ERRORS.includes(err.code);
+  return !GRPCWEB_FATAL_ERRORS.includes(err.code);
 }
 
 interface JwtClaims {
@@ -389,7 +387,7 @@ interface JwtClaims {
 export async function createPeer(opts: PeerOptions): Promise<Peer> {
   // TODO: add hook for refresh token
   const token = opts.token;
-  const twirp = new TwirpFetchTransport({
+  const twirp = new GrpcWebFetchTransport({
     baseUrl: opts.baseUrl || BASE_URL,
     sendJson: false,
     jsonOptions: {
@@ -410,7 +408,7 @@ export async function createPeer(opts: PeerOptions): Promise<Peer> {
       },
     ],
   });
-  const client = new TunnelClient(twirp);
+  const client = new SignalingClient(twirp);
 
   const resp = await retry(
     async () => await client.prepare({}),
@@ -418,7 +416,7 @@ export async function createPeer(opts: PeerOptions): Promise<Peer> {
       baseDelay: 50,
       maxDelay: 1000,
       maxRetries: 5,
-      isRecoverable: isTwirpRecoverable,
+      isRecoverable: isRecoverable,
     },
   );
   if (resp === null) {
@@ -443,7 +441,7 @@ export async function createPeer(opts: PeerOptions): Promise<Peer> {
     new Logger("pulsebeam", undefined, PRETTY_LOG_SINK),
     client,
     optsFull,
-    isTwirpRecoverable,
+    isRecoverable,
   );
   return peer;
 }

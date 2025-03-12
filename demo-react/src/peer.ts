@@ -58,8 +58,13 @@ export const usePeerStore = create<PeerState>((set, get) => ({
           groupId: DEFAULT_GROUP,
           peerId: peerId,
         });
-        if (form.get('apiKey') === "kid_<...>" || form.get('appSecret') === 'sk_<...>') {
-          console.error("ERROR: Keys not set see https://pulsebeam.dev/docs/getting-started/quick-start/")
+        if (
+          form.get("apiKey") === "kid_<...>" ||
+          form.get("appSecret") === "sk_<...>"
+        ) {
+          console.error(
+            "ERROR: Keys not set see https://pulsebeam.dev/docs/getting-started/quick-start/",
+          );
         }
         // See https://pulsebeam.dev/docs/getting-started/what-happened/
         // For explanation of this token-serving method
@@ -163,7 +168,7 @@ export const usePeerStore = create<PeerState>((set, get) => ({
   toggleMute: () => {
     set(produce((state: PeerState) => {
       const isMuted = !state.isMuted;
-      state.localStream?.getAudioTracks().forEach(track => {
+      state.localStream?.getAudioTracks().forEach((track) => {
         track.enabled = !isMuted;
       });
       state.isMuted = isMuted;

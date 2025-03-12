@@ -4,10 +4,10 @@ import {
   PeerInfo,
   SdpKind,
   type Signal,
-} from "./tunnel.ts";
+} from "./signaling.ts";
 import { Logger } from "./logger.ts";
 import type { Stream } from "./transport.ts";
-export type { PeerInfo } from "./tunnel.ts";
+export type { PeerInfo } from "./signaling.ts";
 
 const ICE_RESTART_MAX_COUNT = 2;
 const ICE_RESTART_DEBOUNCE_DELAY_MS = 5000;
