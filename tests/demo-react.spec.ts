@@ -9,7 +9,7 @@ import { Browser, expect, type Page, test } from "@playwright/test";
 // npx playwright test --project=local --repeat-each 15 --grep "chromium_chromium disconnect and reconnect"
 
 const PULSEBEAM_BASE_URL = process.env.PULSEBEAM_BASE_URL ||
-  "https://cloud.pulsebeam.dev/twirp";
+  "https://cloud.pulsebeam.dev/grpc";
 
 async function waitForStableVideo(
   page: Page,
@@ -46,20 +46,20 @@ async function waitForStableVideo(
   throw new Error("waitForStableVideo timeout");
 }
 
-async function start(page: Page, peerId: string){
+async function start(page: Page, peerId: string) {
   await page.getByTestId("src-peerId").fill(peerId);
   await waitForStableVideo(page, peerId, 5_000);
-  
+
   await page.getByTestId("btn-ready").click();
-  
+
   return () => page.getByTestId("btn-endCall").click();
 }
 
 async function connect(page: Page, peerId: string, otherPeerId: string) {
-  start(page, peerId)
+  start(page, peerId);
   await page.getByTestId("dst-peerId").fill(otherPeerId);
   await page.getByTestId("btn-connect").click();
-  await expect(page.getByTestId("btn-connect")).not.toBeVisible() 
+  await expect(page.getByTestId("btn-connect")).not.toBeVisible();
   await waitForStableVideo(page, otherPeerId, 10_000);
 
   return () => page.getByTestId("btn-endCall").click();
@@ -210,8 +210,8 @@ test.describe("Connect", () => {
 
         // Attempt simultaneous connection
         await Promise.all([
-          pageA.getByTestId("btn-connect").click().catch(() => {}),
-          pageB.getByTestId("btn-connect").click().catch(() => {}),
+          pageA.getByTestId("btn-connect").click().catch(() => { }),
+          pageB.getByTestId("btn-connect").click().catch(() => { }),
         ]);
 
         // Verify buttons are hidden
@@ -221,9 +221,8 @@ test.describe("Connect", () => {
         ]);
 
         await waitForStableVideo(pageA, peerB, 10_000),
-        await waitForStableVideo(pageB, peerA, 10_000),
-
-        await Promise.all([closeA(), closeB()]);
+          await waitForStableVideo(pageB, peerA, 10_000),
+          await Promise.all([closeA(), closeB()]);
       } finally {
         await contextA.close();
         await contextB.close();
@@ -231,3 +230,4 @@ test.describe("Connect", () => {
     });
   }
 });
+
