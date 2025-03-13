@@ -37,7 +37,7 @@ class Queue {
   private unreliable: Message[];
   private processing: boolean;
   private readonly logger: Logger;
-  public onmsg = async (_: Message) => {};
+  public onmsg = async (_: Message) => { };
 
   constructor(logger: Logger) {
     this.logger = logger.sub("queue");
@@ -109,8 +109,8 @@ export class Transport {
   public readonly asleep: typeof defaultAsleep;
   private readonly randUint32: typeof defaultRandUint32;
   private readonly isRecoverable: typeof defaultIsRecoverable;
-  public onstream = (_: Stream) => {};
-  public onclosed = (_reason: string) => {};
+  public onstream = (_: Stream) => { };
+  public onclosed = (_reason: string) => { };
 
   constructor(
     private readonly client: ISignalingClient,
@@ -154,17 +154,26 @@ export class Transport {
       abort: this.abort.signal,
       timeout: POLL_TIMEOUT_MS,
     };
+    const retryOpt: RetryOptions = {
+      baseDelay: POLL_RETRY_BASE_DELAY_MS,
+      maxDelay: POLL_RETRY_MAX_DELAY_MS,
+      maxRetries: -1,
+      abortSignal: this.abort.signal,
+      isRecoverable: this.isRecoverable,
+    };
 
     while (!this.abort.signal.aborted) {
       try {
-        const recvStream = this.client.recv({
-          src: this.info,
-        }, rpcOpt);
+        await retry(async () => {
+          const recvStream = this.client.recv({
+            src: this.info,
+          }, rpcOpt);
 
-        recvStream.responses.onMessage((m) =>
-          !!m.msg && this.handleMessages(m.msg)
-        );
-        await recvStream;
+          recvStream.responses.onMessage((m) =>
+            !!m.msg && this.handleMessages(m.msg)
+          );
+          await recvStream;
+        }, retryOpt);
       } catch (err) {
         this.logger.error("unrecoverable error, force closing", { err });
         this.close();
@@ -268,7 +277,7 @@ export class Transport {
         header,
         payload,
       });
-      await this.asleep(POLL_RETRY_MAX_DELAY_MS, joinedSignal).catch(() => {});
+      await this.asleep(POLL_RETRY_MAX_DELAY_MS, joinedSignal).catch(() => { });
 
       found = !!this.streams.find((s) =>
         s.other.groupId === otherGroupId && s.other.peerId === otherPeerId
@@ -319,8 +328,8 @@ export class Stream {
   public ackedbuf: Record<string, boolean>;
   private lastSeqnum: number;
   private closedAt: number;
-  public onpayload = async (_: MessagePayload) => {};
-  public onclosed = (_reason: string) => {};
+  public onpayload = async (_: MessagePayload) => { };
+  public onclosed = (_reason: string) => { };
 
   constructor(
     private readonly transport: Transport,
@@ -397,7 +406,7 @@ export class Stream {
       await this.transport.asleep(
         5 * POLL_RETRY_MAX_DELAY_MS,
         this.abort.signal,
-      ).catch(() => {});
+      ).catch(() => { });
 
       // since ackedbuf doesn't delete the seqnum right away, it prevents from racing between
       // resending and acknolwedging
