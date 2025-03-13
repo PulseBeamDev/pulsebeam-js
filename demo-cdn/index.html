@@ -35,7 +35,7 @@
   </article>
 
   <script type="module">
-    import { createPeer } from "https://esm.sh/jsr/@pulsebeam/peer@0.0.17";
+    import {createPeer} from "https://esm.sh/jsr/@pulsebeam/peer@0.0.18";
 
     const params = new URLSearchParams(window.location.search);
     const baseUrl = params.get("baseUrl");
@@ -90,84 +90,84 @@
     let currentChannel = null;
 
     function updateUIState() {
-        const isConnected = !!currentSession;
-        refAction.textContent = isConnected ? "Disconnect" : "Connect";
-        refData.disabled = !isConnected;
-        if (!isConnected) {
-            refData.value = '';
-            refOtherIdentity.textContent = '';
-        }
+      const isConnected = !!currentSession;
+      refAction.textContent = isConnected ? "Disconnect" : "Connect";
+      refData.disabled = !isConnected;
+      if (!isConnected) {
+        refData.value = '';
+        refOtherIdentity.textContent = '';
+      }
     }
 
     peer.onsession = (sess) => {
-        // For you app consider your UI/UX in what you want to support
-        // In this app, we only support one session at a time.
-        // Closes any incoming sessions (connections) in favor of maintaining current session
-        if (currentSession) {
-            sess.close();
-            // currentSession.close() //TODO: Seems like a bug when in this state
-        }
-        
-        currentSession = sess;
-        otherPeerId = sess.other.peerId;
-        
-        updateUIState()
-        const chOut = sess.createDataChannel("chat");
-        currentChannel = chOut;
+      // For you app consider your UI/UX in what you want to support
+      // In this app, we only support one session at a time.
+      // Closes any incoming sessions (connections) in favor of maintaining current session
+      if (currentSession) {
+        sess.close();
+        // currentSession.close() //TODO: Seems like a bug when in this state
+      }
 
-        chOut.onopen = () => {
-            refOtherIdentity.textContent = `connected to ${otherPeerId}`;
-            const inputHandler = (e) => chOut.send(e.target.value);
-            refData.addEventListener("input", inputHandler);
-            chOut._inputHandler = inputHandler;
-            updateUIState();
-        };
+      currentSession = sess;
+      otherPeerId = sess.other.peerId;
 
-        chOut.onclose = cleanup;
-        sess.onclose = cleanup;
-        sess.ondatachannel = (e) => {
-            const chIn = e.channel;
-            chIn.onmessage = ({data}) => {
-                refData.value = data;
-            };
-            chIn.onclose = cleanup;
+      updateUIState()
+      const chOut = sess.createDataChannel("chat");
+      currentChannel = chOut;
+
+      chOut.onopen = () => {
+        refOtherIdentity.textContent = `connected to ${otherPeerId}`;
+        const inputHandler = (e) => chOut.send(e.target.value);
+        refData.addEventListener("input", inputHandler);
+        chOut._inputHandler = inputHandler;
+        updateUIState();
+      };
+
+      chOut.onclose = cleanup;
+      sess.onclose = cleanup;
+      sess.ondatachannel = (e) => {
+        const chIn = e.channel;
+        chIn.onmessage = ({data}) => {
+          refData.value = data;
         };
+        chIn.onclose = cleanup;
+      };
     };
 
     function cleanup() {
-        if (currentChannel) {
-            if (currentChannel._inputHandler) {
-                refData.removeEventListener("input", currentChannel._inputHandler);
-            }
-            currentChannel.close();
-            currentChannel = null;
+      if (currentChannel) {
+        if (currentChannel._inputHandler) {
+          refData.removeEventListener("input", currentChannel._inputHandler);
         }
-        if (currentSession) {
-            currentSession.close();
-            currentSession = null;
-        }
-        updateUIState();
+        currentChannel.close();
+        currentChannel = null;
+      }
+      if (currentSession) {
+        currentSession.close();
+        currentSession = null;
+      }
+      updateUIState();
     }
 
     let ac = new AbortController();
     action.addEventListener("click", async () => {
-        if (currentSession || refAction.textContent === "Connecting...") {
-            cleanup();
-            ac.abort();
-            ac = new AbortController();
-            return;
-        }
+      if (currentSession || refAction.textContent === "Connecting...") {
+        cleanup();
+        ac.abort();
+        ac = new AbortController();
+        return;
+      }
 
-        // Only initiate connection if not already connected
-        try {
-            refAction.textContent = "Connecting...";
-            otherPeerId = refInput.value;
-            console.log(`connecting to ${otherGroupId}:${otherPeerId}`);
-            await peer.connect(otherGroupId, otherPeerId, ac.signal);
-        } catch (e) {
-            console.error(`Error in connecting to other peer: ${e}`)
-            cleanup();
-        }
+      // Only initiate connection if not already connected
+      try {
+        refAction.textContent = "Connecting...";
+        otherPeerId = refInput.value;
+        console.log(`connecting to ${otherGroupId}:${otherPeerId}`);
+        await peer.connect(otherGroupId, otherPeerId, ac.signal);
+      } catch (e) {
+        console.error(`Error in connecting to other peer: ${e}`)
+        cleanup();
+      }
     });
 
     peer.start();

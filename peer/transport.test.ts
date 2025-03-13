@@ -1,6 +1,13 @@
+import { afterEach, describe, expect, it } from "vitest";
+import { asleep } from "./util.ts";
+
+describe("util", () => {
+  it("should pass", async () => {
+  });
+});
+
 /**
  * skip these tests in favor of embedding foss server
-import { afterEach, describe, expect, it } from "vitest";
 import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport";
 import {
   ReservedConnId,
@@ -20,7 +27,6 @@ import { type ISignalingClient, SignalingClient } from "./signaling.client.ts";
 import type { ServerStreamingCall, UnaryCall } from "@protobuf-ts/runtime-rpc";
 import type { RpcOptions } from "@protobuf-ts/runtime-rpc";
 import { Logger, PRETTY_LOG_SINK } from "./logger.ts";
-import { asleep } from "./util.ts";
 
 async function waitFor(
   conditionFn: () => boolean | Promise<boolean>,

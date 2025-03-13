@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@pulsebeam/demo-server": "^1.0.0",
-    "@pulsebeam/peer": "^0.0.17",
+    "@pulsebeam/peer": "^0.0.18",
     "@pulsebeam/server": "^0.0.29",
     "@theopenweb/get-user-media-mock": "^1.0.0",
     "immer": "^10.1.1",
