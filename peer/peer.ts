@@ -66,7 +66,7 @@ export type { PeerInfo } from "./signaling.ts";
  * @module
  */
 
-const BASE_URL = "https://cloud.pulsebeam.dev/grpc-web";
+const BASE_URL = "https://cloud.pulsebeam.dev/grpc";
 const PREPARE_INITIAL_DELAY_MS = 50;
 const PREPARE_MAX_RETRY = 3;
 
