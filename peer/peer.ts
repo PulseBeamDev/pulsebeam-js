@@ -66,7 +66,7 @@ export type { PeerInfo } from "./signaling.ts";
  * @module
  */
 
-const BASE_URL = "https://cloud.pulsebeam.dev/twirp";
+const BASE_URL = "https://cloud.pulsebeam.dev/grpc-web";
 const PREPARE_INITIAL_DELAY_MS = 50;
 const PREPARE_MAX_RETRY = 3;
 
@@ -236,11 +236,11 @@ export class Peer {
    * Callback invoked when a new session is established.
    * @param _s Session object
    */
-  public onsession = (_s: ISession) => {};
+  public onsession = (_s: ISession) => { };
   /**
    * Callback invoked when the peer’s state changes.
    */
-  public onstatechange = () => {};
+  public onstatechange = () => { };
   /**
    * Identifier for the peer. Valid UTF-8 string of 1-16 characters.
    */
@@ -390,6 +390,7 @@ export async function createPeer(opts: PeerOptions): Promise<Peer> {
   const twirp = new GrpcWebFetchTransport({
     baseUrl: opts.baseUrl || BASE_URL,
     sendJson: false,
+    format: "binary",
     jsonOptions: {
       emitDefaultValues: true, // treat zero values as values instead of undefined.
       enumAsInteger: true,
