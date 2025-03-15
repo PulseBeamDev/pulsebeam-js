@@ -16,22 +16,28 @@ interface SessionProps {
 export interface PeerState {
   ref: Peer | null;
   loading: boolean;
-  session: SessionProps | null;
+  sessions: Record<string, SessionProps>;
+  localStream: MediaStream | null;
+  setLocalStream: (_: MediaStream) => void;
   start: (peerId: string, token: string) => Promise<void>;
   stop: () => void;
   connect: (otherPeerId: string) => void;
   peerId: string;
+  isMuted: boolean;
+  toggleMute: () => void;
 }
 
 export const usePeerStore = create<PeerState>((set, get) => ({
   ref: null,
-  session: null,
+  sessions: {},
   loading: false,
   localStream: null,
   peerId: "",
+  setLocalStream: (localStream: MediaStream) => {
+    set({ localStream });
+  },
   start: async (peerId, token) => {
     if (!token) return;
-    console.log(token)
     if (get().ref) return;
     if (get().loading) return;
 
@@ -40,6 +46,8 @@ export const usePeerStore = create<PeerState>((set, get) => ({
       const urlParams = new URLSearchParams(window.location.search);
       const forceRelay = urlParams.get("forceRelay");
 
+      // See https://pulsebeam.dev/docs/ for learning about token management
+
       const p = await createPeer({
         token,
         forceRelay: forceRelay != null,
@@ -47,27 +55,42 @@ export const usePeerStore = create<PeerState>((set, get) => ({
 
       p.onsession = (s) => {
         // For you app consider your UI/UX in what you want to support
-        // In this app, we only support one sessions at a time.
+        // In this app, we support multiple sessions at a time.
+        const id = `${s.other.peerId}:${s.other.connId}`;
+
+        s.ontrack = ({ streams }) => {
+          console.log("ontrack", streams[0]);
+          set(produce((state: PeerState) => {
+            state.sessions[id].remoteStream = streams[0];
+            state.sessions[id].key = performance.now();
+          }));
+        };
 
         s.onconnectionstatechange = () => {
           console.log(s.connectionState);
           if (s.connectionState === "closed") {
             set((state) => {
-              state.session = null;
-              return { session: null };
+              const { [id]: _, ...rest } = state.sessions;
+              return { sessions: rest };
             });
           } else {
             const loading = s.connectionState !== "connected";
             set(produce((state: PeerState) => {
-                if (!state.session) {return;}
-                state.session.loading = loading;
-                state.session.key = performance.now();
+              state.sessions[id].loading = loading;
+              state.sessions[id].key = performance.now();
             }));
           }
         };
 
+        const localStream = get().localStream;
+        if (localStream) {
+          localStream.getTracks().forEach((track) =>
+            s.addTrack(track, localStream)
+          );
+        }
+
         set(produce((state: PeerState) => {
-          state.session = {
+          state.sessions[id] = {
             key: performance.now(),
             sess: s,
             loading: true,
@@ -102,5 +125,15 @@ export const usePeerStore = create<PeerState>((set, get) => ({
     await get().ref?.connect(DEFAULT_GROUP, otherPeerId, abort.signal);
     window.clearTimeout(timeoutId);
     set({ loading: false });
+  },
+  isMuted: true,
+  toggleMute: () => {
+    set(produce((state: PeerState) => {
+      const isMuted = !state.isMuted;
+      state.localStream?.getAudioTracks().forEach((track) => {
+        track.enabled = !isMuted;
+      });
+      state.isMuted = isMuted;
+    }));
   },
 }));
