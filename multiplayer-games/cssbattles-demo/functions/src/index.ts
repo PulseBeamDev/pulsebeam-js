@@ -41,10 +41,9 @@ export const getToken = onRequest(async (request, response) => {
 
         // Verify Firebase ID token
         const decodedToken = await getAuth().verifyIdToken(idToken);
-        const uid = decodedToken.uid;
-        const username = decodedToken.name || uid;
+        const username = decodedToken.uid;
         
-        logger.info(`Authenticated user: ${username}`, { uid });
+        logger.info(`Authenticated user: ${username}`);
         
         // Create PulseBeam token with authenticated user's info
         const claims = new PeerClaims(GROUP_ID, username);
@@ -56,7 +55,6 @@ export const getToken = onRequest(async (request, response) => {
             PULSEBEAM_API_KEY: process.env.PULSEBEAM_API_KEY || functions.config().pulsebeam.api_key,
             PULSEBEAM_API_SECRET: process.env.PULSEBEAM_API_SECRET || functions.config().pulsebeam.api_secret
         }
-        logger.info(`Env: ${env}`);
         
         if (!env.PULSEBEAM_API_KEY || !env.PULSEBEAM_API_SECRET) {
             logger.error("Missing PulseBeam API credentials");
@@ -70,7 +68,6 @@ export const getToken = onRequest(async (request, response) => {
         );
         
         const token = app.createToken(claims, 3600); // 1 hour expiration
-        
         response.status(200).send({ token });
 
     } catch (error) {
