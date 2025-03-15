@@ -101,6 +101,7 @@ jobs:
 
   publish_e2e_docker:
     runs-on: ubuntu-24.04
+    if: false
     permissions:
       contents: read
       packages: write
