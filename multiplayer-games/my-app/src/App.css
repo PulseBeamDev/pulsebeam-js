@@ -1,0 +1,164 @@
+/* App.css */
+
+:root {
+  --primary: #1a1d24;
+  --secondary: #2c333f;
+  --accent: #fd4c56;
+  --text: #f0f0f0;
+  --success: #4be190;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Arial', sans-serif;
+}
+
+body {
+  background-color: var(--primary);
+  color: var(--text);
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  background-color: var(--secondary);
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--accent);
+}
+
+main {
+  display: flex;
+  flex: 1;
+}
+
+.editor-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+}
+
+.editor {
+  background-color: var(--secondary);
+  flex: 1;
+  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  resize: none;
+  color: var(--text);
+  border: none;
+  font-family: monospace;
+  min-width: 500px;
+}
+
+.target-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+}
+
+.target-title {
+  margin-bottom: 0.5rem;
+}
+
+.target-container {
+  background-color: var(--secondary);
+  flex: 1;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.target-header {
+  background-color: #232934;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.target-display {
+  flex: 1;
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.target-frame {
+  width: 400px;
+  height: 300px;
+  background-color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.result-frame {
+  width: 400px;
+  height: 300px;
+  background-color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.button {
+  background-color: var(--accent);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.button:hover {
+  background-color: #e83a44;
+}
+
+.stats {
+  background-color: var(--secondary);
+  padding: 1rem;
+  border-radius: 4px;
+  margin-top: 1rem;
+}
+
+.stats-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.match-percentage {
+  color: var(--success);
+  font-weight: bold;
+}
+
+.char-count {
+  color: #ffc107;
+}
+
+/* Example target design */
+.target-design {
+  width: 100px;
+  height: 100px;
+  background: var(--accent);
+  border-radius: 50px;
+  position: absolute;
+  top: 100px;
+  left: 150px;
+}
