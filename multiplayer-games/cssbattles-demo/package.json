@@ -11,11 +11,15 @@
     "deploy2": "firebase deploy"
   },
   "dependencies": {
+    "@pulsebeam/peer": "^0.0.18",
     "firebase": "^11.4.0",
+    "html2canvas": "^1.4.1",
+    "immer": "^10.1.1",
     "next": "15.2.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-firebase-hooks": "^5.1.1"
+    "react-firebase-hooks": "^5.1.1",
+    "zustand": "^5.0.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
