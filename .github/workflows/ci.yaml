@@ -62,7 +62,6 @@ jobs:
           Repository: ${{ github.repository }}
           Branch: ${{ github.ref }}
           Commit: ${{ github.sha }}
-          Failed Step: ${{ job.steps.*.outcome | join(', ') }}
           Error URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
   release_peer:
