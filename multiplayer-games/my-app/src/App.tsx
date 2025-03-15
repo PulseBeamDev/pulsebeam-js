@@ -1,5 +1,41 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './App.css'
+import { toSvg } from "html-to-image";
+
+function createImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      img.decode().then(() => {
+        requestAnimationFrame(() => resolve(img))
+      })
+    }
+    img.onerror = reject
+    img.crossOrigin = 'anonymous'
+    img.decoding = 'async'
+    img.src = url
+  })
+}
+
+async function drawCanvas<T extends HTMLElement>(
+  canvas: HTMLCanvasElement,
+  node: T,
+): Promise<HTMLCanvasElement> {
+  const svg = await toSvg(node)
+  const img = await createImage(svg)
+
+  const context = canvas.getContext('2d')!
+
+  canvas.width = WIDTH
+  canvas.height = HEIGHT
+
+  canvas.style.width = `${WIDTH}`
+  canvas.style.height = `${HEIGHT}`
+
+  context.drawImage(img, 0, 0, canvas.width, canvas.height)
+
+  return canvas
+}
 
 const DEFAULT_CODE = `<div id="user-shape"></div>
 <style>
@@ -10,24 +46,33 @@ const DEFAULT_CODE = `<div id="user-shape"></div>
     }
 </style>`
 
-function App() {
+const WIDTH = 400;
+const HEIGHT = 300;
+
+function App(){
+  return <Battle />
+}
+
+function Battle() {
   const [userCode, setUserCode] = useState(DEFAULT_CODE);
   const [matchPercentage, setMatchPercentage] = useState(0);
   const [charCount, setCharCount] = useState(0);
+  const exportRef = useRef<HTMLDivElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     // Set initial character count
     setCharCount(userCode.length);
   }, []);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Update character count
     setCharCount(userCode.length);
     
     // Calculate match percentage (simplified version)
     const userCss = userCode.toLowerCase();
     let score = 0;
-    
+
     if (userCss.includes('width: 100px') || userCss.includes('width:100px')) score += 25;
     if (userCss.includes('height: 100px') || userCss.includes('height:100px')) score += 25;
     if (userCss.includes('border-radius: 50') || userCss.includes('border-radius:50')) score += 25;
@@ -35,7 +80,15 @@ function App() {
     
     setMatchPercentage(score);
   };
-  useEffect(()=>{handleSubmit()}, [userCode])
+  async function updateCanvas(){
+    if (!exportRef.current) return;
+    if (!canvasRef.current) return;
+    await drawCanvas(canvasRef.current, exportRef.current)
+  }
+  useEffect(()=>{
+    handleSubmit()
+    updateCanvas()
+  }, [userCode])
 
   return (
     <div className="app">
@@ -45,7 +98,7 @@ function App() {
       
       <main>
         <section className="editor-section">
-          <h2>Your CSS</h2>
+          <h2>Editor</h2>
           <textarea 
             className="editor" 
             value={userCode}
@@ -64,17 +117,29 @@ function App() {
               </div>
             </div>
           </div>
-          
+
           <div className="target-container" style={{ marginTop: '1rem' }}>
             <div className="target-header">Your Result</div>
             <div className="target-display">
               <div 
+                ref={exportRef}
                 className="result-frame" 
                 dangerouslySetInnerHTML={{ __html: userCode }}
               />
             </div>
           </div>
           
+          {/* For debugging, nice to see the local canvas 
+            * Becuase it becomes the local stream */}
+          <div className="target-container" style={{ marginTop: '1rem' }}>
+            <div className="target-header">Canvas</div>
+            <div className="target-display">
+              <div >
+                <canvas ref={canvasRef} width={WIDTH} height={HEIGHT}></canvas>
+              </div>
+            </div>
+          </div>
+
           <div className="stats">
             <div className="stats-row">
               <span>Match Percentage:</span>
@@ -94,6 +159,7 @@ function App() {
               <span className="char-count">{charCount}</span>
             </div>
           </div>
+
         </section>
       </main>
     </div>
