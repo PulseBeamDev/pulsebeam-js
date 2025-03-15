@@ -1,5 +1,9 @@
 import { AccessToken, PeerClaims, PeerPolicy } from "@pulsebeam/server/workerd";
 
+// This is an example Cloudflare Page Function for Serving PulseBeam Tokens
+// For more details, see
+//  https://pulsebeam.dev/docs/guides/token/#cloudflare-page-functions
+
 interface Env {
   PULSEBEAM_API_KEY: string;
   PULSEBEAM_API_SECRET: string;
