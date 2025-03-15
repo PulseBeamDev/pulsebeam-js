@@ -1,10 +1,11 @@
 import './App.css'
 import { useState, useEffect, useRef } from 'react'
-import { Battle } from './Battle';
-import {initializeApp} from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup} from "firebase/auth";
-import { usePeerStore } from "./peer";
+import { initializeApp } from 'firebase/app';
+import { getAuth } from "firebase/auth";
 import { useAuthState } from 'react-firebase-hooks/auth';
+import { getToken, SignIn, SignOut } from './Auth';
+import { usePeerStore } from "./peer";
+import { Battle } from './Battle';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -20,89 +21,39 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 export function App() {
+  const peer = usePeerStore();
   const [user] = useAuthState(auth);
-  const [token, setToken] = useState("");
+
   useEffect(()=>{
     if (!user) {
-      setToken("");
       return;
     }
-    const getToken = async () => {
+    (async () => {
+      // Get current firebase auth token
       const fToken = await user.getIdToken()
-      const resp = await fetch(
-        "http://localhost:5000/cssbattles-demo/us-central1/getToken/",
-        {
-          method: "POST",
-          headers: {
-            'Authorization': 'Bearer '+ fToken
-          }
-        },
-      );
-      const t = await resp.text();
-      
-      setToken(JSON.parse(t).token)
-    }
-    getToken()
+      // Use firebase auth token to call firebase fn to get PulseBeam token
+      // Read about PulseBeam tokens -> https://pulsebeam.dev/docs/guides/token/
+      const token = await getToken(fToken)
+      // Start peer to be able to recieve and/or create connections
+      peer.start(user.uid, token)
+    })()
   }, [user])
-
-  return (
-    <>
-      <SignOut />
-      {user ? 
-        (<div>
-          Uid: {user?.uid}
-          <Room {...{token: token, peerId: user.uid}}/>
-        </div>) : 
-        <SignIn />
-      }
-    </>
-  );
+  
+  if (!user) return <SignIn/>
+  return <div>
+    <SignOut />
+    <br/>
+    Uid: {user?.uid}
+    <br/>
+    Loading: {peer.loading ? "true" : "false"}
+    <br/>
+    NumSess: {Object.entries(peer.sessions).length}
+    <br/>
+    {(!peer.peerId || peer.peerId !== user?.uid)&&"somethings amiss"}
+    <br/>
+    {(!peer.ref) ? "Loading..." : <SessionPage />}
+  </div>
 }
-
-function SignIn() {
-  const auth = getAuth();
-  const signInWithGoogle = () => {
-    const provider = new GoogleAuthProvider();
-    signInWithPopup(auth, provider);
-  }
-  return (
-    <div>
-      <button onClick={signInWithGoogle}>Sign in with Google</button>
-    </div>
-  )
-
-}
-function SignOut() {
-  return auth.currentUser && (
-    <button onClick={() => auth.signOut()}>Sign Out</button>
-  )
-}
-
-const Room = (props: {token: string, peerId: string}) => {
-  const peer = usePeerStore();
-
-  return (
-    <>
-      <br/>
-      Loading: {peer.loading ? "true" : "false"}
-      <br/>
-      PeerID: {peer.peerId}
-      <br/>
-      NumSess: {Object.entries(peer.sessions).length}
-      <br/>
-      {(!peer.ref) ? <JoinPage token={props.token} peerId={props.peerId}/> : <SessionPage />}
-    </>
-  )
-}
-
-function JoinPage({token, peerId}: {token: string, peerId: string}) {
-  const peer = usePeerStore();
-  useEffect(()=>{
-    peer.start(peerId, token)
-  }, [token])
-  return <></>
-}
-
 
 function SessionPage() {
   const peer = usePeerStore();
