@@ -2,41 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import { toSvg } from "html-to-image";
 import { usePeerStore } from './peer';
 
-function createImage(url: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => {
-      img.decode().then(() => {
-        requestAnimationFrame(() => resolve(img))
-      })
-    }
-    img.onerror = reject
-    img.crossOrigin = 'anonymous'
-    img.decoding = 'async'
-    img.src = url
-  })
-}
-
-async function drawCanvas<T extends HTMLElement>(
-  canvas: HTMLCanvasElement,
-  node: T,
-): Promise<HTMLCanvasElement> {
-  const svg = await toSvg(node)
-  const img = await createImage(svg)
-
-  const context = canvas.getContext('2d')!
-
-  canvas.width = WIDTH
-  canvas.height = HEIGHT
-
-  canvas.style.width = `${WIDTH}`
-  canvas.style.height = `${HEIGHT}`
-
-  context.drawImage(img, 0, 0, canvas.width, canvas.height)
-
-  return canvas
-}
-
 const DEFAULT_CODE = `<div id="user-shape"></div>
 <style>
     #user-shape {
@@ -169,4 +134,41 @@ export function Battle() {
       </main>
     </div>
   );
+}
+
+// From https://github.com/bubkoo/html-to-image/blob/master/src/util.ts
+function createImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      img.decode().then(() => {
+        requestAnimationFrame(() => resolve(img))
+      })
+    }
+    img.onerror = reject
+    img.crossOrigin = 'anonymous'
+    img.decoding = 'async'
+    img.src = url
+  })
+}
+
+// Adapted from https://github.com/bubkoo/html-to-image/blob/master/src/index.ts
+async function drawCanvas<T extends HTMLElement>(
+  canvas: HTMLCanvasElement,
+  node: T,
+): Promise<HTMLCanvasElement> {
+  const svg = await toSvg(node)
+  const img = await createImage(svg)
+
+  const context = canvas.getContext('2d')!
+
+  canvas.width = WIDTH
+  canvas.height = HEIGHT
+
+  canvas.style.width = `${WIDTH}`
+  canvas.style.height = `${HEIGHT}`
+
+  context.drawImage(img, 0, 0, canvas.width, canvas.height)
+
+  return canvas
 }
