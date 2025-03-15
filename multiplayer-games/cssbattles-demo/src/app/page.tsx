@@ -1,11 +1,9 @@
 'use client'
-import Image from "next/image";
 import styles from "./page.module.css";
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {initializeApp} from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, User} from "firebase/auth";
 import { usePeerStore } from "./peer";
-import html2canvas from 'html2canvas';
 import { useAuthState } from 'react-firebase-hooks/auth';
 
 // Your web app's Firebase configuration
@@ -276,74 +274,3 @@ function VideoContainer(props: VideoContainerProps) {
     </article>
   );
 }
-
-// function Preview({ css }: { css: string }) {
-//   const iframeRef = useRef<HTMLIFrameElement>(null);
-//   const [snapshot, setSnapshot] = useState<string>("");
-
-//   // Generate iframe content
-//   useEffect(() => {
-//     if (!iframeRef.current) return;
-
-//     const htmlContent = `
-//       <!DOCTYPE html>
-//       <html>
-//         <head>
-//           <style>${css}</style>
-//         </head>
-//         <body>
-//           <div class="target"></div>
-//         </body>
-//       </html>
-//     `;
-
-//     const blob = new Blob([htmlContent], { type: 'text/html' });
-//     const url = URL.createObjectURL(blob);
-    
-//     iframeRef.current.src = url;
-
-//     // Cleanup previous blob URL
-//     return () => URL.revokeObjectURL(url);
-//   }, [css]);
-
-//   // Capture mechanism
-//   const capture = useCallback(async () => {
-//     if (
-//       !iframeRef.current ||
-//       !iframeRef.current.contentDocument ||
-//       !iframeRef.current.contentDocument.body
-//     ) {
-//       console.error("Iframe content not available");
-//       return null;
-//     }
-
-//     try {
-//       const canvas = await html2canvas(iframeRef.current.contentDocument.body, {
-//         useCORS: true,
-//         foreignObjectRendering: true,
-//         allowTaint: true,
-//         logging: true,
-//       });
-//       return canvas.toDataURL('image/jpeg', 0.8);
-//     } catch (error) {
-//       console.error("Capture failed:", error);
-//       return null;
-//     }
-//   }, []);
-
-//   // // Example usage for parent component
-//   // useImperativeHandle(ref, () => ({
-//   //   capture
-//   // }));
-
-//   return (
-//     <div className="preview-container">
-//       <iframe 
-//         ref={iframeRef}
-//         style={{ width: '100%', height: '400px', border: 'none' }}
-//         sandbox="allow-scripts allow-same-origin"
-//       />
-//       {snapshot && <img src={snapshot} alt="Preview snapshot" />}
-//     </div>
-//   );
-// }

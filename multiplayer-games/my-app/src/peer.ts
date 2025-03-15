@@ -1,10 +1,9 @@
-'use client'
 import { createPeer, type ISession, type Peer } from "@pulsebeam/peer";
 import { create } from "zustand";
 import { produce } from "immer";
 
 const DEFAULT_GROUP = "cssbattles-demo";
-const DEFAULT_CONNECT_TIMEOUT_MS = 100_000;
+const DEFAULT_CONNECT_TIMEOUT_MS = 3_000;
 
 interface SessionProps {
   key: number;
@@ -42,6 +41,7 @@ export const usePeerStore = create<PeerState>((set, get) => ({
     set({ loading: true });
     try {
       const p = await createPeer({
+        baseUrl: "http://localhost:3000/twirp",
         token,
       });
 
