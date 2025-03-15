@@ -1,28 +1,31 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 
+const DEFAULT_CODE = `<div id="user-shape"></div>
+<style>
+    #user-shape {
+      width: 100px;
+      height: 100px;
+      background: #dd6b4d;    
+    }
+</style>`
+
 function App() {
-  const [cssCode, setCssCode] = useState(`#user-shape {
-  /* Write your CSS here */
-}`);
+  const [userCode, setUserCode] = useState(DEFAULT_CODE);
   const [matchPercentage, setMatchPercentage] = useState(0);
   const [charCount, setCharCount] = useState(0);
-  const [resultHTML, setResultHTML] = useState('<div id="user-shape"></div>');
 
   useEffect(() => {
     // Set initial character count
-    setCharCount(cssCode.length);
+    setCharCount(userCode.length);
   }, []);
 
   const handleSubmit = () => {
     // Update character count
-    setCharCount(cssCode.length);
-    
-    // Reset HTML with updated CSS
-    setResultHTML(`<div id="user-shape"></div><style>${cssCode}</style>`);
+    setCharCount(userCode.length);
     
     // Calculate match percentage (simplified version)
-    const userCss = cssCode.toLowerCase();
+    const userCss = userCode.toLowerCase();
     let score = 0;
     
     if (userCss.includes('width: 100px') || userCss.includes('width:100px')) score += 25;
@@ -32,7 +35,7 @@ function App() {
     
     setMatchPercentage(score);
   };
-  useEffect(()=>{handleSubmit()}, [cssCode])
+  useEffect(()=>{handleSubmit()}, [userCode])
 
   return (
     <div className="app">
@@ -45,8 +48,8 @@ function App() {
           <h2>Your CSS</h2>
           <textarea 
             className="editor" 
-            value={cssCode}
-            onChange={(e) => setCssCode(e.target.value)}
+            value={userCode}
+            onChange={(e) => setUserCode(e.target.value)}
             placeholder="Write your CSS here..."
           />
         </section>
@@ -67,7 +70,7 @@ function App() {
             <div className="target-display">
               <div 
                 className="result-frame" 
-                dangerouslySetInnerHTML={{ __html: resultHTML }}
+                dangerouslySetInnerHTML={{ __html: userCode }}
               />
             </div>
           </div>
