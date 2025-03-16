@@ -30,19 +30,8 @@ body {
   background-color: var(--secondary);
   padding: 1rem;
   display: flex;
-  justify-content: space-between;
+  gap: 2rem;  
   align-items: center;
-}
-
-.footer {
-  background-color: var(--secondary);
-  padding: 1rem;
-  display: flex;
-  position: fixed;
-  gap: 2rem;
-  left: 0;
-  bottom: 0;
-  width: 100%;
 }
 
 .logo {

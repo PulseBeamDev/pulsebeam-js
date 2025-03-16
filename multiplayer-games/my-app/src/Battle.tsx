@@ -16,6 +16,7 @@ export const HEIGHT = 300;
 
 export function Battle() {
   const peer = usePeerStore();
+  const remoteStreams = Object.entries(peer.sessions);
   const [userCode, setUserCode] = useState(DEFAULT_CODE);
   const [matchPercentage, setMatchPercentage] = useState(0);
   const [charCount, setCharCount] = useState(userCode.length);
@@ -58,62 +59,14 @@ export function Battle() {
   useEffect(()=>{
     if (!canvasRef.current) return;
     console.log("Setting Local Stream to canvas")
-    peer.setLocalStream(canvasRef.current.captureStream())
+    // 15 is normal FPS for screen sharing (24-30 for video call)
+    peer.setLocalStream(canvasRef.current.captureStream(15))
   }, [canvasRef.current])
 
   return (
     <div className="app">
       <header className="header">
         <div className="logo">CSS Battle Clone</div>
-      </header>
-      
-      <main>
-        <section className="editor-section">
-          <h2>Editor</h2>
-          <textarea 
-            className="editor" 
-            value={userCode}
-            onChange={(e) => setUserCode(e.target.value)}
-            placeholder="Write your CSS here..."
-          />
-        </section>
-        
-        <section className="target-section">
-          <h2 className="target-title">Target #1: Simple Circle</h2>
-          <div className="target-container">
-            <div className="target-header">Target Design</div>
-            <div className="target-display">
-              <div className="target-frame">
-                <div className="target-design"></div>
-              </div>
-            </div>
-          </div>
-
-          <div className="target-container" style={{ marginTop: '1rem' }}>
-            <div className="target-header">Your Result</div>
-            <div className="target-display">
-              <div 
-                ref={exportRef}
-                className="result-frame" 
-                dangerouslySetInnerHTML={{ __html: userCode }}
-              />
-            </div>
-          </div>
-          
-          {/* For debugging, nice to see the local canvas 
-            * Becuase it becomes the local stream */}
-          <div className="target-container" style={{ marginTop: '1rem' }}>
-            <div className="target-header">Canvas</div>
-            <div className="target-display">
-              <div >
-                <canvas ref={canvasRef} width={WIDTH} height={HEIGHT}></canvas>
-              </div>
-            </div>
-          </div>
-          <RenderStats matchPercentage={matchPercentage} charCount={charCount} />
-        </section>
-      </main>
-            <nav className="footer">
         <button
           style={{background:"white", color: "black"}}
           data-testid="btn-endBattle"
@@ -129,8 +82,104 @@ export function Battle() {
         >
           Source Code
         </a>
-      </nav>
+      </header>
+      
+      <main>
+        <section className="editor-section">
+          <h2>Editor</h2>
+          <textarea 
+            className="editor" 
+            value={userCode}
+            onChange={(e) => setUserCode(e.target.value)}
+            placeholder="Write your CSS here..."
+          />
+        </section>
+        
+        <section className="target-section">
+          <h2 className="target-title">Your Result{remoteStreams.length>1 && 's'}</h2>
+          <div className="target-container" style={{ marginTop: '1rem' }}>
+            <div className="target-header">Design</div>
+            <div className="target-display">
+              <div 
+                ref={exportRef}
+                className="result-frame" 
+                dangerouslySetInnerHTML={{ __html: userCode }}
+              />
+            </div>
+          </div>
+          
+          {/* For debugging, set hidden to false, this is local canvas which
+            * becomes what is sent out */}
+          <canvas hidden={true} ref={canvasRef} width={WIDTH} height={HEIGHT}></canvas>
+          <RenderStats matchPercentage={matchPercentage} charCount={charCount} />
+          <h2 className="target-title">Remote Player{remoteStreams.length>1 && 's'}</h2>
+            {remoteStreams.map(([_, s]) => (
+              <PlayerContainer
+                key={s.key}
+                className="no-padding"
+                title={s.sess.other.peerId}
+                stream={s.remoteStream}
+                loading={s.loading}
+                stats={s.remoteStats}
+              />
+            ))}
+        </section>
+
+        <section>
+          <h2 className="target-title">Target #1: Simple Circle</h2>
+          <div className="target-container">
+            <div className="target-header">Target Design</div>
+            <div className="target-display">
+              <div className="target-frame">
+                <div className="target-design"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
+  );
+}
+
+interface PlayerContainerProps {
+  title: string;
+  stream: MediaStream | null;
+  loading: boolean;
+  className: string;
+  stats: Stats | null;
+}
+
+function PlayerContainer(props: PlayerContainerProps) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.srcObject = props.stream;
+    }
+  }, [props.stream]);
+
+  return (
+    <>
+      <div className="target-container">
+        <div className="target-header">User: {props.title}</div>
+          <div className="target-display">
+            <article className={props.className}>
+              {(props.stream === null || props.loading) && (
+                <progress className="absolute top left circle"></progress>
+              )}
+              <video
+                data-testid={props.title}
+                className={props.loading ? "responsive large-opacity" : "responsive"}
+                ref={videoRef}
+                autoPlay
+                width={WIDTH}
+                height={HEIGHT}
+              />
+          </article>
+        </div>
+      </div>
+      {props.stats ? <RenderStats charCount={props.stats.charCount} matchPercentage={props.stats.matchPercentage}/> : <></>}
+    </>
   );
 }
 

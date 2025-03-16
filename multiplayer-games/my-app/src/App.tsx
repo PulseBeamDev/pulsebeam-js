@@ -1,10 +1,10 @@
 import './App.css'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { initializeApp } from 'firebase/app';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { Stats, usePeerStore } from "./peer";
-import { Battle, RenderStats, WIDTH, HEIGHT } from './Battle';
+import { usePeerStore } from "./peer";
+import { Battle } from './Battle';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -40,19 +40,20 @@ export function App() {
   if (!user) return <SignIn/>
   return <div>
       <header className="header" style={{"gap": "2rem"}}>
-      <SignOut />
+        <SignOut />
+        <br/>
+        Uid: {user?.uid}
+        <br/>
+        Loading: {peer.loading ? "true" : "false"}
+        <br/>
+        NumSess: {Object.entries(peer.sessions).length}
+        <br/>
+        RemoteStream: {Object.entries(peer.sessions).map(([_, s]) => s.remoteStream+", ")}
+        <br/>
+        {(!peer.peerId || peer.peerId !== user?.uid)&&"somethings amiss"}
+        <br/>
+
       </header>    
-      <br/>
-      Uid: {user?.uid}
-      <br/>
-      Loading: {peer.loading ? "true" : "false"}
-      <br/>
-      NumSess: {Object.entries(peer.sessions).length}
-      <br/>
-      RemoteStream: {Object.entries(peer.sessions).map(([_, s]) => s.remoteStream+", ")}
-      <br/>
-      {(!peer.peerId || peer.peerId !== user?.uid)&&"somethings amiss"}
-      <br/>
       {(!peer.ref) ? "Loading..." : <SessionPage />}
     </div>
 }
@@ -60,42 +61,16 @@ export function App() {
 function SessionPage() {
   const peer = usePeerStore();
   const remoteStreams = Object.entries(peer.sessions);
-  return (
-    <div>
-      <main className="responsive max grid">
-        {remoteStreams.length === 0
-          ? (
-            <div className="s12 l6 no-padding">
-              <ConnectForm />
-            </div>
-          )
-          : (
-            <div>
-              <Battle/>
-              <PlayerContainer
-                className="s12 l6 no-padding"
-                title={peer.peerId}
-                stream={peer.localStream}
-                loading={false}
-                stats={null}
-              />
-              <nav className="left drawer medium-space">
-                {remoteStreams.map(([_, s]) => (
-                  <PlayerContainer
-                    key={s.key}
-                    className="no-padding"
-                    title={s.sess.other.peerId}
-                    stream={s.remoteStream}
-                    loading={s.loading}
-                    stats={s.remoteStats}
-                  />
-                ))}
-              </nav>
-            </div>
-          )}
-      </main>
-    </div>
-  );
+  return (<div>
+    {remoteStreams.length === 0
+      ? 
+        <div className="s12 l6 no-padding">
+          <ConnectForm />
+        </div>
+      : 
+        <Battle/>
+    }
+  </div>);
 }
 
 function ConnectForm() {
@@ -136,46 +111,6 @@ function ConnectForm() {
         </button>
       </nav>
     </form>
-  );
-}
-
-interface PlayerContainerProps {
-  title: string;
-  stream: MediaStream | null;
-  loading: boolean;
-  className: string;
-  stats: Stats | null;
-}
-
-function PlayerContainer(props: PlayerContainerProps) {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.srcObject = props.stream;
-    }
-  }, [props.stream]);
-
-  return (
-    <article className={props.className}>
-      {(props.stream === null || props.loading) && (
-        <progress className="absolute top left circle"></progress>
-      )}
-      <video
-        data-testid={props.title}
-        className={props.loading ? "responsive large-opacity" : "responsive"}
-        ref={videoRef}
-        autoPlay
-        width={WIDTH}
-        height={HEIGHT}
-      />
-      <div className="absolute bottom left right padding white-text">
-        <nav>
-          <h5>User: {props.title}</h5>
-          {props.stats ? <RenderStats charCount={props.stats.charCount} matchPercentage={props.stats.matchPercentage}/> : <></>}
-        </nav>
-      </div>
-    </article>
   );
 }
 
