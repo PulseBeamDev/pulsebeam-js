@@ -37,10 +37,10 @@ async function waitForStableVideo(
       expect(await video.evaluate((v: HTMLVideoElement) => v.readyState)).toBe(
         4,
       );
-      await page.waitForTimeout(delayMs).catch(() => {});
+      await page.waitForTimeout(delayMs).catch(() => { });
       return;
     } catch (_e) {
-      await page.waitForTimeout(1000).catch(() => {});
+      await page.waitForTimeout(1000).catch(() => { });
     }
   }
 
@@ -48,7 +48,7 @@ async function waitForStableVideo(
 }
 
 async function assertClick(btn: Locator) {
-  await btn.click({ timeout: 1000 }).catch(() => {});
+  await btn.click({ timeout: 1000 }).catch(() => { });
   await expect(btn).not.toBeVisible();
 }
 
@@ -56,7 +56,7 @@ async function start(page: Page, peerId: string) {
   await page.getByTestId("src-peerId").fill(peerId);
   await waitForStableVideo(page, peerId, 5_000);
 
-  await page.getByTestId("btn-ready").click();
+  await assertClick(page.getByTestId("btn-ready"));
 
   return () => assertClick(page.getByTestId("btn-endCall"));
 }
@@ -64,8 +64,7 @@ async function start(page: Page, peerId: string) {
 async function connect(page: Page, peerId: string, otherPeerId: string) {
   start(page, peerId);
   await page.getByTestId("dst-peerId").fill(otherPeerId);
-  await page.getByTestId("btn-connect").click();
-  await expect(page.getByTestId("btn-connect")).toHaveCount(0);
+  await assertClick(page.getByTestId("btn-connect"));
   await waitForStableVideo(page, otherPeerId, 10_000);
 
   return () => assertClick(page.getByTestId("btn-endCall"));
