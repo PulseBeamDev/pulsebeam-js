@@ -1,11 +1,10 @@
 import './App.css'
 import { useState, useEffect, useRef } from 'react'
 import { initializeApp } from 'firebase/app';
-import { getAuth } from "firebase/auth";
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { getToken, SignIn, SignOut } from './Auth';
-import { usePeerStore } from "./peer";
-import { Battle } from './Battle';
+import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { Stats, usePeerStore } from "./peer";
+import { Battle, RenderStats } from './Battle';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -38,7 +37,6 @@ export function App() {
       peer.start(user.uid, token)
     })()
   }, [user])
-  
   if (!user) return <SignIn/>
   return <div>
       <header className="header" style={{"gap": "2rem"}}>
@@ -50,6 +48,8 @@ export function App() {
       Loading: {peer.loading ? "true" : "false"}
       <br/>
       NumSess: {Object.entries(peer.sessions).length}
+      <br/>
+      RemoteStream: {Object.entries(peer.sessions).map(([_, s]) => s.remoteStream+", ")}
       <br/>
       {(!peer.peerId || peer.peerId !== user?.uid)&&"somethings amiss"}
       <br/>
@@ -65,12 +65,13 @@ function SessionPage() {
       {remoteStreams.length > 1 && (
         <nav className="left drawer medium-space">
           {remoteStreams.slice(1).map(([_, s]) => (
-            <VideoContainer
+            <PlayerContainer
               key={s.key}
               className="no-padding"
               title={s.sess.other.peerId}
               stream={s.remoteStream}
               loading={s.loading}
+              stats={s.remoteStats}
             />
           ))}
         </nav>
@@ -86,39 +87,23 @@ function SessionPage() {
           : (
             <div>
               <Battle/>
-              <VideoContainer
+              <PlayerContainer
                 className="s12 l6 no-padding"
                 title={peer.peerId}
                 stream={peer.localStream}
                 loading={false}
+                stats={null}
               />
-              <VideoContainer
+              <PlayerContainer
                 className="s12 l6 no-padding"
                 title={remoteStreams[0][1].sess.other.peerId}
                 stream={remoteStreams[0][1].remoteStream}
                 loading={remoteStreams[0][1].loading}
+                stats={remoteStreams[0][1].remoteStats}
               />
             </div>
           )}
       </main>
-
-      <nav className="footer">
-        <button
-          style={{background:"white", color: "black"}}
-          data-testid="btn-endBattle"
-          onClick={() => peer.stop()}
-        >
-          End Battle
-        </button>
-
-        <a
-          target="_blank"
-          className="button secondary-container secondary-text small-round"
-          href="https://github.com/PulseBeamDev/pulsebeam-js/tree/main/multiplayer-games/cssbattles-demo"
-        >
-          Source Code
-        </a>
-      </nav>
     </div>
   );
 }
@@ -164,14 +149,15 @@ function ConnectForm() {
   );
 }
 
-interface VideoContainerProps {
+interface PlayerContainerProps {
   title: string;
   stream: MediaStream | null;
   loading: boolean;
   className: string;
+  stats: Stats | null;
 }
 
-function VideoContainer(props: VideoContainerProps) {
+function PlayerContainer(props: PlayerContainerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
@@ -193,11 +179,44 @@ function VideoContainer(props: VideoContainerProps) {
       />
       <div className="absolute bottom left right padding white-text">
         <nav>
-          <h5>{props.title}</h5>
+          <h5>User: {props.title}</h5>
+          {props.stats ? <RenderStats {...props.stats}/> : <></>}
         </nav>
       </div>
     </article>
   );
+}
+
+export const getToken = async (fToken: string) => {
+      const resp = await fetch(
+        "http://localhost:5000/cssbattles-demo/us-central1/getToken/",
+        {
+          method: "POST",
+          headers: {
+            'Authorization': 'Bearer '+ fToken
+          }
+        },
+      );
+      const jsonToken = await resp.text();
+      
+      const token = JSON.parse(jsonToken).token
+      if (token !== "") return token
+      throw(new Error("fatal, error retrieving token, see logs"))
+}
+
+export function SignIn() {
+  const auth = getAuth();
+  const signInWithGoogle = () => {
+    const provider = new GoogleAuthProvider();
+    signInWithPopup(auth, provider);
+  }
+  return <button style={{background:"white", color: "black"}} onClick={signInWithGoogle}>Sign in with Google</button>
+}
+
+export function SignOut() {
+  const auth = getAuth();
+  if (!auth.currentUser) return <></>
+  return <button style={{background:"white", color: "black"}} onClick={() => auth.signOut()}>Sign Out</button>
 }
 
 export default App;
