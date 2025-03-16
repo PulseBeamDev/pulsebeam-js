@@ -36,10 +36,10 @@ async function waitForStableVideo(
       expect(await video.evaluate((v: HTMLVideoElement) => v.readyState)).toBe(
         4,
       );
-      await page.waitForTimeout(delayMs).catch(() => { });
+      await page.waitForTimeout(delayMs).catch(() => {});
       return;
     } catch (_e) {
-      await page.waitForTimeout(1000).catch(() => { });
+      await page.waitForTimeout(1000).catch(() => {});
     }
   }
 
@@ -52,17 +52,25 @@ async function start(page: Page, peerId: string) {
 
   await page.getByTestId("btn-ready").click();
 
-  return () => page.getByTestId("btn-endCall").click();
+  return () =>
+    Promise.race([
+      page.getByTestId("btn-endCall").click(),
+      expect(page.getByTestId("btn-endCall")).toHaveCount(0),
+    ]);
 }
 
 async function connect(page: Page, peerId: string, otherPeerId: string) {
   start(page, peerId);
   await page.getByTestId("dst-peerId").fill(otherPeerId);
   await page.getByTestId("btn-connect").click();
-  await expect(page.getByTestId("btn-connect")).not.toBeVisible();
+  await expect(page.getByTestId("btn-connect")).toHaveCount(0);
   await waitForStableVideo(page, otherPeerId, 10_000);
 
-  return () => page.getByTestId("btn-endCall").click();
+  return () =>
+    Promise.race([
+      page.getByTestId("btn-endCall").click(),
+      expect(page.getByTestId("btn-endCall")).toHaveCount(0),
+    ]);
 }
 
 function randId() {
@@ -135,10 +143,8 @@ test.describe("Connect", () => {
         await contextB.close();
       }
     });
-  }
 
-  // Disconnect and reconnect with role reversal
-  for (const [bA, bB] of pairs) {
+    // Disconnect and reconnect with role reversal
     test(`${bA}_${bB} disconnect and reconnect`, async ({ baseURL }) => {
       const url = `${baseURL}?mock&baseUrl=${PULSEBEAM_BASE_URL}`;
       const peerA = `__${bA}_${randId()}`;
@@ -178,10 +184,8 @@ test.describe("Connect", () => {
         await contextB.close();
       }
     });
-  }
 
-  // Simultaneous connection attempt
-  for (const [bA, bB] of pairs) {
+    // Simultaneous connection attempt
     test(`${bA}_${bB} simultaneous connect`, async ({ baseURL }) => {
       const url = `${baseURL}?mock&baseUrl=${PULSEBEAM_BASE_URL}`;
       const peerA = `__${bA}_${randId()}`;
@@ -208,16 +212,23 @@ test.describe("Connect", () => {
           pageB.getByTestId("dst-peerId").fill(peerA),
         ]);
 
-        // Attempt simultaneous connection
-        await Promise.all([
-          pageA.getByTestId("btn-connect").click().catch(() => { }),
-          pageB.getByTestId("btn-connect").click().catch(() => { }),
+        // Race between clicking and have the other peer to connect first
+        const connectBtnA = pageA.getByTestId("btn-connect");
+        const connectingA = Promise.race([
+          connectBtnA.click().catch(() => {}),
+          expect(connectBtnA).toHaveCount(0),
         ]);
 
-        // Verify buttons are hidden
+        const connectBtnB = pageB.getByTestId("btn-connect");
+        const connectingB = Promise.race([
+          connectBtnB.click().catch(() => {}),
+          expect(connectBtnB).toHaveCount(0),
+        ]);
+
+        // Attempt simultaneous connection
         await Promise.all([
-          expect(pageA.getByTestId("btn-connect")).not.toBeVisible(),
-          expect(pageB.getByTestId("btn-connect")).not.toBeVisible(),
+          connectingA,
+          connectingB,
         ]);
 
         await waitForStableVideo(pageA, peerB, 10_000),
@@ -230,4 +241,3 @@ test.describe("Connect", () => {
     });
   }
 });
-
