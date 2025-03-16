@@ -25,7 +25,16 @@ export enum ReservedConnId {
 const defaultAsleep = asleep;
 const defaultRandUint32 = (
   reserved: number,
-) => (Math.floor(Math.random() * ((2 ** 32) - reserved)) + reserved);
+): number => {
+  // TODO: remove this in the next protocol version by not having a reserved conn id.
+  let randomNumber: number;
+  do {
+    const buf = new Uint32Array(1);
+    crypto.getRandomValues(buf);
+    randomNumber = buf[0];
+  } while (randomNumber >= 0 && randomNumber < reserved);
+  return randomNumber;
+};
 const defaultIsRecoverable = (_err: unknown) => true;
 
 // This is a processing queue that can handle unreliable and reliable messages.

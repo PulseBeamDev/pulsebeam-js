@@ -3,7 +3,7 @@ import { create } from "zustand";
 import { produce } from "immer";
 
 const DEFAULT_GROUP = "default";
-const DEFAULT_CONNECT_TIMEOUT_MS = 3_000;
+const DEFAULT_CONNECT_TIMEOUT_MS = 10_000;
 
 interface SessionProps {
   key: number;

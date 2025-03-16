@@ -12,6 +12,9 @@ import { Browser, expect, type Page, test } from "@playwright/test";
 const PULSEBEAM_BASE_URL = process.env.PULSEBEAM_BASE_URL ||
   "https://cloud.pulsebeam.dev/grpc";
 
+// https://playwright.dev/docs/test-retries#serial-mode
+test.describe.configure({ mode: "serial" });
+
 async function waitForStableVideo(
   page: Page,
   peerId: string,
