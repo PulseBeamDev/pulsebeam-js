@@ -406,41 +406,14 @@ export class Stream {
   private async handleMessage(msg: Message) {
     const payload = msg.payload!.payloadType;
     switch (payload.oneofKind) {
-      case "ack":
-        this.handleAck(payload.ack);
-        break;
       case "bye":
         this.close("received bye from other peer");
         break;
-      case undefined:
+      default:
+        this.logger.warn("unsupported stream message, dropping silently", {
+          msg,
+        });
         break;
-      default: {
-        if (msg.header!.reliable) {
-          const ack: Ack = {
-            ackRanges: [{
-              seqnumStart: msg.header!.seqnum,
-              seqnumEnd: msg.header!.seqnum + 1,
-            }],
-          };
-          const reply: MessagePayload = {
-            payloadType: { oneofKind: "ack", ack },
-          };
-          this.logger.debug("ack", { seqnum: msg.header!.seqnum });
-          this.send(reply, false);
-        }
-
-        if (!msg.payload) return;
-        await this.onpayload(msg.payload!);
-        break;
-      }
-    }
-  }
-
-  handleAck(ack: Ack) {
-    for (const r of ack.ackRanges) {
-      for (let s = r.seqnumStart; s < r.seqnumEnd; s++) {
-        this.logger.debug("received ack", { seqnum: s });
-      }
     }
   }
 
