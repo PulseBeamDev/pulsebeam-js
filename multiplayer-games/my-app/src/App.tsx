@@ -41,18 +41,20 @@ export function App() {
   
   if (!user) return <SignIn/>
   return <div>
-    <SignOut />
-    <br/>
-    Uid: {user?.uid}
-    <br/>
-    Loading: {peer.loading ? "true" : "false"}
-    <br/>
-    NumSess: {Object.entries(peer.sessions).length}
-    <br/>
-    {(!peer.peerId || peer.peerId !== user?.uid)&&"somethings amiss"}
-    <br/>
-    {(!peer.ref) ? "Loading..." : <SessionPage />}
-  </div>
+      <header className="header" style={{"gap": "2rem"}}>
+      <SignOut />
+      </header>    
+      <br/>
+      Uid: {user?.uid}
+      <br/>
+      Loading: {peer.loading ? "true" : "false"}
+      <br/>
+      NumSess: {Object.entries(peer.sessions).length}
+      <br/>
+      {(!peer.peerId || peer.peerId !== user?.uid)&&"somethings amiss"}
+      <br/>
+      {(!peer.ref) ? "Loading..." : <SessionPage />}
+    </div>
 }
 
 function SessionPage() {
@@ -100,13 +102,12 @@ function SessionPage() {
           )}
       </main>
 
-      <nav className="bottom">
+      <nav className="footer">
         <button
-          className="error small-round"
+          style={{background:"white", color: "black"}}
           data-testid="btn-endBattle"
           onClick={() => peer.stop()}
         >
-          <i>battle_end</i>
           End Battle
         </button>
 
@@ -115,7 +116,6 @@ function SessionPage() {
           className="button secondary-container secondary-text small-round"
           href="https://github.com/PulseBeamDev/pulsebeam-js/tree/main/multiplayer-games/cssbattles-demo"
         >
-          <i>code</i>
           Source Code
         </a>
       </nav>
@@ -140,7 +140,8 @@ function ConnectForm() {
         <h3>Who to connect to?</h3>
         <div className="field border responsive">
           <input
-            size={6}
+            style={{"padding": "1rem", "margin": "1rem"}}
+            size={40}
             type="text"
             placeholder="Other Name"
             value={otherPeerId}
@@ -149,7 +150,7 @@ function ConnectForm() {
           />
         </div>
         <button
-          className="responsive small-round"
+          style={{background:"white", color: "black"}}
           type="submit"
           data-testid="btn-connect"
           disabled={peer.loading || otherPeerId.length === 0}

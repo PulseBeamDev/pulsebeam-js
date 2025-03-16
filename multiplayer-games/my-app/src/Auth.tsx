@@ -23,11 +23,11 @@ export function SignIn() {
     const provider = new GoogleAuthProvider();
     signInWithPopup(auth, provider);
   }
-  return <button onClick={signInWithGoogle}>Sign in with Google</button>
+  return <button style={{background:"white", color: "black"}} onClick={signInWithGoogle}>Sign in with Google</button>
 }
 
 export function SignOut() {
   const auth = getAuth();
   if (!auth.currentUser) return <></>
-  return <button onClick={() => auth.signOut()}>Sign Out</button>
+  return <button style={{background:"white", color: "black"}} onClick={() => auth.signOut()}>Sign Out</button>
 }
