@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { toSvg } from "html-to-image";
-import { usePeerStore } from './peer';
+import { Stats, usePeerStore } from './peer';
 
 const DEFAULT_CODE = `<div id="user-shape"></div>
 <style>
@@ -18,16 +18,11 @@ export function Battle() {
   const peer = usePeerStore();
   const [userCode, setUserCode] = useState(DEFAULT_CODE);
   const [matchPercentage, setMatchPercentage] = useState(0);
-  const [charCount, setCharCount] = useState(0);
+  const [charCount, setCharCount] = useState(userCode.length);
   const exportRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  useEffect(() => {
-    // Set initial character count
-    setCharCount(userCode.length);
-  }, []);
-
-  const handleSubmit = async () => {
+  const updateScore = async () => {
     // Update character count
     setCharCount(userCode.length);
     
@@ -41,6 +36,12 @@ export function Battle() {
     if (userCss.includes('#fd4c56') || userCss.includes('var(--accent)')) score += 25;
     
     setMatchPercentage(score);
+
+    // Send updates
+    peer.broadcastStats({
+      charCount: userCode.length,
+      matchPercentage: score
+    });
   };
 
   async function updateCanvas(){
@@ -50,7 +51,7 @@ export function Battle() {
   }
 
   useEffect(()=>{
-    handleSubmit()
+    updateScore()
     updateCanvas()
   }, [userCode])
 
@@ -109,31 +110,50 @@ export function Battle() {
               </div>
             </div>
           </div>
-
-          <div className="stats">
-            <div className="stats-row">
-              <span>Match Percentage:</span>
-              <span 
-                className="match-percentage"
-                style={{ 
-                  color: matchPercentage >= 90 ? 'var(--success)' : 
-                         matchPercentage >= 50 ? '#ffc107' : 
-                         'var(--accent)' 
-                }}
-              >
-                {matchPercentage}%
-              </span>
-            </div>
-            <div className="stats-row">
-              <span>Characters:</span>
-              <span className="char-count">{charCount}</span>
-            </div>
-          </div>
-
+          <RenderStats {...{matchPercentage: matchPercentage, charCount: charCount}} />
         </section>
       </main>
+            <nav className="footer">
+        <button
+          style={{background:"white", color: "black"}}
+          data-testid="btn-endBattle"
+          onClick={() => peer.stop()}
+        >
+          End Battle
+        </button>
+
+        <a
+          target="_blank"
+          className="button secondary-container secondary-text small-round"
+          href="https://github.com/PulseBeamDev/pulsebeam-js/tree/main/multiplayer-games/cssbattles-demo"
+        >
+          Source Code
+        </a>
+      </nav>
     </div>
   );
+}
+
+export function RenderStats(stats: Stats){
+return <div className="stats">
+    <div className="stats-row">
+      <span>Match Percentage:</span>
+      <span 
+        className="match-percentage"
+        style={{ 
+          color: stats.matchPercentage >= 90 ? 'var(--success)' : 
+                  stats.matchPercentage >= 50 ? '#ffc107' : 
+                  'var(--accent)' 
+        }}
+      >
+        {stats.matchPercentage}%
+      </span>
+    </div>
+    <div className="stats-row">
+      <span>Characters:</span>
+      <span className="char-count">{stats.charCount}</span>
+    </div>
+  </div>
 }
 
 // From https://github.com/bubkoo/html-to-image/blob/master/src/util.ts

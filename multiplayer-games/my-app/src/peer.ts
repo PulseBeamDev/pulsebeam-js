@@ -5,11 +5,18 @@ import { produce } from "immer";
 const DEFAULT_GROUP = "cssbattles-demo";
 const DEFAULT_CONNECT_TIMEOUT_MS = 3_000;
 
+export interface Stats {
+  charCount: number;
+  matchPercentage: number
+}
+
 interface SessionProps {
   key: number;
   sess: ISession;
   remoteStream: MediaStream | null;
   loading: boolean;
+  dataChannel: RTCDataChannel[];
+  remoteStats: Stats | null  // Add a field to store remote stats
 }
 
 export interface PeerState {
@@ -22,6 +29,8 @@ export interface PeerState {
   stop: () => void;
   connect: (otherPeerId: string) => void;
   peerId: string;
+  handleStatsMessage: (peerId: string, stats: Stats) => void;
+  broadcastStats: (message: Stats) => void;
 }
 
 export const usePeerStore = create<PeerState>((set, get) => ({
@@ -32,6 +41,15 @@ export const usePeerStore = create<PeerState>((set, get) => ({
   peerId: "",
   setLocalStream: (localStream: MediaStream) => {
     set({ localStream });
+    // send to other peers.
+    const sessions = Object.entries(get().sessions)
+    sessions.map(([_, s])=>{
+      if (localStream) {
+        localStream.getTracks().forEach((track) =>
+          s.sess.addTrack(track, localStream)
+        );
+      }
+    })
   },
   start: async (peerId, token) => {
     if (!token) return;
@@ -51,6 +69,8 @@ export const usePeerStore = create<PeerState>((set, get) => ({
         const id = `${s.other.peerId}:${s.other.connId}`;
 
         s.ontrack = ({ streams }) => {
+          console.log("ontrack!!!")
+          console.log(`${streams.length === 1}`)
           console.log("ontrack", streams[0]);
           set(produce((state: PeerState) => {
             state.sessions[id].remoteStream = streams[0];
@@ -58,8 +78,23 @@ export const usePeerStore = create<PeerState>((set, get) => ({
           }));
         };
 
+        // Set up message handling for this channel
+        const chan = s.createDataChannel("game-stats")
+        chan.onmessage = (event) => {
+          get().handleStatsMessage(s.other.peerId, event.data);
+        };
+        
+        // Handle incoming data channels (peer might create them too)
+        s.ondatachannel = (ev) => {
+          console.log("Received data channel from peer");
+          ev.channel.onmessage = (event) => {
+            get().handleStatsMessage(s.other.peerId, event.data);
+          };
+        };
+
         s.onconnectionstatechange = () => {
           console.log(s.connectionState);
+          console.log("s.connectionState");
           if (s.connectionState === "closed") {
             set((state) => {
               const { [id]: _, ...rest } = state.sessions;
@@ -74,6 +109,9 @@ export const usePeerStore = create<PeerState>((set, get) => ({
           }
         };
 
+        // if local stream is empty then connection won't be made
+        // want user to start. then add local stream / dc
+        // only then connect
         const localStream = get().localStream;
         if (localStream) {
           localStream.getTracks().forEach((track) =>
@@ -87,6 +125,8 @@ export const usePeerStore = create<PeerState>((set, get) => ({
             sess: s,
             loading: true,
             remoteStream: null,
+            dataChannel: [chan],
+            remoteStats: null,
           };
         }));
       };
@@ -118,4 +158,33 @@ export const usePeerStore = create<PeerState>((set, get) => ({
     window.clearTimeout(timeoutId);
     set({ loading: false });
   },
+  handleStatsMessage: (peerId: string, message: any) => {
+    // Update state based on received message
+    // This could update UI elements showing opponent's stats
+    console.log(`Received stats from ${peerId}:`, message);
+    
+    // Example: Update a new field in the sessions object to track remote stats
+    set(produce((state: PeerState) => {
+      const sessionKey = Object.keys(state.sessions).find(key => key.startsWith(peerId));
+      if (sessionKey) {
+        if (!state.sessions[sessionKey].remoteStats) {
+          state.sessions[sessionKey].remoteStats = null;
+        }
+        state.sessions[sessionKey].remoteStats = JSON.parse(message);
+      }
+    }));
+  },
+   // Add a method to broadcast stats to all peers
+  broadcastStats: (stats) => {
+    const sessions = Object.values(get().sessions);
+    sessions.forEach(session => {
+      if (session.dataChannel && session.dataChannel.length > 0) {
+        // Send to first available data channel
+        const channel = session.dataChannel[0];
+        if (channel.readyState === 'open') {
+          channel.send(JSON.stringify(stats));
+        }
+      }
+    });
+  }
 }));
