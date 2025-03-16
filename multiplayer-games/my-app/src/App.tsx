@@ -4,7 +4,7 @@ import { initializeApp } from 'firebase/app';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { Stats, usePeerStore } from "./peer";
-import { Battle, RenderStats } from './Battle';
+import { Battle, RenderStats, WIDTH, HEIGHT } from './Battle';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -62,21 +62,6 @@ function SessionPage() {
   const remoteStreams = Object.entries(peer.sessions);
   return (
     <div>
-      {remoteStreams.length > 1 && (
-        <nav className="left drawer medium-space">
-          {remoteStreams.slice(1).map(([_, s]) => (
-            <PlayerContainer
-              key={s.key}
-              className="no-padding"
-              title={s.sess.other.peerId}
-              stream={s.remoteStream}
-              loading={s.loading}
-              stats={s.remoteStats}
-            />
-          ))}
-        </nav>
-      )}
-
       <main className="responsive max grid">
         {remoteStreams.length === 0
           ? (
@@ -94,13 +79,18 @@ function SessionPage() {
                 loading={false}
                 stats={null}
               />
-              <PlayerContainer
-                className="s12 l6 no-padding"
-                title={remoteStreams[0][1].sess.other.peerId}
-                stream={remoteStreams[0][1].remoteStream}
-                loading={remoteStreams[0][1].loading}
-                stats={remoteStreams[0][1].remoteStats}
-              />
+              <nav className="left drawer medium-space">
+                {remoteStreams.map(([_, s]) => (
+                  <PlayerContainer
+                    key={s.key}
+                    className="no-padding"
+                    title={s.sess.other.peerId}
+                    stream={s.remoteStream}
+                    loading={s.loading}
+                    stats={s.remoteStats}
+                  />
+                ))}
+              </nav>
             </div>
           )}
       </main>
@@ -176,11 +166,13 @@ function PlayerContainer(props: PlayerContainerProps) {
         className={props.loading ? "responsive large-opacity" : "responsive"}
         ref={videoRef}
         autoPlay
+        width={WIDTH}
+        height={HEIGHT}
       />
       <div className="absolute bottom left right padding white-text">
         <nav>
           <h5>User: {props.title}</h5>
-          {props.stats ? <RenderStats {...props.stats}/> : <></>}
+          {props.stats ? <RenderStats charCount={props.stats.charCount} matchPercentage={props.stats.matchPercentage}/> : <></>}
         </nav>
       </div>
     </article>

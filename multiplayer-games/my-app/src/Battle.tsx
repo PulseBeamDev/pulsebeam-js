@@ -11,8 +11,8 @@ const DEFAULT_CODE = `<div id="user-shape"></div>
     }
 </style>`
 
-const WIDTH = 400;
-const HEIGHT = 300;
+export const WIDTH = 400;
+export const HEIGHT = 300;
 
 export function Battle() {
   const peer = usePeerStore();
@@ -110,7 +110,7 @@ export function Battle() {
               </div>
             </div>
           </div>
-          <RenderStats {...{matchPercentage: matchPercentage, charCount: charCount}} />
+          <RenderStats matchPercentage={matchPercentage} charCount={charCount} />
         </section>
       </main>
             <nav className="footer">
@@ -134,26 +134,26 @@ export function Battle() {
   );
 }
 
-export function RenderStats(stats: Stats){
-return <div className="stats">
-    <div className="stats-row">
-      <span>Match Percentage:</span>
-      <span 
-        className="match-percentage"
-        style={{ 
-          color: stats.matchPercentage >= 90 ? 'var(--success)' : 
-                  stats.matchPercentage >= 50 ? '#ffc107' : 
-                  'var(--accent)' 
-        }}
-      >
-        {stats.matchPercentage}%
-      </span>
+export function RenderStats(props: Stats){
+  return <div className="stats">
+      <div className="stats-row">
+        <span>Match Percentage:</span>
+        <span 
+          className="match-percentage"
+          style={{ 
+            color: props.matchPercentage >= 90 ? 'var(--success)' : 
+                    props.matchPercentage >= 50 ? '#ffc107' : 
+                    'var(--accent)' 
+          }}
+        >
+          {props.matchPercentage}%
+        </span>
+      </div>
+      <div className="stats-row">
+        <span>Characters:</span>
+        <span className="char-count">{props.charCount}</span>
+      </div>
     </div>
-    <div className="stats-row">
-      <span>Characters:</span>
-      <span className="char-count">{stats.charCount}</span>
-    </div>
-  </div>
 }
 
 // From https://github.com/bubkoo/html-to-image/blob/master/src/util.ts
