@@ -37,7 +37,7 @@ class Queue {
   private unreliable: Message[];
   private processing: boolean;
   private readonly logger: Logger;
-  public onmsg = async (_: Message) => { };
+  public onmsg = async (_: Message) => {};
 
   constructor(logger: Logger) {
     this.logger = logger.sub("queue");
@@ -109,8 +109,8 @@ export class Transport {
   public readonly asleep: typeof defaultAsleep;
   private readonly randUint32: typeof defaultRandUint32;
   private readonly isRecoverable: typeof defaultIsRecoverable;
-  public onstream = (_: Stream) => { };
-  public onclosed = (_reason: string) => { };
+  public onstream = (_: Stream) => {};
+  public onclosed = (_reason: string) => {};
 
   constructor(
     private readonly client: ISignalingClient,
@@ -291,7 +291,7 @@ export class Transport {
         header,
         payload,
       });
-      await this.asleep(POLL_RETRY_MAX_DELAY_MS, joinedSignal).catch(() => { });
+      await this.asleep(POLL_RETRY_MAX_DELAY_MS, joinedSignal).catch(() => {});
 
       found = !!this.streams.find((s) =>
         s.other.groupId === otherGroupId && s.other.peerId === otherPeerId
@@ -341,8 +341,8 @@ export class Stream {
   public recvq: Queue;
   private closedAt: number;
   private lastSeqnum: number;
-  public onpayload = async (_: MessagePayload) => { };
-  public onclosed = (_reason: string) => { };
+  public onpayload = async (_: MessagePayload) => {};
+  public onclosed = (_reason: string) => {};
 
   constructor(
     private readonly transport: Transport,
@@ -408,6 +408,15 @@ export class Stream {
     switch (payload.oneofKind) {
       case "bye":
         this.close("received bye from other peer");
+        break;
+      case "signal":
+        if (!msg.payload) {
+          this.logger.warn("payload is missing from the stream message", {
+            msg,
+          });
+          return;
+        }
+        this.onpayload(msg.payload);
         break;
       default:
         this.logger.warn("unsupported stream message, dropping silently", {
