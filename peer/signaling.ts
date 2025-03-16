@@ -140,6 +140,12 @@ export interface MessagePayload {
          */
         ack: Ack;
     } | {
+        oneofKind: "ping";
+        /**
+         * @generated from protobuf field: pulsebeam.v1.Ping ping = 5;
+         */
+        ping: Ping;
+    } | {
         oneofKind: undefined;
     };
 }
@@ -247,6 +253,11 @@ export interface Ack {
      * @generated from protobuf field: repeated pulsebeam.v1.AckRange ack_ranges = 1;
      */
     ackRanges: AckRange[];
+}
+/**
+ * @generated from protobuf message pulsebeam.v1.Ping
+ */
+export interface Ping {
 }
 /**
  * @generated from protobuf message pulsebeam.v1.AckRange
@@ -426,7 +437,8 @@ class MessagePayload$Type extends MessageType<MessagePayload> {
             { no: 1, name: "signal", kind: "message", oneof: "payloadType", T: () => Signal },
             { no: 2, name: "join", kind: "message", oneof: "payloadType", T: () => Join },
             { no: 3, name: "bye", kind: "message", oneof: "payloadType", T: () => Bye },
-            { no: 4, name: "ack", kind: "message", oneof: "payloadType", T: () => Ack }
+            { no: 4, name: "ack", kind: "message", oneof: "payloadType", T: () => Ack },
+            { no: 5, name: "ping", kind: "message", oneof: "payloadType", T: () => Ping }
         ]);
     }
 }
@@ -524,6 +536,16 @@ class Ack$Type extends MessageType<Ack> {
  * @generated MessageType for protobuf message pulsebeam.v1.Ack
  */
 export const Ack = new Ack$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class Ping$Type extends MessageType<Ping> {
+    constructor() {
+        super("pulsebeam.v1.Ping", []);
+    }
+}
+/**
+ * @generated MessageType for protobuf message pulsebeam.v1.Ping
+ */
+export const Ping = new Ping$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AckRange$Type extends MessageType<AckRange> {
     constructor() {

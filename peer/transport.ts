@@ -194,10 +194,24 @@ export class Transport {
     this.onclosed(reason);
   }
 
+  private handleControlMessage = (payload: MessagePayload) => {
+    switch (payload.payloadType.oneofKind) {
+      case "ping":
+        this.logger.debug("received ping");
+        break;
+      default:
+        this.logger.warn("received unknown control message", { payload });
+        break;
+    }
+  };
+
   private handleMessages = (msg: Message) => {
     this.logger.debug("received", { msg: msg });
     if (this.abort.signal.aborted) return;
-    if (!msg.header) return;
+    if (!msg.header) {
+      if (!msg.payload) return;
+      return this.handleControlMessage(msg.payload);
+    }
     const src = msg.header.src;
     const dst = msg.header.dst;
     if (!src || !dst) return;
@@ -325,9 +339,8 @@ export class Stream {
   public readonly logger: Logger;
   private abort: AbortController;
   public recvq: Queue;
-  public ackedbuf: Record<string, boolean>;
-  private lastSeqnum: number;
   private closedAt: number;
+  private lastSeqnum: number;
   public onpayload = async (_: MessagePayload) => { };
   public onclosed = (_reason: string) => { };
 
@@ -341,7 +354,6 @@ export class Stream {
       other,
     });
     this.abort = new AbortController();
-    this.ackedbuf = {};
     this.recvq = new Queue(this.logger);
     this.recvq.onmsg = (msg) => this.handleMessage(msg);
     this.lastSeqnum = 0;
@@ -381,52 +393,14 @@ export class Stream {
       header: {
         src: this.transport.info,
         dst: this.other,
-        seqnum: 0,
+        seqnum: this.lastSeqnum,
         reliable,
       },
       payload: { ...payload },
     };
 
-    if (!reliable) {
-      await this.transport.send(signal, msg);
-      return;
-    }
-
     this.lastSeqnum++;
-    msg.header!.seqnum = this.lastSeqnum;
-    this.ackedbuf[msg.header!.seqnum] = false; // marked as unacked
-    const resendLimit = MAX_RELIABLE_RETRY_COUNT;
-    let tryCount = resendLimit;
-    const seqnum = msg.header!.seqnum;
-
-    // TODO: abort when generation counter doesn't match
-    while (!signal.aborted) {
-      await this.transport.send(this.abort.signal, msg);
-
-      await this.transport.asleep(
-        5 * POLL_RETRY_MAX_DELAY_MS,
-        this.abort.signal,
-      ).catch(() => { });
-
-      // since ackedbuf doesn't delete the seqnum right away, it prevents from racing between
-      // resending and acknolwedging
-      if (this.ackedbuf[seqnum]) {
-        break;
-      }
-
-      if (tryCount <= 0) {
-        const message = "reached the maximum resend limit, dropping message";
-        this.logger.warn(message, {
-          seqnum,
-          resendLimit,
-          reliable,
-        });
-        throw new Error(message);
-      }
-
-      tryCount--;
-      this.logger.debug("resending", { ...msg.header });
-    }
+    await this.transport.send(signal, msg);
   }
 
   private async handleMessage(msg: Message) {
@@ -466,7 +440,6 @@ export class Stream {
     for (const r of ack.ackRanges) {
       for (let s = r.seqnumStart; s < r.seqnumEnd; s++) {
         this.logger.debug("received ack", { seqnum: s });
-        this.ackedbuf[s] = true; // marked as acked
       }
     }
   }
