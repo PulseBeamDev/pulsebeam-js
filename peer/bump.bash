@@ -36,6 +36,7 @@ mv ${tmp} package.json
 
 jq ".version = \"${version}\"" jsr.json >${tmp}
 mv ${tmp} jsr.json
+cd .. && npm install
 
 git add .
 git commit -m "[peer] bump to ${version}"
