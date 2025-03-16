@@ -1,6 +1,7 @@
 import {
   chromium as bChromium,
   firefox as bFirefox,
+  Locator,
   // webkit as bWebkit,
 } from "playwright";
 import { Browser, expect, type Page, test } from "@playwright/test";
@@ -46,17 +47,18 @@ async function waitForStableVideo(
   throw new Error("waitForStableVideo timeout");
 }
 
+async function assertClick(btn: Locator) {
+  await btn.click({ timeout: 50 });
+  await expect(btn).not.toBeVisible();
+}
+
 async function start(page: Page, peerId: string) {
   await page.getByTestId("src-peerId").fill(peerId);
   await waitForStableVideo(page, peerId, 5_000);
 
   await page.getByTestId("btn-ready").click();
 
-  return () =>
-    Promise.race([
-      page.getByTestId("btn-endCall").click(),
-      expect(page.getByTestId("btn-endCall")).toHaveCount(0),
-    ]);
+  return () => assertClick(page.getByTestId("btn-endCall"));
 }
 
 async function connect(page: Page, peerId: string, otherPeerId: string) {
@@ -66,11 +68,7 @@ async function connect(page: Page, peerId: string, otherPeerId: string) {
   await expect(page.getByTestId("btn-connect")).toHaveCount(0);
   await waitForStableVideo(page, otherPeerId, 10_000);
 
-  return () =>
-    Promise.race([
-      page.getByTestId("btn-endCall").click(),
-      expect(page.getByTestId("btn-endCall")).toHaveCount(0),
-    ]);
+  return () => assertClick(page.getByTestId("btn-endCall"));
 }
 
 function randId() {
@@ -213,22 +211,10 @@ test.describe("Connect", () => {
         ]);
 
         // Race between clicking and have the other peer to connect first
-        const connectBtnA = pageA.getByTestId("btn-connect");
-        const connectingA = Promise.race([
-          connectBtnA.click().catch(() => {}),
-          expect(connectBtnA).toHaveCount(0),
-        ]);
-
-        const connectBtnB = pageB.getByTestId("btn-connect");
-        const connectingB = Promise.race([
-          connectBtnB.click().catch(() => {}),
-          expect(connectBtnB).toHaveCount(0),
-        ]);
-
         // Attempt simultaneous connection
         await Promise.all([
-          connectingA,
-          connectingB,
+          assertClick(pageA.getByTestId("btn-connect")),
+          assertClick(pageB.getByTestId("btn-connect")),
         ]);
 
         await waitForStableVideo(pageA, peerB, 10_000),
