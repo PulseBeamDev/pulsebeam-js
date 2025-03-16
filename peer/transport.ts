@@ -404,26 +404,13 @@ export class Stream {
   }
 
   private async handleMessage(msg: Message) {
-    const payload = msg.payload!.payloadType;
-    switch (payload.oneofKind) {
-      case "bye":
-        this.close("received bye from other peer");
-        break;
-      case "signal":
-        if (!msg.payload) {
-          this.logger.warn("payload is missing from the stream message", {
-            msg,
-          });
-          return;
-        }
-        this.onpayload(msg.payload);
-        break;
-      default:
-        this.logger.warn("unsupported stream message, dropping silently", {
-          msg,
-        });
-        break;
+    if (!msg.payload) {
+      this.logger.warn("payload is missing from the stream message", {
+        msg,
+      });
+      return;
     }
+    this.onpayload(msg.payload);
   }
 
   async close(reason?: string) {
