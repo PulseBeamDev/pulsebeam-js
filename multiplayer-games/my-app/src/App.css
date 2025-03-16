@@ -34,6 +34,17 @@ body {
   align-items: center;
 }
 
+.footer {
+  background-color: var(--secondary);
+  padding: 1rem;
+  display: flex;
+  position: fixed;
+  gap: 2rem;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+}
+
 .logo {
   font-size: 1.5rem;
   font-weight: bold;
