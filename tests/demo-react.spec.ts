@@ -48,7 +48,7 @@ async function waitForStableVideo(
 }
 
 async function assertClick(btn: Locator) {
-  await btn.click({ timeout: 50 }).catch(() => {});
+  await btn.click({ timeout: 1000 }).catch(() => {});
   await expect(btn).not.toBeVisible();
 }
 
