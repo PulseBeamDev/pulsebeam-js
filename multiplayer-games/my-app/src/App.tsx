@@ -26,16 +26,6 @@ export function App() {
   const mediaStream = peer.localStream;
   const streamCapturedRef = useRef(false);
 
-  // useEffect(()=>{
-  //   console.log("here")
-  //   if (!canvasRef.current) {
-  //     return
-  //     (async ()=>{await new Promise(r => setTimeout(r, 500))})()
-  //   }
-  //   console.log("Setting Local Stream to canvas")
-  //   // 15 is normal FPS for screen sharing (24-30 for video call)
-  //   peer.setLocalStream(canvasRef.current.captureStream(15))
-  // }, [])
   useEffect(() => {
     // This effect runs after render when the canvas is available
     const canvas = canvasRef.current;

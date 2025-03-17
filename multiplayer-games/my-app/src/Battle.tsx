@@ -50,12 +50,15 @@ export function Battle(props: {canvasRef: React.RefObject<HTMLCanvasElement | nu
     await drawCanvas(props.canvasRef.current, exportRef.current)
   }
 
+  // issue with renderer not rendering on connection
+  setInterval(()=>{
+    updateCanvas()
+  }, 1000)
+
   useEffect(()=>{
     updateScore()
     updateCanvas()
   }, [userCode])
-
-
 
   return (
     <div className="app">
