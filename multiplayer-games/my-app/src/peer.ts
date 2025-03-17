@@ -59,7 +59,6 @@ export const usePeerStore = create<PeerState>((set, get) => ({
     set({ loading: true });
     try {
       const p = await createPeer({
-        baseUrl: "http://localhost:3000/twirp",
         token,
       });
 

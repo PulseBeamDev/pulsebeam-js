@@ -76,10 +76,10 @@ export function App() {
   }, [user])
 
   return <div>
-    <div hidden={!!user}>
+    <div style={{ visibility: user ? 'hidden': 'visible' }}>
       <SignIn/>
     </div>
-    <div hidden={!user} className='app'>
+    <div style={{ visibility: user ? 'visible': 'hidden' }} className='app'>
         <header className="header" style={{"gap": "2rem"}}>
           <SignOut />
           <br/> User: {user?.uid}
