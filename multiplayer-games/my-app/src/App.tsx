@@ -1,10 +1,10 @@
 import './App.css'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { initializeApp } from 'firebase/app';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { usePeerStore } from "./peer";
-import { Battle } from './Battle';
+import { Battle, WIDTH, HEIGHT } from './Battle';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -22,6 +22,43 @@ const auth = getAuth(app);
 export function App() {
   const peer = usePeerStore();
   const [user] = useAuthState(auth);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const mediaStream = peer.localStream;
+  const streamCapturedRef = useRef(false);
+
+  // useEffect(()=>{
+  //   console.log("here")
+  //   if (!canvasRef.current) {
+  //     return
+  //     (async ()=>{await new Promise(r => setTimeout(r, 500))})()
+  //   }
+  //   console.log("Setting Local Stream to canvas")
+  //   // 15 is normal FPS for screen sharing (24-30 for video call)
+  //   peer.setLocalStream(canvasRef.current.captureStream(15))
+  // }, [])
+  useEffect(() => {
+    // This effect runs after render when the canvas is available
+    const canvas = canvasRef.current;
+    // Only proceed if canvas exists and stream hasn't been captured yet
+    if (canvas && !streamCapturedRef.current) {
+      try {
+        console.log("Setting Local Stream to canvas")
+        // 15 is normal FPS for screen sharing (24-30 for video call)
+        peer.setLocalStream(canvas.captureStream(15))
+        streamCapturedRef.current = true;
+      } catch (error) {
+        console.error('Error capturing stream:', error);
+      }
+    }
+    // Cleanup function
+    return () => {
+      if (mediaStream) {
+        // Stop all tracks when component unmounts
+        mediaStream.getTracks().forEach(track => track.stop());
+        console.log('Stream tracks stopped');
+      }
+    };
+  }, []);
 
   useEffect(()=>{
     if (!user) {
@@ -37,28 +74,28 @@ export function App() {
       peer.start(user.uid, token)
     })()
   }, [user])
-  if (!user) return <SignIn/>
-  return <div>
-      <header className="header" style={{"gap": "2rem"}}>
-        <SignOut />
-        <br/>
-        Uid: {user?.uid}
-        <br/>
-        Loading: {peer.loading ? "true" : "false"}
-        <br/>
-        NumSess: {Object.entries(peer.sessions).length}
-        <br/>
-        RemoteStream: {Object.entries(peer.sessions).map(([_, s]) => s.remoteStream+", ")}
-        <br/>
-        {(!peer.peerId || peer.peerId !== user?.uid)&&"somethings amiss"}
-        <br/>
 
-      </header>    
-      {(!peer.ref) ? "Loading..." : <SessionPage />}
+  return <div>
+    <div hidden={!!user}>
+      <SignIn/>
     </div>
+    <div hidden={!user} className='app'>
+        <header className="header" style={{"gap": "2rem"}}>
+          <SignOut />
+          <br/> User: {user?.uid}
+          <br/> Loading: {peer.loading ? "true" : "false"}
+          <br/> NumSess: {Object.entries(peer.sessions).length}
+          <br/> RemoteStream: {Object.entries(peer.sessions).map(([_, s]) => s.remoteStream+", ")}
+          <br/> {(!peer.peerId || peer.peerId !== user?.uid)&&"somethings amiss"} <br/>
+        </header>
+        {/* <canvas ref={canvasRef} width={WIDTH} height={HEIGHT}></canvas> */}
+        <canvas hidden={true} style={{ display: 'none' }} ref={canvasRef} width={WIDTH} height={HEIGHT}></canvas>
+        {(!peer.ref) ? "Loading..." : <SessionPage canvasRef={canvasRef}/>}
+      </div>
+  </div>
 }
 
-function SessionPage() {
+function SessionPage(props: {canvasRef: React.RefObject<HTMLCanvasElement | null>}) {
   const peer = usePeerStore();
   const remoteStreams = Object.entries(peer.sessions);
   return (<div>
@@ -68,7 +105,7 @@ function SessionPage() {
           <ConnectForm />
         </div>
       : 
-        <Battle/>
+        <Battle canvasRef={props.canvasRef}/>
     }
   </div>);
 }

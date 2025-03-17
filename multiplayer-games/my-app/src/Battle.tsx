@@ -14,14 +14,13 @@ const DEFAULT_CODE = `<div id="user-shape"></div>
 export const WIDTH = 400;
 export const HEIGHT = 300;
 
-export function Battle() {
+export function Battle(props: {canvasRef: React.RefObject<HTMLCanvasElement | null>}) {
   const peer = usePeerStore();
   const remoteStreams = Object.entries(peer.sessions);
   const [userCode, setUserCode] = useState(DEFAULT_CODE);
   const [matchPercentage, setMatchPercentage] = useState(0);
   const [charCount, setCharCount] = useState(userCode.length);
   const exportRef = useRef<HTMLDivElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const updateScore = async () => {
     // Update character count
@@ -47,8 +46,8 @@ export function Battle() {
 
   async function updateCanvas(){
     if (!exportRef.current) return;
-    if (!canvasRef.current) return;
-    await drawCanvas(canvasRef.current, exportRef.current)
+    if (!props.canvasRef.current) return;
+    await drawCanvas(props.canvasRef.current, exportRef.current)
   }
 
   useEffect(()=>{
@@ -56,12 +55,7 @@ export function Battle() {
     updateCanvas()
   }, [userCode])
 
-  useEffect(()=>{
-    if (!canvasRef.current) return;
-    console.log("Setting Local Stream to canvas")
-    // 15 is normal FPS for screen sharing (24-30 for video call)
-    peer.setLocalStream(canvasRef.current.captureStream(15))
-  }, [canvasRef.current])
+
 
   return (
     <div className="app">
@@ -107,22 +101,19 @@ export function Battle() {
               />
             </div>
           </div>
-          
-          {/* For debugging, set hidden to false, this is local canvas which
-            * becomes what is sent out */}
-          <canvas hidden={true} ref={canvasRef} width={WIDTH} height={HEIGHT}></canvas>
           <RenderStats matchPercentage={matchPercentage} charCount={charCount} />
+
           <h2 className="target-title">Remote Player{remoteStreams.length>1 && 's'}</h2>
-            {remoteStreams.map(([_, s]) => (
-              <PlayerContainer
-                key={s.key}
-                className="no-padding"
-                title={s.sess.other.peerId}
-                stream={s.remoteStream}
-                loading={s.loading}
-                stats={s.remoteStats}
-              />
-            ))}
+          {remoteStreams.map(([_, s]) => (
+            <PlayerContainer
+              key={s.key}
+              className="no-padding"
+              title={s.sess.other.peerId}
+              stream={s.remoteStream}
+              loading={s.loading}
+              stats={s.remoteStats}
+            />
+          ))}
         </section>
 
         <section>
