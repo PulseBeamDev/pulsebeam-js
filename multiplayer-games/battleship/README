@@ -1,0 +1,48 @@
+# Battleship Game
+
+A peer-to-peer battleship game using WebRTC and the PulseBeam SDK.
+
+## Overview
+
+This application allows two players to connect via WebRTC and play a real-time battleship game. One player controls a battleship that can move around the board, while the other player controls a cannon trying to hit the battleship.
+
+## Features
+
+- Peer-to-peer connection using WebRTC
+- Real-time gameplay with no server requirement (after initial connection)
+- Simple and intuitive UI
+- Responsive design
+- Debug panel for troubleshooting
+
+## Local Development Setup
+
+### Prerequisites
+
+- Node.js (v16 or higher)
+- npm or yarn
+
+### Installation
+
+1. Clone the repository:
+   \`\`\`
+   git clone [repository-url]
+   cd battleship-game
+   \`\`\`
+
+2. Install dependencies:
+   \`\`\`
+   npm install --force
+   \`\`\`
+   
+   > **Note:** The `--force` flag is necessary due to some dependency version conflicts.
+
+3. Start the development server:
+   \`\`\`
+   npm run dev
+   \`\`\`
+
+4. Open your browser and navigate to:
+   \`\`\`
+   http://localhost:3000
+   \`\`\`
+
