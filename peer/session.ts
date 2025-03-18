@@ -7,7 +7,6 @@ import {
 } from "./signaling.ts";
 import { Logger } from "./logger.ts";
 import type { Stream } from "./transport.ts";
-import { asleep } from "./util.ts";
 export type { PeerInfo } from "./signaling.ts";
 
 const ICE_RESTART_MAX_COUNT = 2;
@@ -61,7 +60,7 @@ export class Session {
   private makingOffer: boolean;
   private impolite: boolean;
   private pendingCandidates: RTCIceCandidateInit[];
-  private localCandidates: RTCIceCandidate[];
+  private iceBatcher: IceCandidateBatcher;
   private readonly logger: Logger;
   private abort: AbortController;
   private generationCounter: number;
@@ -74,19 +73,19 @@ export class Session {
   /**
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ondatachannel}
    */
-  public ondatachannel: RTCPeerConnection["ondatachannel"] = () => { };
+  public ondatachannel: RTCPeerConnection["ondatachannel"] = () => {};
 
   /**
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/onconnectionstatechange}
    */
   public onconnectionstatechange: RTCPeerConnection["onconnectionstatechange"] =
-    () => { };
+    () => {};
 
   /**
    * Callback invoked when a new media track is added to the connection.
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ontrack}
    */
-  public ontrack: RTCPeerConnection["ontrack"] = () => { };
+  public ontrack: RTCPeerConnection["ontrack"] = () => {};
 
   /**
    * Adds a media track to the connection.
@@ -159,6 +158,7 @@ export class Session {
       clearTimeout(timer);
     }
     this.timers = [];
+    this.iceBatcher.close();
     this.stream.close();
     this._closeReason = reason;
     this.pc.close();
@@ -205,7 +205,11 @@ export class Session {
     this.lastIceRestart = 0;
     this.timers = [];
     this._connectionState = "new";
-    this.localCandidates = [];
+    this.iceBatcher = new IceCandidateBatcher(
+      this.logger,
+      100,
+      (c) => this.sendLocalIceCandidates(c),
+    );
     stream.onpayload = (msg) => this.handleMessage(msg);
     stream.onclosed = (reason) => this.close(reason);
 
@@ -305,37 +309,7 @@ export class Session {
     };
 
     this.pc.onicecandidate = ({ candidate }) => {
-      this.logger.debug("onicecandidate", { candidate });
-      if (candidate && candidate.candidate !== "") {
-        this.localCandidates.push(candidate);
-        return;
-      }
-
-      this.logger.debug("ice gathering is finished");
-      const batch: ICECandidate[] = [];
-      for (const candidate of this.localCandidates) {
-        const ice: ICECandidate = {
-          candidate: "",
-          sdpMLineIndex: 0,
-          sdpMid: "",
-        };
-
-        ice.candidate = candidate.candidate;
-        ice.sdpMLineIndex = candidate.sdpMLineIndex ?? undefined;
-        ice.sdpMid = candidate.sdpMid ?? undefined;
-        ice.username = candidate.usernameFragment ?? undefined;
-        batch.push(ice);
-      }
-      this.localCandidates = [];
-
-      this.sendSignal({
-        data: {
-          oneofKind: "iceCandidateBatch",
-          iceCandidateBatch: {
-            candidates: batch,
-          },
-        },
-      });
+      this.iceBatcher.addCandidate(candidate);
     };
 
     this.pc.ondatachannel = (...args) => {
@@ -351,6 +325,32 @@ export class Session {
         this.ontrack(...args);
       }
     };
+  }
+
+  private sendLocalIceCandidates(candidates: RTCIceCandidate[]) {
+    const batch: ICECandidate[] = [];
+    for (const candidate of candidates) {
+      const ice: ICECandidate = {
+        candidate: "",
+        sdpMLineIndex: 0,
+        sdpMid: "",
+      };
+
+      ice.candidate = candidate.candidate;
+      ice.sdpMLineIndex = candidate.sdpMLineIndex ?? undefined;
+      ice.sdpMid = candidate.sdpMid ?? undefined;
+      ice.username = candidate.usernameFragment ?? undefined;
+      batch.push(ice);
+    }
+
+    this.sendSignal({
+      data: {
+        oneofKind: "iceCandidateBatch",
+        iceCandidateBatch: {
+          candidates: batch,
+        },
+      },
+    });
   }
 
   /** internal @private */
@@ -534,5 +534,65 @@ export class Session {
       this.logger.debug(`added ice: ${candidate.candidate}`);
     }
     this.pendingCandidates = [];
+  };
+}
+
+class IceCandidateBatcher {
+  private candidates: RTCIceCandidate[] = [];
+  private timeoutId: NodeJS.Timeout | null = null;
+  private delayMs: number;
+  private logger: Logger;
+  private onIceCandidates: (candidates: RTCIceCandidate[]) => void;
+
+  constructor(
+    logger: Logger,
+    delayMs: number,
+    onIceCandidates: (candidates: RTCIceCandidate[]) => void,
+  ) {
+    this.logger = logger.sub("icebatcher");
+    this.delayMs = delayMs;
+    this.onIceCandidates = onIceCandidates;
+  }
+
+  public addCandidate = (candidate: RTCIceCandidate | null): void => {
+    if (!candidate || candidate.candidate === "") {
+      this.logger.debug(
+        "ice gathering is finished, force flush local candidates",
+      );
+      this.flushCandidates();
+      return;
+    }
+
+    this.logger.debug("onicecandidate", { candidate });
+    this.candidates.push(candidate);
+    if (!this.timeoutId) {
+      // First candidate received, start the timer
+      this.timeoutId = setTimeout(this.flushCandidates, this.delayMs);
+    } else {
+      // Subsequent candidate received, reset the timer
+      clearTimeout(this.timeoutId);
+      this.timeoutId = setTimeout(this.flushCandidates, this.delayMs);
+    }
+  };
+
+  private flushCandidates = (): void => {
+    if (this.candidates.length > 0) {
+      this.onIceCandidates(this.candidates);
+      this.candidates = [];
+    }
+    this.timeoutId = null;
+  };
+
+  public flush = (): void => {
+    if (this.timeoutId) {
+      clearTimeout(this.timeoutId);
+    }
+    this.flushCandidates();
+  };
+
+  public close = (): void => {
+    if (this.timeoutId) {
+      clearTimeout(this.timeoutId);
+    }
   };
 }
