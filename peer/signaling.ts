@@ -194,6 +194,12 @@ export interface Signal {
          */
         iceCandidate: ICECandidate;
     } | {
+        oneofKind: "iceCandidateBatch";
+        /**
+         * @generated from protobuf field: pulsebeam.v1.ICECandidateBatch ice_candidate_batch = 11;
+         */
+        iceCandidateBatch: ICECandidateBatch;
+    } | {
         oneofKind: undefined;
     };
 }
@@ -209,6 +215,15 @@ export interface Sdp {
      * @generated from protobuf field: string sdp = 2;
      */
     sdp: string;
+}
+/**
+ * @generated from protobuf message pulsebeam.v1.ICECandidateBatch
+ */
+export interface ICECandidateBatch {
+    /**
+     * @generated from protobuf field: repeated pulsebeam.v1.ICECandidate candidates = 1;
+     */
+    candidates: ICECandidate[];
 }
 /**
  * @generated from protobuf message pulsebeam.v1.ICECandidate
@@ -467,7 +482,8 @@ class Signal$Type extends MessageType<Signal> {
         super("pulsebeam.v1.Signal", [
             { no: 1, name: "generation_counter", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
             { no: 9, name: "sdp", kind: "message", oneof: "data", T: () => Sdp },
-            { no: 10, name: "ice_candidate", kind: "message", oneof: "data", T: () => ICECandidate }
+            { no: 10, name: "ice_candidate", kind: "message", oneof: "data", T: () => ICECandidate },
+            { no: 11, name: "ice_candidate_batch", kind: "message", oneof: "data", T: () => ICECandidateBatch }
         ]);
     }
 }
@@ -488,6 +504,18 @@ class Sdp$Type extends MessageType<Sdp> {
  * @generated MessageType for protobuf message pulsebeam.v1.Sdp
  */
 export const Sdp = new Sdp$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ICECandidateBatch$Type extends MessageType<ICECandidateBatch> {
+    constructor() {
+        super("pulsebeam.v1.ICECandidateBatch", [
+            { no: 1, name: "candidates", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => ICECandidate }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message pulsebeam.v1.ICECandidateBatch
+ */
+export const ICECandidateBatch = new ICECandidateBatch$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ICECandidate$Type extends MessageType<ICECandidate> {
     constructor() {

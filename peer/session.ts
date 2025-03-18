@@ -7,6 +7,7 @@ import {
 } from "./signaling.ts";
 import { Logger } from "./logger.ts";
 import type { Stream } from "./transport.ts";
+import { asleep } from "./util.ts";
 export type { PeerInfo } from "./signaling.ts";
 
 const ICE_RESTART_MAX_COUNT = 2;
@@ -60,6 +61,7 @@ export class Session {
   private makingOffer: boolean;
   private impolite: boolean;
   private pendingCandidates: RTCIceCandidateInit[];
+  private localCandidates: RTCIceCandidate[];
   private readonly logger: Logger;
   private abort: AbortController;
   private generationCounter: number;
@@ -72,19 +74,19 @@ export class Session {
   /**
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ondatachannel}
    */
-  public ondatachannel: RTCPeerConnection["ondatachannel"] = () => {};
+  public ondatachannel: RTCPeerConnection["ondatachannel"] = () => { };
 
   /**
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/onconnectionstatechange}
    */
   public onconnectionstatechange: RTCPeerConnection["onconnectionstatechange"] =
-    () => {};
+    () => { };
 
   /**
    * Callback invoked when a new media track is added to the connection.
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ontrack}
    */
-  public ontrack: RTCPeerConnection["ontrack"] = () => {};
+  public ontrack: RTCPeerConnection["ontrack"] = () => { };
 
   /**
    * Adds a media track to the connection.
@@ -203,6 +205,7 @@ export class Session {
     this.lastIceRestart = 0;
     this.timers = [];
     this._connectionState = "new";
+    this.localCandidates = [];
     stream.onpayload = (msg) => this.handleMessage(msg);
     stream.onclosed = (reason) => this.close(reason);
 
@@ -303,25 +306,34 @@ export class Session {
 
     this.pc.onicecandidate = ({ candidate }) => {
       this.logger.debug("onicecandidate", { candidate });
-      const ice: ICECandidate = {
-        candidate: "",
-        sdpMLineIndex: 0,
-        sdpMid: "",
-      };
-      if (!candidate || candidate.candidate === "") {
-        this.logger.debug("ice gathering is finished");
+      if (candidate && candidate.candidate !== "") {
+        this.localCandidates.push(candidate);
         return;
       }
 
-      ice.candidate = candidate.candidate;
-      ice.sdpMLineIndex = candidate.sdpMLineIndex ?? undefined;
-      ice.sdpMid = candidate.sdpMid ?? undefined;
-      ice.username = candidate.usernameFragment ?? undefined;
+      this.logger.debug("ice gathering is finished");
+      const batch: ICECandidate[] = [];
+      for (const candidate of this.localCandidates) {
+        const ice: ICECandidate = {
+          candidate: "",
+          sdpMLineIndex: 0,
+          sdpMid: "",
+        };
+
+        ice.candidate = candidate.candidate;
+        ice.sdpMLineIndex = candidate.sdpMLineIndex ?? undefined;
+        ice.sdpMid = candidate.sdpMid ?? undefined;
+        ice.username = candidate.usernameFragment ?? undefined;
+        batch.push(ice);
+      }
+      this.localCandidates = [];
 
       this.sendSignal({
         data: {
-          oneofKind: "iceCandidate",
-          iceCandidate: ice,
+          oneofKind: "iceCandidateBatch",
+          iceCandidateBatch: {
+            candidates: batch,
+          },
         },
       });
     };
@@ -408,6 +420,7 @@ export class Session {
       return;
     }
 
+    this.addCandidates(signal);
     const msg = signal.data;
     if (signal.generationCounter > this.generationCounter) {
       // Sync generationCounter so this peer can reset its state machine
@@ -419,24 +432,14 @@ export class Session {
       });
 
       if (msg.oneofKind === "iceCandidate") {
-        const ice = toIceCandidate(msg.iceCandidate);
-        this.pendingCandidates.push(ice);
         this.logger.warn(
           "expecting an offer but got ice candidates during an ICE restart, adding to pending.",
-          { ice, msg },
+          { msg },
         );
         return;
       }
 
       this.generationCounter = signal.generationCounter;
-    }
-
-    if (msg.oneofKind === "iceCandidate") {
-      const ice = toIceCandidate(msg.iceCandidate);
-      this.pendingCandidates.push(ice);
-      this.checkPendingCandidates();
-
-      return;
     }
 
     if (msg.oneofKind != "sdp") {
@@ -481,6 +484,20 @@ export class Session {
     this.checkPendingCandidates();
     return;
   };
+
+  private addCandidates(msg: Signal) {
+    const candidates = [];
+    if (msg.data.oneofKind === "iceCandidate") {
+      candidates.push(msg.data.iceCandidate);
+    } else if (msg.data.oneofKind === "iceCandidateBatch") {
+      candidates.push(...msg.data.iceCandidateBatch.candidates);
+    } else {
+      return;
+    }
+
+    this.pendingCandidates.push(...candidates.map((v) => toIceCandidate(v)));
+    this.checkPendingCandidates();
+  }
 
   private checkPendingCandidates = () => {
     const safeStates: RTCSignalingState[] = [
