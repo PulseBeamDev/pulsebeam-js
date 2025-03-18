@@ -76,6 +76,7 @@ export function App() {
           <br/> Loading: {peer.loading ? "true" : "false"}
           <br/> NumSess: {Object.entries(peer.sessions).length}
           <br/> RemoteStream: {Object.entries(peer.sessions).map(([_, s]) => s.remoteStream+", ")}
+          <br/> PeerRef: {""+peer.ref}
           <br/> {(!peer.peerId || peer.peerId !== user?.uid)&&"somethings amiss"} <br/>
         </header>
         {/* <canvas ref={canvasRef} width={WIDTH} height={HEIGHT}></canvas> */}

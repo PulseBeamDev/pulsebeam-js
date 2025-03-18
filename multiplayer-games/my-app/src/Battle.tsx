@@ -5,8 +5,8 @@ import { Stats, usePeerStore } from './peer';
 const DEFAULT_CODE = `<div id="user-shape"></div>
 <style>
     #user-shape {
-      width: 100px;
-      height: 100px;
+      width: 20px;
+      height: 20px;
       background: #dd6b4d;    
     }
 </style>`
@@ -67,7 +67,7 @@ export function Battle(props: {canvasRef: React.RefObject<HTMLCanvasElement | nu
         <button
           style={{background:"white", color: "black"}}
           data-testid="btn-endBattle"
-          onClick={() => peer.stop()}
+          onClick={() => peer.disconnect()}
         >
           End Battle
         </button>

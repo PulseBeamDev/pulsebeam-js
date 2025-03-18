@@ -27,6 +27,7 @@ export interface PeerState {
   setLocalStream: (_: MediaStream) => void;
   start: (peerId: string, token: string) => Promise<void>;
   stop: () => void;
+  disconnect: () => void;
   connect: (otherPeerId: string) => void;
   peerId: string;
   handleStatsMessage: (peerId: string, stats: Stats) => void;
@@ -39,17 +40,9 @@ export const usePeerStore = create<PeerState>((set, get) => ({
   loading: false,
   localStream: null,
   peerId: "",
+  // Current setup of Peer assumes that setLocalStream is called before connect
   setLocalStream: (localStream: MediaStream) => {
     set({ localStream });
-    // send to other peers.
-    const sessions = Object.entries(get().sessions)
-    sessions.map(([_, s])=>{
-      if (localStream) {
-        localStream.getTracks().forEach((track) =>
-          s.sess.addTrack(track, localStream)
-        );
-      }
-    })
   },
   start: async (peerId, token) => {
     if (!token) return;
@@ -141,6 +134,12 @@ export const usePeerStore = create<PeerState>((set, get) => ({
     }
 
     set({ loading: false, peerId });
+  },
+  disconnect: () => {
+    const sessions = Object.entries(get().sessions);
+    sessions.map(([_, session])=>{
+      session.sess.close(`User clicked 'End Battle'`)
+    })
   },
   stop: () => {
     get().ref?.close();
