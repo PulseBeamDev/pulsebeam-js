@@ -84,10 +84,10 @@ export function App() {
           {" "}
           <br />
         </header>
-        {/* <canvas ref={canvasRef} width={WIDTH} height={HEIGHT}></canvas> */}
         <canvas
-          hidden={true}
-          style={{ display: "none" }}
+          hidden={false}
+          style={{ width: WIDTH, height: HEIGHT }}
+          // style={{ display: "none" }}
           ref={canvasRef}
           width={WIDTH}
           height={HEIGHT}

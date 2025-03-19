@@ -2,14 +2,24 @@ import { useEffect, useRef, useState } from "react";
 import { toSvg } from "html-to-image";
 import { Stats, usePeerStore } from "./peer";
 
-const DEFAULT_CODE = `<div id="user-shape"></div>
-<style>
-    #user-shape {
-      width: 20px;
-      height: 20px;
-      background: #dd6b4d;    
-    }
-</style>`;
+const DEFAULT_CODE = `
+<html>
+  <head>
+    <style>
+      body {margin: 0;}
+      #user-shape {
+        width: 20px;
+        height: 20px;
+        background: #dd6b4d;    
+      }
+
+    </style>
+  </head>
+  <body>
+    <div id="user-shape"></div>
+  </body>
+</html>
+`;
 
 export const WIDTH = 400;
 export const HEIGHT = 300;
@@ -62,12 +72,23 @@ export function Battle(
       props.canvasRef.current,
       exportRef.current.contentDocument!.body,
     );
+    // await drawCanvas2(props.canvasRef.current, exportRef.current);
   }
 
   useEffect(() => {
     updateScore();
     updateCanvas();
   }, [userCode]);
+
+  // issue with renderer not rendering on connection
+  // setInterval(() => {
+  //   updateCanvas();
+  // }, 1000);
+
+  // useEffect(() => {
+  //   updateScore();
+  //   updateCanvas();
+  // }, [userCode]);
 
   return (
     <div className="app">
@@ -108,15 +129,27 @@ export function Battle(
           <div className="target-container" style={{ marginTop: "1rem" }}>
             <div className="target-header">Design</div>
             <div className="target-display">
-              {/* <div */}
-              {/*   ref={exportRef} */}
-              {/*   className="result-frame" */}
-              {/*   dangerouslySetInnerHTML={{ __html: userCode }} */}
-              {/* /> */}
               <iframe
+                id="testIframe"
                 ref={exportRef}
                 className="result-frame"
                 srcDoc={userCode}
+                style={{
+                  "background": "white",
+                  "width": WIDTH,
+                  "height": HEIGHT,
+                  "border": "0px",
+                  "outline": "0px",
+                  // @ts-ignore
+                  "pointer-events": "none"
+                }}
+                sandbox="allow-same-origin"
+                title="Preview"
+                onClick={(ev) => {ev.preventDefault();}}
+                onLoad={()=>{
+                  updateScore();
+                  updateCanvas();
+                }}
               />
             </div>
           </div>
@@ -143,7 +176,7 @@ export function Battle(
         <section>
           <h2 className="target-title">Target #1: Simple Circle</h2>
           <div className="target-container">
-            <div className="target-header">Target Design</div>
+            <div className="target-header">Target Design - Color: #fd4c56</div>
             <div className="target-display">
               <div className="target-frame">
                 <div className="target-design"></div>
@@ -249,14 +282,18 @@ function createImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
+// Writes to passed in canvas element
 // Adapted from https://github.com/bubkoo/html-to-image/blob/master/src/index.ts
 async function drawCanvas<T extends HTMLElement>(
   canvas: HTMLCanvasElement,
   node: T,
-): Promise<HTMLCanvasElement> {
-  const svg = await toSvg(node);
+): Promise<void> {
+  const toSvgErr = (err: string | Event) =>{console.log(`Error with toSvg: ${err}`)}
+  // not correct for iframe
+  const svg = await toSvg(node, {width: WIDTH, height: HEIGHT, canvasHeight: HEIGHT, canvasWidth: WIDTH, pixelRatio: .5, skipAutoScale: true, onImageErrorHandler: toSvgErr});
+  // console.log(svg)
   const img = await createImage(svg);
-
+  // console.log(img)
   const context = canvas.getContext("2d")!;
 
   canvas.width = WIDTH;
@@ -266,6 +303,4 @@ async function drawCanvas<T extends HTMLElement>(
   canvas.style.height = `${HEIGHT}`;
 
   context.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-  return canvas;
 }
