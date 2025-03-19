@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { toCanvas } from "html-to-image";
+import { toSvg } from "html-to-image";
 import { Stats, usePeerStore } from "./peer";
 
 const DEFAULT_CODE = `<div id="user-shape"></div>
@@ -22,7 +22,7 @@ export function Battle(
   const [userCode, setUserCode] = useState(DEFAULT_CODE);
   const [matchPercentage, setMatchPercentage] = useState(0);
   const [charCount, setCharCount] = useState(userCode.length);
-  const exportRef = useRef<HTMLIFrameElement | null>(null);
+  const exportRef = useRef<HTMLDivElement | null>(null);
 
   const updateScore = async () => {
     // Update character count
@@ -60,6 +60,11 @@ export function Battle(
     if (!props.canvasRef.current) return;
     await drawCanvas(props.canvasRef.current, exportRef.current);
   }
+
+  // issue with renderer not rendering on connection
+  setInterval(() => {
+    updateCanvas();
+  }, 1000);
 
   useEffect(() => {
     updateScore();
@@ -110,11 +115,6 @@ export function Battle(
                 className="result-frame"
                 dangerouslySetInnerHTML={{ __html: userCode }}
               />
-              {/* <iframe */}
-              {/*   ref={exportRef} */}
-              {/*   className="result-frame" */}
-              {/*   srcDoc={userCode} */}
-              {/* /> */}
             </div>
           </div>
           <RenderStats
@@ -230,12 +230,30 @@ export function RenderStats(props: Stats) {
   );
 }
 
+// From https://github.com/bubkoo/html-to-image/blob/master/src/util.ts
+function createImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      img.decode().then(() => {
+        requestAnimationFrame(() => resolve(img));
+      });
+    };
+    img.onerror = reject;
+    img.crossOrigin = "anonymous";
+    img.decoding = "async";
+    img.src = url;
+  });
+}
+
 // Adapted from https://github.com/bubkoo/html-to-image/blob/master/src/index.ts
 async function drawCanvas<T extends HTMLElement>(
   canvas: HTMLCanvasElement,
   node: T,
 ): Promise<HTMLCanvasElement> {
-  const source = await toCanvas(node);
+  const svg = await toSvg(node);
+  const img = await createImage(svg);
+
   const context = canvas.getContext("2d")!;
 
   canvas.width = WIDTH;
@@ -244,7 +262,7 @@ async function drawCanvas<T extends HTMLElement>(
   canvas.style.width = `${WIDTH}`;
   canvas.style.height = `${HEIGHT}`;
 
-  context.drawImage(source, 0, 0, canvas.width, canvas.height);
+  context.drawImage(img, 0, 0, canvas.width, canvas.height);
 
   return canvas;
 }
