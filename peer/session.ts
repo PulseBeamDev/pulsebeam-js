@@ -8,7 +8,7 @@ import { Logger } from "./logger.ts";
 import type { Stream } from "./transport.ts";
 export type { PeerInfo } from "./signaling.ts";
 
-const ICE_RESTART_MAX_COUNT = 2;
+const ICE_RESTART_MAX_COUNT = 1;
 const ICE_RESTART_DEBOUNCE_DELAY_MS = 5000;
 
 function toIceCandidate(ice: ICECandidate): RTCIceCandidateInit {
@@ -72,19 +72,19 @@ export class Session {
   /**
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ondatachannel}
    */
-  public ondatachannel: RTCPeerConnection["ondatachannel"] = () => { };
+  public ondatachannel: RTCPeerConnection["ondatachannel"] = () => {};
 
   /**
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/onconnectionstatechange}
    */
   public onconnectionstatechange: RTCPeerConnection["onconnectionstatechange"] =
-    () => { };
+    () => {};
 
   /**
    * Callback invoked when a new media track is added to the connection.
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ontrack}
    */
-  public ontrack: RTCPeerConnection["ontrack"] = () => { };
+  public ontrack: RTCPeerConnection["ontrack"] = () => {};
 
   /**
    * Adds a media track to the connection.
