@@ -1,10 +1,10 @@
-import './App.css'
-import { useState, useEffect, useRef } from 'react'
-import { initializeApp } from 'firebase/app';
-import { useAuthState } from 'react-firebase-hooks/auth';
+import "./App.css";
+import { useEffect, useRef, useState } from "react";
+import { initializeApp } from "firebase/app";
+import { useAuthState } from "react-firebase-hooks/auth";
 import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { usePeerStore } from "./peer";
-import { Battle, WIDTH, HEIGHT } from './Battle';
+import { Battle, HEIGHT, WIDTH } from "./Battle";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -13,7 +13,7 @@ const firebaseConfig = {
   projectId: "cssbattles-demo",
   storageBucket: "cssbattles-demo.firebasestorage.app",
   messagingSenderId: "926315693165",
-  appId: "1:926315693165:web:c66e12077e3cca17d42b64"
+  appId: "1:926315693165:web:da03633bccaa3326d42b64",
 };
 
 const app = initializeApp(firebaseConfig);
@@ -32,73 +32,89 @@ export function App() {
     // Only proceed if canvas exists and stream hasn't been captured yet
     if (canvas && !streamCapturedRef.current) {
       try {
-        console.log("Setting Local Stream to canvas")
+        console.log("Setting Local Stream to canvas");
         // 15 is normal FPS for screen sharing (24-30 for video call)
-        peer.setLocalStream(canvas.captureStream(15))
+        peer.setLocalStream(canvas.captureStream(15));
         streamCapturedRef.current = true;
       } catch (error) {
-        console.error('Error capturing stream:', error);
+        console.error("Error capturing stream:", error);
       }
     }
     // Cleanup function
     return () => {
       if (mediaStream) {
         // Stop all tracks when component unmounts
-        mediaStream.getTracks().forEach(track => track.stop());
-        console.log('Stream tracks stopped');
+        mediaStream.getTracks().forEach((track) => track.stop());
+        console.log("Stream tracks stopped");
       }
     };
   }, []);
 
-  useEffect(()=>{
+  useEffect(() => {
     if (!user) {
       return;
     }
     (async () => {
       // Get current firebase auth token
-      const fToken = await user.getIdToken()
+      const fToken = await user.getIdToken();
       // Use firebase auth token to call firebase fn to get PulseBeam token
       // Read about PulseBeam tokens -> https://pulsebeam.dev/docs/guides/token/
-      const token = await getToken(fToken)
+      const token = await getToken(fToken);
       // Start peer to be able to recieve and/or create connections
-      peer.start(user.uid, token)
-    })()
-  }, [user])
+      peer.start(user.uid, token);
+    })();
+  }, [user]);
 
-  return <div>
-    <div style={{ visibility: user ? 'hidden': 'visible' }}>
-      <SignIn/>
-    </div>
-    <div style={{ visibility: user ? 'visible': 'hidden' }} className='app'>
-        <header className="header" style={{"gap": "2rem"}}>
+  return (
+    <div>
+      <div style={{ visibility: user ? "hidden" : "visible" }}>
+        <SignIn />
+      </div>
+      <div style={{ visibility: user ? "visible" : "hidden" }} className="app">
+        <header className="header" style={{ "gap": "2rem" }}>
           <SignOut />
-          <br/> User: {user?.uid}
-          <br/> Loading: {peer.loading ? "true" : "false"}
-          <br/> NumSess: {Object.entries(peer.sessions).length}
-          <br/> RemoteStream: {Object.entries(peer.sessions).map(([_, s]) => s.remoteStream+", ")}
-          <br/> PeerRef: {""+peer.ref}
-          <br/> {(!peer.peerId || peer.peerId !== user?.uid)&&"somethings amiss"} <br/>
+          <br /> User: {user?.uid}
+          <br /> Loading: {peer.loading ? "true" : "false"}
+          <br /> NumSess: {Object.entries(peer.sessions).length}
+          <br /> RemoteStream:{" "}
+          {Object.entries(peer.sessions).map(([_, s]) => s.remoteStream + ", ")}
+          <br /> PeerRef: {"" + peer.ref}
+          <br />{" "}
+          {(!peer.peerId || peer.peerId !== user?.uid) && "somethings amiss"}
+          {" "}
+          <br />
         </header>
         {/* <canvas ref={canvasRef} width={WIDTH} height={HEIGHT}></canvas> */}
-        <canvas hidden={true} style={{ display: 'none' }} ref={canvasRef} width={WIDTH} height={HEIGHT}></canvas>
-        {(!peer.ref) ? "Loading..." : <SessionPage canvasRef={canvasRef}/>}
+        <canvas
+          hidden={true}
+          style={{ display: "none" }}
+          ref={canvasRef}
+          width={WIDTH}
+          height={HEIGHT}
+        >
+        </canvas>
+        {(!peer.ref) ? "Loading..." : <SessionPage canvasRef={canvasRef} />}
       </div>
-  </div>
+    </div>
+  );
 }
 
-function SessionPage(props: {canvasRef: React.RefObject<HTMLCanvasElement | null>}) {
+function SessionPage(
+  props: { canvasRef: React.RefObject<HTMLCanvasElement | null> },
+) {
   const peer = usePeerStore();
   const remoteStreams = Object.entries(peer.sessions);
-  return (<div>
-    {remoteStreams.length === 0
-      ? 
-        <div className="s12 l6 no-padding">
-          <ConnectForm />
-        </div>
-      : 
-        <Battle canvasRef={props.canvasRef}/>
-    }
-  </div>);
+  return (
+    <div>
+      {remoteStreams.length === 0
+        ? (
+          <div className="s12 l6 no-padding">
+            <ConnectForm />
+          </div>
+        )
+        : <Battle canvasRef={props.canvasRef} />}
+    </div>
+  );
 }
 
 function ConnectForm() {
@@ -118,7 +134,7 @@ function ConnectForm() {
         <h3>Who to connect to?</h3>
         <div className="field border responsive">
           <input
-            style={{"padding": "1rem", "margin": "1rem"}}
+            style={{ "padding": "1rem", "margin": "1rem" }}
             size={40}
             type="text"
             placeholder="Other Name"
@@ -128,7 +144,7 @@ function ConnectForm() {
           />
         </div>
         <button
-          style={{background:"white", color: "black"}}
+          style={{ background: "white", color: "black" }}
           type="submit"
           data-testid="btn-connect"
           disabled={peer.loading || otherPeerId.length === 0}
@@ -143,36 +159,52 @@ function ConnectForm() {
 }
 
 export const getToken = async (fToken: string) => {
-      const resp = await fetch(
-        "https://gettoken-kqiqetod2a-uc.a.run.app",
-        // "http://localhost:5000/cssbattles-demo/us-central1/getToken/",
-        {
-          method: "POST",
-          headers: {
-            'Authorization': 'Bearer '+ fToken
-          }
-        },
-      );
-      const jsonToken = await resp.text();
-      
-      const token = JSON.parse(jsonToken).token
-      if (token !== "") return token
-      throw(new Error("fatal, error retrieving token, see logs"))
-}
+  const resp = await fetch(
+    // TODO: replace this URL after firebase function is deployed
+    // "https://getToken-kqiqetod2a-uc.a.run.app"
+    "http://localhost:5000/cssbattles-demo/us-central1/getToken",
+    {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + fToken,
+      },
+    },
+  );
+  const jsonToken = await resp.text();
+
+  const token = JSON.parse(jsonToken).token;
+  if (token !== "") return token;
+  throw (new Error("fatal, error retrieving token, see logs"));
+};
 
 export function SignIn() {
   const auth = getAuth();
   const signInWithGoogle = () => {
     const provider = new GoogleAuthProvider();
     signInWithPopup(auth, provider);
-  }
-  return <button style={{background:"white", color: "black"}} onClick={signInWithGoogle}>Sign in with Google</button>
+  };
+  return (
+    <button
+      style={{ background: "white", color: "black" }}
+      onClick={signInWithGoogle}
+    >
+      Sign in with Google
+    </button>
+  );
 }
 
 export function SignOut() {
   const auth = getAuth();
-  if (!auth.currentUser) return <></>
-  return <button style={{background:"white", color: "black"}} onClick={() => auth.signOut()}>Sign Out</button>
+  if (!auth.currentUser) return <></>;
+  return (
+    <button
+      style={{ background: "white", color: "black" }}
+      onClick={() => auth.signOut()}
+    >
+      Sign Out
+    </button>
+  );
 }
 
 export default App;
+

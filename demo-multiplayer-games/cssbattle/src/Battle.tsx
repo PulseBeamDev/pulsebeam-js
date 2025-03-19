@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from "react";
 import { toSvg } from "html-to-image";
-import { Stats, usePeerStore } from './peer';
+import { Stats, usePeerStore } from "./peer";
 
 const DEFAULT_CODE = `<div id="user-shape"></div>
 <style>
@@ -9,12 +9,14 @@ const DEFAULT_CODE = `<div id="user-shape"></div>
       height: 20px;
       background: #dd6b4d;    
     }
-</style>`
+</style>`;
 
 export const WIDTH = 400;
 export const HEIGHT = 300;
 
-export function Battle(props: {canvasRef: React.RefObject<HTMLCanvasElement | null>}) {
+export function Battle(
+  props: { canvasRef: React.RefObject<HTMLCanvasElement | null> },
+) {
   const peer = usePeerStore();
   const remoteStreams = Object.entries(peer.sessions);
   const [userCode, setUserCode] = useState(DEFAULT_CODE);
@@ -25,72 +27,56 @@ export function Battle(props: {canvasRef: React.RefObject<HTMLCanvasElement | nu
   const updateScore = async () => {
     // Update character count
     setCharCount(userCode.length);
-    
+
     // Calculate match percentage (simplified version)
     const userCss = userCode.toLowerCase();
     let score = 0;
 
-    if (userCss.includes('width: 100px') || userCss.includes('width:100px')) score += 25;
-    if (userCss.includes('height: 100px') || userCss.includes('height:100px')) score += 25;
-    if (userCss.includes('border-radius: 50') || userCss.includes('border-radius:50')) score += 25;
-    if (userCss.includes('#fd4c56') || userCss.includes('var(--accent)')) score += 25;
-    
+    if (userCss.includes("width: 100px") || userCss.includes("width:100px")) {
+      score += 25;
+    }
+    if (userCss.includes("height: 100px") || userCss.includes("height:100px")) {
+      score += 25;
+    }
+    if (
+      userCss.includes("border-radius: 50") ||
+      userCss.includes("border-radius:50")
+    ) score += 25;
+    if (userCss.includes("#fd4c56") || userCss.includes("var(--accent)")) {
+      score += 25;
+    }
+
     setMatchPercentage(score);
 
     // Send updates
     peer.broadcastStats({
       charCount: userCode.length,
-      matchPercentage: score
+      matchPercentage: score,
     });
   };
 
-  async function updateCanvas(){
+  async function updateCanvas() {
     if (!exportRef.current) return;
     if (!props.canvasRef.current) return;
-    await drawCanvas(props.canvasRef.current, exportRef.current)
+    await drawCanvas(props.canvasRef.current, exportRef.current);
   }
 
   // issue with renderer not rendering on connection
-  // setInterval(()=>{
-  //   // Send updates
-  //   // So weird... as soon as I do this something breaks alot, there are no more updates cpu -> infinity...
-  //   // peer.broadcastStats({
-  //   //   charCount: charCount,
-  //   //   matchPercentage: matchPercentage
-  //   // });
-  // }, 1000)
-  useEffect(()=>{
-    let count = 0;
-    const maxCount = 20;
-    const intervalTime = 500; // 0.5 seconds
+  setInterval(() => {
+    updateCanvas();
+  }, 1000);
 
-    const interval = setInterval(() => {
-        console.log(`Execution #${count + 1}`);
-        updateCanvas()
-        // incorrect state sometimes...
-        peer.broadcastStats({
-          charCount: charCount,
-          matchPercentage: matchPercentage
-        });
-        count++;
-        if (count >= maxCount) {
-            clearInterval(interval);
-            console.log("Done executing 20 times.");
-        }
-    }, 
-    intervalTime);
-  }, [])
-  useEffect(()=>{
-    updateScore()
-    updateCanvas()
-  }, [userCode])
+  useEffect(() => {
+    updateScore();
+    updateCanvas();
+  }, [userCode]);
 
   return (
     <div className="app">
       <header className="header">
         <div className="logo">CSS Battle Clone</div>
         <button
-          style={{background:"white", color: "black"}}
+          style={{ background: "white", color: "black" }}
           data-testid="btn-endBattle"
           onClick={() => peer.disconnect()}
         >
@@ -105,33 +91,40 @@ export function Battle(props: {canvasRef: React.RefObject<HTMLCanvasElement | nu
           Source Code
         </a>
       </header>
-      
+
       <main>
         <section className="editor-section">
           <h2>Editor</h2>
-          <textarea 
-            className="editor" 
+          <textarea
+            className="editor"
             value={userCode}
             onChange={(e) => setUserCode(e.target.value)}
             placeholder="Write your CSS here..."
           />
         </section>
-        
+
         <section className="target-section">
-          <h2 className="target-title">Your Result{remoteStreams.length>1 && 's'}</h2>
-          <div className="target-container" style={{ marginTop: '1rem' }}>
+          <h2 className="target-title">
+            Your Result{remoteStreams.length > 1 && "s"}
+          </h2>
+          <div className="target-container" style={{ marginTop: "1rem" }}>
             <div className="target-header">Design</div>
             <div className="target-display">
-              <div 
+              <div
                 ref={exportRef}
-                className="result-frame" 
+                className="result-frame"
                 dangerouslySetInnerHTML={{ __html: userCode }}
               />
             </div>
           </div>
-          <RenderStats matchPercentage={matchPercentage} charCount={charCount} />
+          <RenderStats
+            matchPercentage={matchPercentage}
+            charCount={charCount}
+          />
 
-          <h2 className="target-title">Remote Player{remoteStreams.length>1 && 's'}</h2>
+          <h2 className="target-title">
+            Remote Player{remoteStreams.length > 1 && "s"}
+          </h2>
           {remoteStreams.map(([_, s]) => (
             <PlayerContainer
               key={s.key}
@@ -181,37 +174,49 @@ function PlayerContainer(props: PlayerContainerProps) {
     <>
       <div className="target-container">
         <div className="target-header">User: {props.title}</div>
-          <div className="target-display">
-            <article className={props.className}>
-              {(props.stream === null || props.loading) && (
-                <progress className="absolute top left circle"></progress>
-              )}
-              <video
-                data-testid={props.title}
-                className={props.loading ? "responsive large-opacity" : "responsive"}
-                ref={videoRef}
-                autoPlay
-                width={WIDTH}
-                height={HEIGHT}
-              />
+        <div className="target-display">
+          <article className={props.className}>
+            {(props.stream === null || props.loading) && (
+              <progress className="absolute top left circle"></progress>
+            )}
+            <video
+              data-testid={props.title}
+              className={props.loading
+                ? "responsive large-opacity"
+                : "responsive"}
+              ref={videoRef}
+              autoPlay
+              width={WIDTH}
+              height={HEIGHT}
+            />
           </article>
         </div>
       </div>
-      {props.stats ? <RenderStats charCount={props.stats.charCount} matchPercentage={props.stats.matchPercentage}/> : <></>}
+      {props.stats
+        ? (
+          <RenderStats
+            charCount={props.stats.charCount}
+            matchPercentage={props.stats.matchPercentage}
+          />
+        )
+        : <></>}
     </>
   );
 }
 
-export function RenderStats(props: Stats){
-  return <div className="stats">
+export function RenderStats(props: Stats) {
+  return (
+    <div className="stats">
       <div className="stats-row">
         <span>Match Percentage:</span>
-        <span 
+        <span
           className="match-percentage"
-          style={{ 
-            color: props.matchPercentage >= 90 ? 'var(--success)' : 
-                    props.matchPercentage >= 50 ? '#ffc107' : 
-                    'var(--accent)' 
+          style={{
+            color: props.matchPercentage >= 90
+              ? "var(--success)"
+              : props.matchPercentage >= 50
+              ? "#ffc107"
+              : "var(--accent)",
           }}
         >
           {props.matchPercentage}%
@@ -222,22 +227,23 @@ export function RenderStats(props: Stats){
         <span className="char-count">{props.charCount}</span>
       </div>
     </div>
+  );
 }
 
 // From https://github.com/bubkoo/html-to-image/blob/master/src/util.ts
 function createImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
-    const img = new Image()
+    const img = new Image();
     img.onload = () => {
       img.decode().then(() => {
-        requestAnimationFrame(() => resolve(img))
-      })
-    }
-    img.onerror = reject
-    img.crossOrigin = 'anonymous'
-    img.decoding = 'async'
-    img.src = url
-  })
+        requestAnimationFrame(() => resolve(img));
+      });
+    };
+    img.onerror = reject;
+    img.crossOrigin = "anonymous";
+    img.decoding = "async";
+    img.src = url;
+  });
 }
 
 // Adapted from https://github.com/bubkoo/html-to-image/blob/master/src/index.ts
@@ -245,18 +251,19 @@ async function drawCanvas<T extends HTMLElement>(
   canvas: HTMLCanvasElement,
   node: T,
 ): Promise<HTMLCanvasElement> {
-  const svg = await toSvg(node)
-  const img = await createImage(svg)
+  const svg = await toSvg(node);
+  const img = await createImage(svg);
 
-  const context = canvas.getContext('2d')!
+  const context = canvas.getContext("2d")!;
 
-  canvas.width = WIDTH
-  canvas.height = HEIGHT
+  canvas.width = WIDTH;
+  canvas.height = HEIGHT;
 
-  canvas.style.width = `${WIDTH}`
-  canvas.style.height = `${HEIGHT}`
+  canvas.style.width = `${WIDTH}`;
+  canvas.style.height = `${HEIGHT}`;
 
-  context.drawImage(img, 0, 0, canvas.width, canvas.height)
+  context.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-  return canvas
+  return canvas;
 }
+
