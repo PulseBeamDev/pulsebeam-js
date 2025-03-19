@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { toSvg } from "html-to-image";
 import { Stats, usePeerStore } from "./peer";
 
+// html-to-image default impl. with opts passed skips the html body, so there
+// is no background rendered on canvas w/out background: white set here
 const DEFAULT_CODE = `
 <html>
   <head>
     <style>
-      body {margin: 0;}
+      body {margin: 0;background:white;}
       #user-shape {
         width: 20px;
         height: 20px;
@@ -70,9 +72,14 @@ export function Battle(
     if (!props.canvasRef.current) return;
     await drawCanvas(
       props.canvasRef.current,
+      // We should theoretically just pass the iframe (exportRef.current)
+      // buut there is a bug in their implementation where there is dom
+      // duplication in rendered html-to-image, where elements in iframe
+      // are rendered twice, this is a workaround to have iframe children
+      // rendered once
+      // see PR https://github.com/bubkoo/html-to-image/pull/434
       exportRef.current.contentDocument!.body,
     );
-    // await drawCanvas2(props.canvasRef.current, exportRef.current);
   }
 
   useEffect(() => {
@@ -140,8 +147,6 @@ export function Battle(
                   "height": HEIGHT,
                   "border": "0px",
                   "outline": "0px",
-                  // @ts-ignore
-                  "pointer-events": "none"
                 }}
                 sandbox="allow-same-origin"
                 title="Preview"
@@ -215,7 +220,7 @@ function PlayerContainer(props: PlayerContainerProps) {
             {(props.stream === null || props.loading) && (
               <progress className="absolute top left circle"></progress>
             )}
-            <video
+            <video disablePictureInPicture
               data-testid={props.title}
               className={props.loading
                 ? "responsive large-opacity"
