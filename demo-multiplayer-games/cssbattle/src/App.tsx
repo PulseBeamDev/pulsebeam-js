@@ -158,7 +158,7 @@ function ConnectForm() {
   );
 }
 
-export const getToken = async (fToken: string) => {
+const getToken = async (fToken: string) => {
   const resp = await fetch(
     // TODO: replace this URL after firebase function is deployed
     // "https://getToken-kqiqetod2a-uc.a.run.app"
@@ -177,7 +177,7 @@ export const getToken = async (fToken: string) => {
   throw (new Error("fatal, error retrieving token, see logs"));
 };
 
-export function SignIn() {
+function SignIn() {
   const auth = getAuth();
   const signInWithGoogle = () => {
     const provider = new GoogleAuthProvider();
@@ -193,13 +193,16 @@ export function SignIn() {
   );
 }
 
-export function SignOut() {
-  const auth = getAuth();
-  if (!auth.currentUser) return <></>;
+function SignOut() {
   return (
     <button
       style={{ background: "white", color: "black" }}
-      onClick={() => auth.signOut()}
+      onClick={() => {
+        const auth = getAuth();
+        auth.signOut()
+        const peer = usePeerStore();
+        peer.stop();
+      }}
     >
       Sign Out
     </button>
