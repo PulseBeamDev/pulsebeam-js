@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@pulsebeam/peer": "^0.0.20",
+    "@pulsebeam/peer": "^0.0.21",
     "firebase": "^11.4.0",
     "html-to-image": "^1.11.13",
     "react": "^19.0.0",
