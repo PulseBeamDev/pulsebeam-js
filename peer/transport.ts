@@ -1,9 +1,9 @@
 import type {
-  Ack,
   Message,
   MessageHeader,
   MessagePayload,
   PeerInfo,
+  Signal,
 } from "./signaling.ts";
 import { ISignalingClient } from "./signaling.client.ts";
 import type { Logger } from "./logger.ts";
@@ -13,9 +13,6 @@ import { RpcOptions } from "@protobuf-ts/runtime-rpc";
 const POLL_TIMEOUT_MS = 900000;
 const POLL_RETRY_BASE_DELAY_MS = 50;
 const POLL_RETRY_MAX_DELAY_MS = 1000;
-const MAX_RELIABLE_RETRY_COUNT = 5;
-const STREAM_GC_DELAY_MS = 10_000; // just enough to avoid collision and quick enough to reuse connection
-const STREAM_GC_INTERVAL_MS = 1_000;
 
 export enum ReservedConnId {
   Discovery = 0,
@@ -46,7 +43,7 @@ class Queue {
   private unreliable: Message[];
   private processing: boolean;
   private readonly logger: Logger;
-  public onmsg = async (_: Message) => {};
+  public onmsg = async (_: Message) => { };
 
   constructor(logger: Logger) {
     this.logger = logger.sub("queue");
@@ -118,8 +115,8 @@ export class Transport {
   public readonly asleep: typeof defaultAsleep;
   private readonly randUint32: typeof defaultRandUint32;
   private readonly isRecoverable: typeof defaultIsRecoverable;
-  public onstream = (_: Stream) => {};
-  public onclosed = (_reason: string) => {};
+  public onstream = (_: Stream) => { };
+  public onclosed = (_reason: string) => { };
 
   constructor(
     private readonly client: ISignalingClient,
@@ -142,23 +139,6 @@ export class Transport {
   }
 
   async listen() {
-    await Promise.all([
-      this.pollLoop(),
-      this.gcLoop(),
-    ]);
-  }
-
-  async gcLoop() {
-    while (!this.abort.signal.aborted) {
-      // use cooldown period to fully close. Otherwise, there's a chance that the other peer is
-      // still sending some messages. In which case, we need to still ignore for some time until completely quiet.
-      this.streams = this.streams.filter((s) => !s.isClosed());
-      await asleep(STREAM_GC_INTERVAL_MS, this.abort.signal);
-    }
-    this.logger.debug("gc loop is closed");
-  }
-
-  async pollLoop() {
     const rpcOpt: RpcOptions = {
       abort: this.abort.signal,
       timeout: POLL_TIMEOUT_MS,
@@ -249,14 +229,21 @@ export class Transport {
     }
 
     if (!stream) {
-      this.logger.debug(
-        `session not found, creating one for ${src.peerId}:${src.connId}`,
-      );
-
+      // if (msg.payload?.payloadType.oneofKind !== "join") {
+      //   this.logger.warn(
+      //     `session not found, but non-join from ${src.peerId}:${src.connId}, dropping as this is likely staled.`,
+      //   );
+      //   return;
+      // }
+      //
       if (src.peerId == this.info.peerId) {
         this.logger.warn("loopback detected, ignoring messages");
         return;
       }
+
+      this.logger.debug(
+        `session not found, creating one for ${src.peerId}:${src.connId}`,
+      );
 
       stream = new Stream(
         this,
@@ -270,6 +257,10 @@ export class Transport {
 
     stream.enqueue(msg);
   };
+
+  removeStream(stream: Stream) {
+    this.streams = this.streams.filter((s) => s !== stream);
+  }
 
   async connect(
     otherGroupId: string,
@@ -300,7 +291,7 @@ export class Transport {
         header,
         payload,
       });
-      await this.asleep(POLL_RETRY_MAX_DELAY_MS, joinedSignal).catch(() => {});
+      await this.asleep(POLL_RETRY_MAX_DELAY_MS, joinedSignal).catch(() => { });
 
       found = !!this.streams.find((s) =>
         s.other.groupId === otherGroupId && s.other.peerId === otherPeerId
@@ -348,10 +339,9 @@ export class Stream {
   public readonly logger: Logger;
   private abort: AbortController;
   public recvq: Queue;
-  private closedAt: number;
   private lastSeqnum: number;
-  public onpayload = async (_: MessagePayload) => {};
-  public onclosed = (_reason: string) => {};
+  public onsignal = async (_: Signal) => { };
+  public onclosed = (_reason: string) => { };
 
   constructor(
     private readonly transport: Transport,
@@ -366,21 +356,10 @@ export class Stream {
     this.recvq = new Queue(this.logger);
     this.recvq.onmsg = (msg) => this.handleMessage(msg);
     this.lastSeqnum = 0;
-    this.closedAt = 0;
   }
 
   createSignal(...signals: AbortSignal[]): AbortSignal {
     return joinSignals(this.abort.signal, ...signals);
-  }
-
-  isClosed(): boolean {
-    const closed = this.abort.signal.aborted &&
-      (performance.now() - this.closedAt) > STREAM_GC_DELAY_MS;
-
-    if (closed) {
-      this.logger.debug("stream is ready for GC");
-    }
-    return closed;
   }
 
   enqueue(msg: Message) {
@@ -419,23 +398,39 @@ export class Stream {
       });
       return;
     }
-    this.onpayload(msg.payload);
+
+    switch (msg.payload.payloadType.oneofKind) {
+      case "bye":
+        this.close("received bye", true);
+        return;
+      case "signal":
+        this.onsignal(msg.payload.payloadType.signal);
+        return;
+      case "join":
+        // nothing to do here, this just creates the session
+        return;
+      default:
+        this.logger.warn("unhandled payload type", { msg });
+        return;
+    }
   }
 
-  async close(reason?: string) {
+  async close(reason?: string, skipBye?: boolean) {
     if (this.abort.signal.aborted) return;
     reason = reason || "session is closed";
-    // make sure to give a chance to send a message
-    await this.send({
-      payloadType: {
-        oneofKind: "bye",
-        bye: {},
-      },
-    }, false).catch((err) =>
-      this.logger.warn("failed to send bye", { e: err })
-    );
+    if (!skipBye) {
+      // make sure to give a chance to send a message
+      await this.send({
+        payloadType: {
+          oneofKind: "bye",
+          bye: {},
+        },
+      }, false).catch((err) =>
+        this.logger.warn("failed to send bye", { e: err })
+      );
+    }
     this.abort.abort(reason);
-    this.closedAt = performance.now();
+    this.transport.removeStream(this);
     this.onclosed(reason);
     this.logger.debug("sent bye to the other peer", { reason });
   }

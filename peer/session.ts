@@ -1,6 +1,5 @@
 import {
   type ICECandidate,
-  type MessagePayload,
   PeerInfo,
   SdpKind,
   type Signal,
@@ -210,7 +209,7 @@ export class Session {
       100,
       (c) => this.sendLocalIceCandidates(c),
     );
-    stream.onpayload = (msg) => this.handleMessage(msg);
+    stream.onsignal = (msg) => this.handleSignal(msg);
     stream.onclosed = (reason) => this.close(reason);
 
     this.pc.oniceconnectionstatechange = async () => {
@@ -397,24 +396,6 @@ export class Session {
         signal: { ...signal, generationCounter: this.generationCounter },
       },
     }, true);
-  };
-
-  private handleMessage = async (payload: MessagePayload) => {
-    if (this.abort.signal.aborted) {
-      this.logger.warn("session is closed, ignoring message");
-      return;
-    }
-    switch (payload.payloadType.oneofKind) {
-      case "signal":
-        await this.handleSignal(payload.payloadType.signal);
-        break;
-      case "bye":
-        this.close();
-        break;
-      case "join":
-        // nothing to do here. SDK consumer needs to manually trigger the start
-        break;
-    }
   };
 
   private handleSignal = async (signal: Signal) => {
