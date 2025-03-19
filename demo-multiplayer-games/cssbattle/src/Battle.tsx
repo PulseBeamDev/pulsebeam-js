@@ -22,7 +22,7 @@ export function Battle(
   const [userCode, setUserCode] = useState(DEFAULT_CODE);
   const [matchPercentage, setMatchPercentage] = useState(0);
   const [charCount, setCharCount] = useState(userCode.length);
-  const exportRef = useRef<HTMLDivElement | null>(null);
+  const exportRef = useRef<HTMLIFrameElement | null>(null);
 
   const updateScore = async () => {
     // Update character count
@@ -58,13 +58,11 @@ export function Battle(
   async function updateCanvas() {
     if (!exportRef.current) return;
     if (!props.canvasRef.current) return;
-    await drawCanvas(props.canvasRef.current, exportRef.current);
+    await drawCanvas(
+      props.canvasRef.current,
+      exportRef.current.contentDocument!.body,
+    );
   }
-
-  // issue with renderer not rendering on connection
-  setInterval(() => {
-    updateCanvas();
-  }, 1000);
 
   useEffect(() => {
     updateScore();
@@ -110,10 +108,15 @@ export function Battle(
           <div className="target-container" style={{ marginTop: "1rem" }}>
             <div className="target-header">Design</div>
             <div className="target-display">
-              <div
+              {/* <div */}
+              {/*   ref={exportRef} */}
+              {/*   className="result-frame" */}
+              {/*   dangerouslySetInnerHTML={{ __html: userCode }} */}
+              {/* /> */}
+              <iframe
                 ref={exportRef}
                 className="result-frame"
-                dangerouslySetInnerHTML={{ __html: userCode }}
+                srcDoc={userCode}
               />
             </div>
           </div>
@@ -236,7 +239,7 @@ function createImage(url: string): Promise<HTMLImageElement> {
     const img = new Image();
     img.onload = () => {
       img.decode().then(() => {
-        requestAnimationFrame(() => resolve(img));
+        resolve(img);
       });
     };
     img.onerror = reject;
@@ -266,4 +269,3 @@ async function drawCanvas<T extends HTMLElement>(
 
   return canvas;
 }
-
