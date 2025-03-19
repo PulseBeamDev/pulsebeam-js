@@ -144,7 +144,8 @@ function ConnectForm() {
 
 export const getToken = async (fToken: string) => {
       const resp = await fetch(
-        "http://localhost:5000/cssbattles-demo/us-central1/getToken/",
+        "https://gettoken-kqiqetod2a-uc.a.run.app",
+        // "http://localhost:5000/cssbattles-demo/us-central1/getToken/",
         {
           method: "POST",
           headers: {

@@ -51,10 +51,35 @@ export function Battle(props: {canvasRef: React.RefObject<HTMLCanvasElement | nu
   }
 
   // issue with renderer not rendering on connection
-  setInterval(()=>{
-    updateCanvas()
-  }, 1000)
+  // setInterval(()=>{
+  //   // Send updates
+  //   // So weird... as soon as I do this something breaks alot, there are no more updates cpu -> infinity...
+  //   // peer.broadcastStats({
+  //   //   charCount: charCount,
+  //   //   matchPercentage: matchPercentage
+  //   // });
+  // }, 1000)
+  useEffect(()=>{
+    let count = 0;
+    const maxCount = 20;
+    const intervalTime = 500; // 0.5 seconds
 
+    const interval = setInterval(() => {
+        console.log(`Execution #${count + 1}`);
+        updateCanvas()
+        // incorrect state sometimes...
+        peer.broadcastStats({
+          charCount: charCount,
+          matchPercentage: matchPercentage
+        });
+        count++;
+        if (count >= maxCount) {
+            clearInterval(interval);
+            console.log("Done executing 20 times.");
+        }
+    }, 
+    intervalTime);
+  }, [])
   useEffect(()=>{
     updateScore()
     updateCanvas()

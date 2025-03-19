@@ -1,16 +1,4 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * import {onCall} from "firebase-functions/v2/https";
- * import {onDocumentWritten} from "firebase-functions/v2/firestore";
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
-
-
-// firebase functions:config:set pulsebeam.api_key="kid_1ab07e24a2099113" pulsebeam.api_secret="sk_0472708838417ca86d445f2cb085ebcc90fc706a23a51f03b12921e17b83b1f9"
-import {onRequest} from "firebase-functions/v2/https";
-import * as functions from "firebase-functions"
+import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { AccessToken, PeerClaims, PeerPolicy } from "@pulsebeam/server/node";
 import { getAuth } from "firebase-admin/auth";
@@ -19,14 +7,14 @@ import { initializeApp } from "firebase-admin/app";
 initializeApp();
 
 interface Env {
-  PULSEBEAM_API_KEY: string;
-  PULSEBEAM_API_SECRET: string;
+  PULSEBEAM_API_KEY: string | undefined;
+  PULSEBEAM_API_SECRET: string | undefined;
 }
 
 const GROUP_ID = "cssbattles-demo";
 
 // Generate a PulseBeam access token based on Firebase authentication status
-export const getToken = onRequest(async (request, response) => {
+export const getToken = onRequest({ cors: true }, async (request, response) => {
     logger.info("Creating PulseBeam token", { structuredData: true });
     try {
         // Get authorization header
@@ -50,10 +38,12 @@ export const getToken = onRequest(async (request, response) => {
         // Allow user to connect with other users in group
         const rule = new PeerPolicy(GROUP_ID, "*");
         claims.setAllowPolicy(rule);
-        
+       
+        // Use .env file for secrets as per
+        // https://firebase.google.com/docs/functions/config-env?gen=2nd
         const env: Env = {
-            PULSEBEAM_API_KEY: process.env.PULSEBEAM_API_KEY || functions.config().pulsebeam.api_key,
-            PULSEBEAM_API_SECRET: process.env.PULSEBEAM_API_SECRET || functions.config().pulsebeam.api_secret
+            PULSEBEAM_API_KEY: process.env.PULSEBEAM_API_KEY,
+            PULSEBEAM_API_SECRET: process.env.PULSEBEAM_API_SECRET
         }
         
         if (!env.PULSEBEAM_API_KEY || !env.PULSEBEAM_API_SECRET) {

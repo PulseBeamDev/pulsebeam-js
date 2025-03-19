@@ -19,6 +19,11 @@ interface SessionProps {
   remoteStats: Stats | null  // Add a field to store remote stats
 }
 
+
+// Note: credentials expire, this example does not monitor for token expiry
+// and renew. Peer with expired tokens will not be able to use PulseBeam
+// See docs https://pulsebeam.dev/docs/guides/token/#troubleshooting
+// or reachout for help.
 export interface PeerState {
   ref: Peer | null;
   loading: boolean;
