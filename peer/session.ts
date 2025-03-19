@@ -259,7 +259,7 @@ export class Session {
           this.triggerIceRestart();
           break;
         case "failed":
-          this.triggerIceRestart();
+          this.close("connection failed");
           break;
         case "closed":
           break;
