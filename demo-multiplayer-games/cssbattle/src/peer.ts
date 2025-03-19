@@ -2,7 +2,7 @@ import { createPeer, type ISession, type Peer } from "@pulsebeam/peer";
 import { create } from "zustand";
 import { produce } from "immer";
 
-const DEFAULT_GROUP = "cssbattle";
+const DEFAULT_GROUP = "cssbattles-demo";
 const DEFAULT_CONNECT_TIMEOUT_MS = 3_000;
 
 export interface Stats {
