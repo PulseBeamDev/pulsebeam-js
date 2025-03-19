@@ -73,19 +73,19 @@ export class Session {
   /**
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ondatachannel}
    */
-  public ondatachannel: RTCPeerConnection["ondatachannel"] = () => {};
+  public ondatachannel: RTCPeerConnection["ondatachannel"] = () => { };
 
   /**
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/onconnectionstatechange}
    */
   public onconnectionstatechange: RTCPeerConnection["onconnectionstatechange"] =
-    () => {};
+    () => { };
 
   /**
    * Callback invoked when a new media track is added to the connection.
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ontrack}
    */
-  public ontrack: RTCPeerConnection["ontrack"] = () => {};
+  public ontrack: RTCPeerConnection["ontrack"] = () => { };
 
   /**
    * Adds a media track to the connection.
@@ -260,7 +260,7 @@ export class Session {
           this.triggerIceRestart();
           break;
         case "failed":
-          this.close("detected sustained network failure");
+          this.triggerIceRestart();
           break;
         case "closed":
           break;
@@ -379,7 +379,10 @@ export class Session {
     }
 
     if (this.pc.connectionState === "connected") return;
-    if (this.iceRestartCount >= ICE_RESTART_MAX_COUNT) this.close();
+    if (this.iceRestartCount >= ICE_RESTART_MAX_COUNT) {
+      this.close("detected sustained network failure");
+      return;
+    }
     this.logger.debug("triggered ICE restart");
     this.pc.restartIce();
     this.generationCounter++;
