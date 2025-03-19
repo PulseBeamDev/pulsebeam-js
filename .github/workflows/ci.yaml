@@ -88,6 +88,10 @@ jobs:
           tag: ${{ env.RELEASE_VERSION }}
           version: ${{ env.RELEASE_VERSION }}
           publish: true
+          template: |
+            ## What’s Changed
+
+            $CHANGES
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: npm ci
