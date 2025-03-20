@@ -85,9 +85,8 @@ export function App() {
           <br />
         </header>
         <canvas
-          hidden={false}
-          style={{ width: WIDTH, height: HEIGHT }}
-          // style={{ display: "none" }}
+          hidden={true}
+          style={{ display: "none", width: WIDTH, height: HEIGHT }}
           ref={canvasRef}
           width={WIDTH}
           height={HEIGHT}
@@ -160,8 +159,9 @@ function ConnectForm() {
 
 const getToken = async (fToken: string) => {
   const resp = await fetch(
-    // TODO: replace this URL after firebase function is deployed
+    // URL for firebase hosted firebase function
     // "https://getToken-kqiqetod2a-uc.a.run.app",
+    // URL for locally running firebase function
     "http://localhost:5000/cssbattles-demo/us-central1/getToken",
     {
       method: "POST",
