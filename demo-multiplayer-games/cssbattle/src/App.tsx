@@ -48,7 +48,7 @@ export function App() {
         console.log("Stream tracks stopped");
       }
     };
-  }, []);
+  }, [mediaStream, peer]);
 
   useEffect(() => {
     if (!user) {
@@ -63,7 +63,7 @@ export function App() {
       // Start peer to be able to recieve and/or create connections
       peer.start(user.uid, token);
     })();
-  }, [user]);
+  }, [user, peer]);
 
   return (
     <div>
@@ -194,13 +194,13 @@ function SignIn() {
 }
 
 function SignOut() {
+  const auth = getAuth();
+  const peer = usePeerStore();
   return (
     <button
       style={{ background: "white", color: "black" }}
       onClick={() => {
-        const auth = getAuth();
         auth.signOut()
-        const peer = usePeerStore();
         peer.stop();
       }}
     >

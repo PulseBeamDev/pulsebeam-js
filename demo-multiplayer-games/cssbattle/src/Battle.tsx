@@ -85,7 +85,7 @@ export function Battle(
   useEffect(() => {
     updateScore();
     updateCanvas();
-  }, [userCode]);
+  }, [userCode, updateCanvas, updateScore]);
 
   // issue with renderer not rendering on connection
   // setInterval(() => {
