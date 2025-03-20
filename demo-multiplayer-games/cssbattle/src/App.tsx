@@ -48,7 +48,7 @@ export function App() {
         console.log("Stream tracks stopped");
       }
     };
-  }, [mediaStream, peer]);
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -63,7 +63,7 @@ export function App() {
       // Start peer to be able to receive and/or create connections
       peer.start(user.uid, token);
     })();
-  }, [user, peer]);
+  }, [user]);
 
   return (
     <div>
@@ -161,7 +161,7 @@ function ConnectForm() {
 const getToken = async (fToken: string) => {
   const resp = await fetch(
     // TODO: replace this URL after firebase function is deployed
-    // "https://getToken-kqiqetod2a-uc.a.run.app"
+    // "https://getToken-kqiqetod2a-uc.a.run.app",
     "http://localhost:5000/cssbattles-demo/us-central1/getToken",
     {
       method: "POST",
@@ -194,13 +194,13 @@ function SignIn() {
 }
 
 function SignOut() {
-  const auth = getAuth();
-  const peer = usePeerStore();
   return (
     <button
       style={{ background: "white", color: "black" }}
       onClick={() => {
+        const auth = getAuth();
         auth.signOut()
+        const peer = usePeerStore();
         peer.stop();
       }}
     >
