@@ -60,7 +60,7 @@ export function App() {
       // Use firebase auth token to call firebase fn to get PulseBeam token
       // Read about PulseBeam tokens -> https://pulsebeam.dev/docs/guides/token/
       const token = await getToken(fToken);
-      // Start peer to be able to recieve and/or create connections
+      // Start peer to be able to receive and/or create connections
       peer.start(user.uid, token);
     })();
   }, [user, peer]);

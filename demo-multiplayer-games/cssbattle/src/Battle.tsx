@@ -73,7 +73,7 @@ export function Battle(
     await drawCanvas(
       props.canvasRef.current,
       // We should theoretically just pass the iframe (exportRef.current)
-      // buut there is a bug in their implementation where there is dom
+      // but there is a bug in their implementation where there is dom
       // duplication in rendered html-to-image, where elements in iframe
       // are rendered twice, this is a workaround to have iframe children
       // rendered once

@@ -1,8 +1,7 @@
 {
   "hosting": {
     "site": "cssbattle-cae32",
-    "public": "public",
-    "source": ".",
+    "public": "dist",
     "ignore": [
       "firebase.json",
       "**/.*",
