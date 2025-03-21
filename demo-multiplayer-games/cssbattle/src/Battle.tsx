@@ -112,7 +112,7 @@ export function Battle(
         <a
           target="_blank"
           className="button secondary-container secondary-text small-round"
-          href="https://github.com/PulseBeamDev/pulsebeam-js/tree/main/multiplayer-games/cssbattles-demo"
+          href="https://github.com/PulseBeamDev/pulsebeam-js/tree/cssbattles/demo-multiplayer-games/cssbattle"
         >
           Source Code
         </a>
