@@ -10,6 +10,7 @@ export type { PeerInfo } from "./signaling.ts";
 
 const ICE_RESTART_MAX_COUNT = 1;
 const ICE_RESTART_DEBOUNCE_DELAY_MS = 5000;
+const INTERNAL_DATA_CHANNEL = "__internal";
 
 function toIceCandidate(ice: ICECandidate): RTCIceCandidateInit {
   return {
@@ -68,6 +69,7 @@ export class Session {
   private timers: number[];
   private _closeReason?: string;
   private _connectionState: RTCPeerConnectionState;
+  private internalDataChannel: RTCDataChannel;
 
   /**
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ondatachannel}
@@ -238,6 +240,10 @@ export class Session {
       });
     };
 
+    this.pc.onsignalingstatechange = () => {
+      this.checkPendingCandidates();
+    };
+
     let start = performance.now();
     this.pc.onconnectionstatechange = (ev) => {
       this.logger.debug("connectionstate changed", {
@@ -311,10 +317,14 @@ export class Session {
       this.iceBatcher.addCandidate(candidate);
     };
 
-    this.pc.ondatachannel = (...args) => {
+    this.pc.ondatachannel = (ev) => {
+      if (ev.channel.label === INTERNAL_DATA_CHANNEL) {
+        return;
+      }
+
       if (this.ondatachannel) {
         // @ts-ignore: proxy to RTCPeerConnection
-        this.ondatachannel(...args);
+        this.ondatachannel(ev);
       }
     };
 
@@ -324,6 +334,8 @@ export class Session {
         this.ontrack(...args);
       }
     };
+
+    this.internalDataChannel = this.pc.createDataChannel(INTERNAL_DATA_CHANNEL);
   }
 
   private sendLocalIceCandidates(candidates: RTCIceCandidate[]) {
@@ -464,7 +476,6 @@ export class Session {
         },
       });
     }
-
     this.checkPendingCandidates();
     return;
   };
