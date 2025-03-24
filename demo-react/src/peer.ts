@@ -2,9 +2,6 @@ import { createPeer, type ISession, type Peer } from "@pulsebeam/peer";
 import { create } from "zustand";
 import { produce } from "immer";
 
-const DEFAULT_GROUP = "default";
-const DEFAULT_CONNECT_TIMEOUT_MS = 10_000;
-
 interface SessionProps {
   key: number;
   sess: ISession;
@@ -18,9 +15,8 @@ export interface PeerState {
   sessions: Record<string, SessionProps>;
   localStream: MediaStream | null;
   setLocalStream: (_: MediaStream) => void;
-  start: (peerId: string) => Promise<void>;
+  start: (groupId: string, peerId: string) => Promise<void>;
   stop: () => void;
-  connect: (otherPeerId: string) => void;
   peerId: string;
   isMuted: boolean;
   toggleMute: () => void;
@@ -35,7 +31,7 @@ export const usePeerStore = create<PeerState>((set, get) => ({
   setLocalStream: (localStream: MediaStream) => {
     set({ localStream });
   },
-  start: async (peerId) => {
+  start: async (groupId, peerId) => {
     if (get().ref) return;
     if (get().loading) return;
 
@@ -55,7 +51,7 @@ export const usePeerStore = create<PeerState>((set, get) => ({
         const form = new URLSearchParams({
           apiKey: "kid_<...>",
           apiSecret: "sk_<...>",
-          groupId: DEFAULT_GROUP,
+          groupId: groupId,
           peerId: peerId,
         });
         if (
@@ -80,7 +76,7 @@ export const usePeerStore = create<PeerState>((set, get) => ({
         // See https://pulsebeam.dev/docs/guides/token/#example-nodejs-http-server
         // For explanation of this token-serving method
         const resp = await fetch(
-          `/auth?groupId=${DEFAULT_GROUP}&peerId=${peerId}`,
+          `/auth?groupId=${groupId}&peerId=${peerId}`,
         );
         token = await resp.text();
       }
@@ -152,17 +148,6 @@ export const usePeerStore = create<PeerState>((set, get) => ({
   stop: () => {
     get().ref?.close();
     set({ ref: null });
-  },
-  connect: async (otherPeerId) => {
-    set({ loading: true });
-    const abort = new AbortController();
-    const timeoutId = window.setTimeout(
-      () => abort.abort(),
-      DEFAULT_CONNECT_TIMEOUT_MS,
-    );
-    await get().ref?.connect(DEFAULT_GROUP, otherPeerId, abort.signal);
-    window.clearTimeout(timeoutId);
-    set({ loading: false });
   },
   isMuted: true,
   toggleMute: () => {
