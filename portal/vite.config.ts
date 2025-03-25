@@ -13,6 +13,11 @@ export default defineConfig({
       // the proper extensions will be added
       fileName: "portal",
     },
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, "index.html"),
+      },
+    },
   },
   server: {
     proxy: {
