@@ -40,6 +40,7 @@ export class Portal {
       });
 
       s.ondatachannel = (e) => {
+        console.log("debug:ondatachannel", e.channel.label);
         if (e.channel.label !== Portal.NAMESPACE) {
           return;
         }
@@ -47,7 +48,19 @@ export class Portal {
         e.channel.onmessage = (ev) => {
           // TODO: validate schema?
           const update = JSON.parse(ev.data) as CRDTRemoteUpdate;
+          console.log("debug:onmessage", { update });
           this.receiveUpdate(update.key, update.entry);
+        };
+
+        e.channel.onopen = (_ev) => {
+          console.log("debug:sync", { crdt: this.crdtStore });
+          for (const [key, entry] of Object.entries(this.crdtStore)) {
+            console.log("debug:notifying", { key, entry });
+            this.notifyPeer(this.sendChannels[id], {
+              key,
+              entry,
+            });
+          }
         };
       };
 
@@ -63,8 +76,10 @@ export class Portal {
       const newVal = newKV[changedKey];
       this.set(changedKey, newVal);
     });
+  }
 
-    peer.start();
+  start() {
+    this.peer.start();
   }
 
   close() {
@@ -85,6 +100,10 @@ export class Portal {
     this.notifyPeers(key, entry);
   }
 
+  private notifyPeer(ch: RTCDataChannel, update: CRDTRemoteUpdate) {
+    ch.send(JSON.stringify(update));
+  }
+
   private notifyPeers(key: Key, entry: CRDTEntry) {
     const update: CRDTRemoteUpdate = {
       key,
@@ -92,7 +111,7 @@ export class Portal {
     };
 
     for (const ch of Object.values(this.sendChannels)) {
-      ch.send(JSON.stringify(update));
+      this.notifyPeer(ch, update);
     }
   }
 

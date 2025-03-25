@@ -46,4 +46,5 @@ import { createPeer } from "@pulsebeam/peer";
       containerDOM.appendChild(msgDOM);
     }
   });
+  portal.start();
 })();
