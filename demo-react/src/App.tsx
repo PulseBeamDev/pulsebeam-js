@@ -103,6 +103,7 @@ function JoinPage() {
                 type="text"
                 placeholder="Room Name"
                 value={roomId}
+                data-testid="src-groupId"
                 onChange={(e) => setRoomId(e.target.value)}
               />
             </div>

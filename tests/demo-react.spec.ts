@@ -55,20 +55,12 @@ async function assertClick(btn: Locator) {
   await expect(btn).not.toBeVisible();
 }
 
-async function start(page: Page, peerId: string) {
+async function start(page: Page, groupId: string, peerId: string) {
+  await page.getByTestId("src-groupId").fill(groupId);
   await page.getByTestId("src-peerId").fill(peerId);
   await waitForStableVideo(page, peerId, 5_000);
 
   await assertClick(page.getByTestId("btn-ready"));
-
-  return () => assertClick(page.getByTestId("btn-endCall"));
-}
-
-async function connect(page: Page, peerId: string, otherPeerId: string) {
-  start(page, peerId);
-  await page.getByTestId("dst-peerId").fill(otherPeerId);
-  await assertClick(page.getByTestId("btn-connect"));
-  await waitForStableVideo(page, otherPeerId, 10_000);
 
   return () => assertClick(page.getByTestId("btn-endCall"));
 }
@@ -118,8 +110,9 @@ test.describe("Connect", () => {
   for (const [bA, bB] of pairs) {
     test(`${bA}_${bB} basic connection`, async ({ baseURL }) => {
       const url = baseURL + "?mock&baseUrl=" + PULSEBEAM_BASE_URL;
-      const peerA = `__${bA}_${randId()}`;
-      const peerB = `__${bB}_${randId()}`;
+      const group = `${randId()}`;
+      const peerA = `__${bA}_A`;
+      const peerB = `__${bB}_B`;
 
       // Launch browserA for pageA
       const contextA = await browsers[bA].newContext();
@@ -134,8 +127,12 @@ test.describe("Connect", () => {
       try {
         // Initial connection B -> A
         const [closeA, closeB] = await Promise.all([
-          start(pageB, peerB),
-          connect(pageA, peerA, peerB),
+          start(pageB, group, peerB),
+          start(pageA, group, peerA),
+        ]);
+        await Promise.all([
+          waitForStableVideo(pageB, peerA, 10_000),
+          waitForStableVideo(pageA, peerB, 10_000),
         ]);
         await Promise.all([closeA(), closeB()]);
       } finally {
@@ -147,8 +144,9 @@ test.describe("Connect", () => {
     // Disconnect and reconnect with role reversal
     test(`${bA}_${bB} disconnect and reconnect`, async ({ baseURL }) => {
       const url = `${baseURL}?mock&baseUrl=${PULSEBEAM_BASE_URL}`;
-      const peerA = `__${bA}_${randId()}`;
-      const peerB = `__${bB}_${randId()}`;
+      const group = `${randId()}`;
+      const peerA = `__${bA}_A`;
+      const peerB = `__${bB}_B`;
 
       const contextA = await browsers[bA].newContext();
       const pageA = await contextA.newPage();
@@ -161,8 +159,8 @@ test.describe("Connect", () => {
       try {
         // Initial connection B -> A
         const [closeA, closeB] = await Promise.all([
-          start(pageA, peerA),
-          connect(pageB, peerB, peerA),
+          start(pageA, group, peerA),
+          start(pageB, peerB, peerA),
         ]);
 
         // End call
@@ -174,54 +172,15 @@ test.describe("Connect", () => {
 
         // Reconnect with reversed roles A -> B
         const [closeB2, closeA2] = await Promise.all([
-          start(pageB, peerB),
-          connect(pageA, peerA, peerB),
+          start(pageB, group, peerB),
+          start(pageA, group, peerA),
+        ]);
+        await Promise.all([
+          waitForStableVideo(pageB, peerA, 10_000),
+          waitForStableVideo(pageA, peerB, 10_000),
         ]);
 
         await Promise.all([closeA2(), closeB2()]);
-      } finally {
-        await contextA.close();
-        await contextB.close();
-      }
-    });
-
-    // Simultaneous connection attempt
-    test(`${bA}_${bB} simultaneous connect`, async ({ baseURL }) => {
-      const url = `${baseURL}?mock&baseUrl=${PULSEBEAM_BASE_URL}`;
-      const peerA = `__${bA}_${randId()}`;
-      const peerB = `__${bB}_${randId()}`;
-
-      const contextA = await browsers[bA].newContext();
-      const pageA = await contextA.newPage();
-      await pageA.goto(url);
-
-      const contextB = await browsers[bB].newContext();
-      const pageB = await contextB.newPage();
-      await pageB.goto(url);
-
-      try {
-        // Both peers ready
-        const [closeA, closeB] = await Promise.all([
-          start(pageA, peerA),
-          start(pageB, peerB),
-        ]);
-
-        // Set destination IDs
-        await Promise.all([
-          pageA.getByTestId("dst-peerId").fill(peerB),
-          pageB.getByTestId("dst-peerId").fill(peerA),
-        ]);
-
-        // Race between clicking and have the other peer to connect first
-        // Attempt simultaneous connection
-        await Promise.all([
-          assertClick(pageA.getByTestId("btn-connect")),
-          assertClick(pageB.getByTestId("btn-connect")),
-        ]);
-
-        await waitForStableVideo(pageA, peerB, 10_000),
-          await waitForStableVideo(pageB, peerA, 10_000),
-          await Promise.all([closeA(), closeB()]);
       } finally {
         await contextA.close();
         await contextB.close();
