@@ -1,0 +1,9 @@
+name = "portal"
+pages_build_output_dir = "./dist"
+compatibility_flags = [ "nodejs_compat" ]
+compatibility_date = "2024-09-23"
+
+[dev]
+ip = "127.0.0.1"
+port = 8080
+local_protocol = "http"
