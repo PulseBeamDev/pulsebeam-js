@@ -20,11 +20,30 @@ import { createPeer } from "@pulsebeam/peer";
   });
   const portal = new Portal(peer);
 
-  portal.$store.listen((value) => {
-    console.log(JSON.stringify(value, null, 2));
-  });
+  const textDOM = document.getElementById("text")! as HTMLInputElement;
+  const formDOM = document.getElementById("form")! as HTMLFormElement;
+  const containerDOM = document.getElementById("container")!;
 
-  setInterval(() => {
-    portal.$store.setKey(peerId, Math.random());
-  }, 1000);
+  formDOM.onsubmit = (e) => {
+    e.preventDefault();
+
+    const now = new Date();
+    const key = `${now.toLocaleString()} (${peerId})`;
+    portal.$store.setKey(key, textDOM.value);
+    textDOM.value = "";
+  };
+
+  portal.$store.listen(() => {
+    // TODO: this is naive, this can be done more efficiently with a binary heap or bst.
+    const snapshot = portal.$store.get();
+    const messages = Object.entries(snapshot);
+
+    messages.sort((a, b) => a[0].localeCompare(b[0]));
+    containerDOM.innerHTML = "";
+    for (const [dt, msg] of messages) {
+      const msgDOM = document.createElement("p");
+      msgDOM.textContent = `${dt}: ${msg}`;
+      containerDOM.appendChild(msgDOM);
+    }
+  });
 })();
