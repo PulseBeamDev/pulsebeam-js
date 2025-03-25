@@ -1,6 +1,7 @@
 {
   "workspaces": [
     "peer",
+    "portal",
     "demo-react",
     "demo-cdn",
     "demo-server"
