@@ -27,8 +27,7 @@ import { createPeer } from "@pulsebeam/peer";
   formDOM.onsubmit = (e) => {
     e.preventDefault();
 
-    const now = new Date();
-    const key = `${now.toLocaleString()} (${peerId})`;
+    const key = `${new Date().toISOString()} (${peerId})`;
     portal.$store.setKey(key, textDOM.value);
     textDOM.value = "";
   };

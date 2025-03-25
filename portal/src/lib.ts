@@ -52,6 +52,7 @@ export class Portal {
           this.receiveUpdate(update.key, update.entry);
         };
 
+        // TODO: limit full sync up to 3 peers?
         e.channel.onopen = (_ev) => {
           console.log("debug:sync", { crdt: this.crdtStore });
           for (const [key, entry] of Object.entries(this.crdtStore)) {
@@ -91,12 +92,17 @@ export class Portal {
   }
 
   private set(key: Key, value: Value) {
+    const current = this.crdtStore[key];
+    if (!!current && current.value === value) {
+      // TODO: use a better loopback detection
+      return;
+    }
+
     const entry = {
       value: value,
       timestamp: Date.now(),
       replicaId: this.replicaId,
     };
-    this.crdtStore[key] = entry;
     this.notifyPeers(key, entry);
   }
 
@@ -117,17 +123,40 @@ export class Portal {
 
   private receiveUpdate(key: Key, remoteEntry: CRDTEntry): void {
     const currentEntry = this.crdtStore[key];
+    console.log("debug:received_update", { key, remoteEntry, currentEntry });
 
     if (
-      !currentEntry || remoteEntry.timestamp > currentEntry.timestamp ||
+      !currentEntry
+    ) {
+      this.crdtStore[key] = remoteEntry;
+      this.store.setKey(key, remoteEntry.value);
+      console.log(
+        "debug:received_update accepted (resolution=empty)",
+        remoteEntry,
+      );
+    } else if (remoteEntry.timestamp > currentEntry.timestamp) {
+      this.crdtStore[key] = remoteEntry;
+      this.store.setKey(key, remoteEntry.value);
+      console.log(
+        "debug:received_update accepted (resolution=older)",
+        remoteEntry,
+      );
+    } else if (
       remoteEntry.timestamp === currentEntry.timestamp &&
       remoteEntry.replicaId > this.replicaId
     ) {
       this.crdtStore[key] = remoteEntry;
       this.store.setKey(key, remoteEntry.value);
-      console.log("accepted remote update", remoteEntry);
+      console.log(
+        "debug:received_update accepted (resolution=replicaId)",
+        remoteEntry,
+      );
     } else {
-      console.log("ignored remote update", remoteEntry);
+      console.log("debug:received_update ignored remote update", {
+        remoteEntry,
+        currentEntry,
+      });
+      return;
     }
   }
 }
