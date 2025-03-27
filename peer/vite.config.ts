@@ -8,12 +8,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   base: "./",
   build: {
-    // lib: {
-    //   entry: resolve(__dirname, "src/lib.ts"),
-    //   name: "portal",
-    //   // the proper extensions will be added
-    //   fileName: "portal",
-    // },
+    lib: {
+      entry: resolve(__dirname, "src/lib.ts"),
+      name: "peer",
+      // the proper extensions will be added
+      fileName: "peer",
+    },
     // rollupOptions: {
     //   input: {
     //     main: resolve(__dirname, "index.html"),

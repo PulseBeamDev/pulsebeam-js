@@ -2,31 +2,27 @@
   "name": "@pulsebeam/peer",
   "version": "0.0.22",
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.mts",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/peer.umd.cjs",
+  "module": "./dist/peer.js",
   "exports": {
-    "import": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "require": {
-      "types": "./dist/index.d.cts",
-      "require": "./dist/index.cjs"
+    ".": {
+      "import": "./dist/peer.js",
+      "require": "./dist/peer.umd.cjs"
     }
   },
   "scripts": {
     "gen": "protoc --ts_out=. --experimental_allow_proto3_optional --ts_opt=client_generic --proto_path proto/v1 ./proto/v1/signaling.proto && node ./scripts/patch.cjs",
-    "build": "tsup",
-    "build:watch": "tsup --watch",
+    "dev": "vite",
+    "build": "tsc && vite build",
     "clean": "rm -rf dist",
     "test": "vitest",
+    "preview": "vite preview",
     "show:docs": "npx deno doc --html index.ts && python -m http.server -d docs/",
     "publish": "jsr publish --allow-slow-types"
   },
-  "files": [
-    "dist"
-  ],
   "keywords": [
     "typescript",
     "library",
@@ -43,29 +39,17 @@
     "@protobuf-ts/grpcweb-transport": "^2.9.5",
     "@protobuf-ts/runtime": "^2.9.4",
     "@protobuf-ts/runtime-rpc": "^2.9.4",
-    "jwt-decode": "^4.0.0"
+    "jwt-decode": "^4.0.0",
+    "nanostores": "^0.11.4"
   },
   "devDependencies": {
     "@protobuf-ts/plugin": "^2.9.4",
     "jsr": "^0.13.2",
     "protoc-gen-ts": "^0.8.7",
     "tsup": "^8.3.6",
-    "typescript": "^5.6.3",
+    "typescript": "^5.7.2",
     "vitest": "^3.0.5",
-    "webrtc-adapter": "^9.0.1"
-  },
-  "tsup": {
-    "entry": [
-      "index.ts"
-    ],
-    "format": [
-      "esm",
-      "cjs"
-    ],
-    "dts": true,
-    "minify": true,
-    "sourcemap": true,
-    "target": "esnext",
-    "outDir": "dist"
+    "webrtc-adapter": "^9.0.1",
+    "vite": "^6.2.0"
   }
 }
