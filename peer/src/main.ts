@@ -1,5 +1,4 @@
-import { Portal } from "./lib.ts";
-import { createPeer } from "@pulsebeam/peer";
+import { createPeer, Portal } from "./lib.ts";
 
 (async () => {
   const urlParams = new URLSearchParams(window.location.search);
