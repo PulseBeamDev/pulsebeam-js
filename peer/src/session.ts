@@ -74,19 +74,19 @@ export class Session {
   /**
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ondatachannel}
    */
-  public ondatachannel: RTCPeerConnection["ondatachannel"] = () => {};
+  public ondatachannel: RTCPeerConnection["ondatachannel"] = () => { };
 
   /**
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/onconnectionstatechange}
    */
   public onconnectionstatechange: RTCPeerConnection["onconnectionstatechange"] =
-    () => {};
+    () => { };
 
   /**
    * Callback invoked when a new media track is added to the connection.
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ontrack}
    */
-  public ontrack: RTCPeerConnection["ontrack"] = () => {};
+  public ontrack: RTCPeerConnection["ontrack"] = () => { };
 
   /**
    * Adds a media track to the connection.
@@ -336,6 +336,8 @@ export class Session {
     };
 
     this.internalDataChannel = this.pc.createDataChannel(INTERNAL_DATA_CHANNEL);
+    // NOTE: reserve internal data channel usage
+    this.internalDataChannel;
   }
 
   private sendLocalIceCandidates(candidates: RTCIceCandidate[]) {

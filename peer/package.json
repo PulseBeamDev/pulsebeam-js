@@ -16,7 +16,7 @@
   "scripts": {
     "gen": "protoc --ts_out=. --experimental_allow_proto3_optional --ts_opt=client_generic --proto_path proto/v1 ./proto/v1/signaling.proto && node ./scripts/patch.cjs",
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "clean": "rm -rf dist",
     "test": "vitest",
     "preview": "vite preview",
@@ -48,8 +48,9 @@
     "protoc-gen-ts": "^0.8.7",
     "tsup": "^8.3.6",
     "typescript": "^5.7.2",
+    "vite": "^6.2.0",
+    "vite-plugin-dts": "^4.5.3",
     "vitest": "^3.0.5",
-    "webrtc-adapter": "^9.0.1",
-    "vite": "^6.2.0"
+    "webrtc-adapter": "^9.0.1"
   }
 }

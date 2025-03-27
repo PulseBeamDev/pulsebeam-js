@@ -1,5 +1,5 @@
 import { map, PreinitializedMapStore } from "nanostores";
-import { Peer } from "@pulsebeam/peer";
+import { Peer } from "./peer.ts";
 
 export type Value = string | number | undefined;
 export type Key = string;

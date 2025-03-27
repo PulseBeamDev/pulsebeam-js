@@ -1,7 +1,7 @@
 import { type ISignalingClient, SignalingClient } from "./signaling.client.ts";
 import { Transport } from "./transport.ts";
 import type { PeerInfo } from "./signaling.ts";
-import { DEFAULT_LOG_SINK, Logger, PRETTY_LOG_SINK } from "./logger.ts";
+import { Logger, PRETTY_LOG_SINK } from "./logger.ts";
 import { Session } from "./session.ts";
 import { RpcError, RpcOptions, UnaryCall } from "@protobuf-ts/runtime-rpc";
 import {
@@ -67,8 +67,6 @@ export type { PeerInfo } from "./signaling.ts";
  */
 
 const BASE_URL = "https://cloud.pulsebeam.dev/grpc";
-const PREPARE_INITIAL_DELAY_MS = 50;
-const PREPARE_MAX_RETRY = 3;
 
 /**
  * A high-level API for managing the peer-to-peer WebRTC connection. Provides
@@ -236,11 +234,11 @@ export class Peer {
    * Callback invoked when a new session is established.
    * @param _s Session object
    */
-  public onsession = (_s: ISession) => {};
+  public onsession = (_s: ISession) => { };
   /**
    * Callback invoked when the peer’s state changes.
    */
-  public onstatechange = () => {};
+  public onstatechange = () => { };
   /**
    * Identifier for the peer. Valid UTF-8 string of 1-16 characters.
    */

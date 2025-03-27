@@ -1,7 +1,7 @@
 {
   "name": "@pulsebeam/peer",
   "version": "0.0.22",
-  "exports": "./index.ts",
+  "exports": "./src/lib.ts",
   "license": "Apache-2.0",
   "author": "Lukas Herman support@pulsebeam.dev",
   "repository": {
