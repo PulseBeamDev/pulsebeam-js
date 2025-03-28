@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePeerStore } from "./peer.ts";
+import { useSyncURLWithState } from "./util.ts";
 
 export default function App() {
   const peer = usePeerStore();
@@ -10,74 +11,10 @@ export default function App() {
     </>
   );
 }
-
-function useSyncURLWithState(
-  initialState: string | undefined,
-  paramName: string,
-): [string, (newValue: string) => void] {
-  const [state, setState] = useState<string>(initialState || "");
-
-  useEffect(() => {
-    // Read initial state from URL on mount
-    const searchParams = new URLSearchParams(window.location.search);
-    const initialValueFromURL = searchParams.get(paramName);
-    if (initialValueFromURL !== null) {
-      setState(initialValueFromURL);
-    } else if (initialState !== undefined) {
-      setState(initialState);
-    }
-
-    // Listen for changes in the URL (e.g., back/forward button)
-    const handlePopstate = () => {
-      const newSearchParams = new URLSearchParams(window.location.search);
-      const newValueFromURL = newSearchParams.get(paramName);
-      if (newValueFromURL !== null) {
-        setState(newValueFromURL);
-      } else if (initialState !== undefined) {
-        setState(initialState);
-      } else {
-        setState(""); // Or your desired default if no initial state
-      }
-    };
-
-    window.addEventListener("popstate", handlePopstate);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopstate);
-    };
-  }, [paramName, initialState]);
-
-  const updateState = useCallback((newValue: string) => {
-    setState(newValue);
-    const searchParams = new URLSearchParams(window.location.search);
-    if (newValue) {
-      searchParams.set(paramName, newValue);
-    } else {
-      searchParams.delete(paramName); // Remove if value is empty
-    }
-    const newURL =
-      `${window.location.pathname}?${searchParams.toString()}${window.location.hash}`;
-    window.history.pushState(null, "", newURL);
-  }, [paramName]);
-
-  return [state, updateState];
-}
-
 function JoinPage() {
   const peer = usePeerStore();
   const [roomId, setRoomId] = useSyncURLWithState("", "roomId");
   const [peerId, setPeerId] = useState("");
-
-  useEffect(() => {
-    (async () => {
-      const s = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
-      s.getAudioTracks().forEach((track) => track.enabled = false); // Mute by default
-      peer.setLocalStream(s);
-    })();
-  }, []);
 
   return (
     <article style={{ height: "100vh" }}>
@@ -207,45 +144,6 @@ function SessionPage() {
         </a>
       </nav>
     </div>
-  );
-}
-
-function ConnectForm() {
-  const [otherPeerId, setOtherPeerId] = useState("");
-  const peer = usePeerStore();
-
-  return (
-    <form
-      className="vertical medium-width center-align auto-margin"
-      style={{ height: "100%" }}
-      onSubmit={(e) => {
-        e.preventDefault();
-      }}
-    >
-      <nav className="vertical">
-        <h3>Who to connect to?</h3>
-        <div className="field border responsive">
-          <input
-            size={6}
-            type="text"
-            placeholder="Other Name"
-            value={otherPeerId}
-            data-testid="dst-peerId"
-            onChange={(e) => setOtherPeerId(e.target.value)}
-          />
-        </div>
-        <button
-          className="responsive small-round"
-          type="submit"
-          data-testid="btn-connect"
-          disabled={peer.loading || otherPeerId.length === 0}
-        >
-          {peer.loading
-            ? <progress className="circle small"></progress>
-            : <span>Connect</span>}
-        </button>
-      </nav>
-    </form>
   );
 }
 

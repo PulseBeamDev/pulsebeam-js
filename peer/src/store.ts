@@ -19,17 +19,18 @@ interface CRDTRemoteUpdate {
 }
 
 export class PeerStore {
-  public static readonly NAMESPACE = "__crdt_kv";
-  private readonly crdtStore: CRDTKV;
-  private readonly $kv: PreinitializedMapStore<KVStore> & object;
-  private replicaId: string;
-  private sendChannels: Record<string, RTCDataChannel>;
+  public static readonly KV_NAMESPACE = "__crdt_kv";
+  public readonly $kv: PreinitializedMapStore<KVStore> & object;
   public readonly $localStreams:
     & PreinitializedMapStore<Record<string, MediaStream>>
     & object;
   public readonly $remoteStreams:
     & PreinitializedMapStore<Record<string, MediaStream>>
     & object;
+
+  private readonly crdtStore: CRDTKV;
+  private replicaId: string;
+  private sendChannels: Record<string, RTCDataChannel>;
 
   constructor(private peer: Peer) {
     this.crdtStore = {};
@@ -42,14 +43,14 @@ export class PeerStore {
     peer.onsession = (sess) => {
       const id =
         `${sess.other.groupId}:${sess.other.peerId}:${sess.other.connId}`;
-      this.sendChannels[id] = sess.createDataChannel(PeerStore.NAMESPACE, {
+      this.sendChannels[id] = sess.createDataChannel(PeerStore.KV_NAMESPACE, {
         ordered: true,
         maxRetransmits: 3,
       });
 
       sess.ondatachannel = (e) => {
         console.log("debug:ondatachannel", e.channel.label);
-        if (e.channel.label !== PeerStore.NAMESPACE) {
+        if (e.channel.label !== PeerStore.KV_NAMESPACE) {
           return;
         }
 
@@ -101,9 +102,9 @@ export class PeerStore {
       this.set(changedKey, newVal);
     });
 
-    this.$localStreams.listen((newStreams, oldStreams, changedKey) => {
-      // TODO: renegotiate media streams
-    });
+    // this.$localStreams.listen((newStreams, oldStreams, changedKey) => {
+    // TODO: renegotiate media streams
+    // });
   }
 
   async addUserMedia(constraints: MediaStreamConstraints) {
