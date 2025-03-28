@@ -120,7 +120,7 @@ function SessionPage() {
     <div>
       <main className="responsive max grid">
         <VideoContainer
-          className="s6 l3 medium-height"
+          className="s6"
           title={peerStore.$peer.get()?.peerId || ""}
           stream={Object.values(localStreams)[0]}
           loading={false}
@@ -128,7 +128,7 @@ function SessionPage() {
         </VideoContainer>
         {remotePeers.map((remote) => (
           <VideoContainer
-            className="s6 l3 medium-height"
+            className="s6"
             key={remote.info.peerId}
             title={remote.info.peerId}
             stream={remote.$streams.get()[0]}
