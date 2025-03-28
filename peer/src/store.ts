@@ -39,7 +39,6 @@ export class PeerStore {
     & PreinitializedMapStore<Record<string, RemotePeer>>
     & object;
   public readonly $state: PreinitializedWritableAtom<PeerState>;
-  public readonly $muted: PreinitializedWritableAtom<boolean>;
 
   private readonly crdtStore: CRDTKV;
   private replicaId: string;
@@ -51,7 +50,6 @@ export class PeerStore {
     this.$streams = map<Record<string, MediaStream>>({});
     this.$remotePeers = map<Record<string, RemotePeer>>({});
     this.$state = atom("new");
-    this.$muted = atom(false);
     this.sendChannels = {};
     this.replicaId = peer.peerId;
 
@@ -155,17 +153,14 @@ export class PeerStore {
     this.peer.close();
   }
 
-  toggleMute() {
-    const muted = !this.$muted.get();
+  mute(disabled: boolean) {
     const streams = Object.values(this.$streams.get());
 
     for (const stream of streams) {
       for (const track of stream.getAudioTracks()) {
-        track.enabled = muted;
+        track.enabled = !disabled;
       }
     }
-
-    this.$muted.set(muted);
   }
 
   private set(key: Key, value: Value) {
