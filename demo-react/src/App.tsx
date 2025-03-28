@@ -113,14 +113,12 @@ function SessionPage() {
   const localStreams = useStore(peerStore.$streams);
   const remotePeersMap = useStore(peerStore.$remotePeers);
   const remotePeers = Object.values(remotePeersMap);
-  console.log(remotePeers);
-  console.log(Object.values(localStreams)[0]);
 
   return (
     <div>
-      <main className="responsive max grid">
+      <main className="grid">
         <VideoContainer
-          className="s6"
+          className="s3"
           title={peerStore.$peer.get()?.peerId || ""}
           stream={Object.values(localStreams)[0]}
           loading={false}
@@ -128,11 +126,11 @@ function SessionPage() {
         </VideoContainer>
         {remotePeers.map((remote) => (
           <VideoContainer
-            className="s6"
+            className="s3"
             key={remote.info.peerId}
             title={remote.info.peerId}
-            stream={remote.$streams.get()[0]}
-            loading={remote.$state.get() !== "connected"}
+            stream={remote.streams[0]}
+            loading={remote.state !== "connected"}
           >
           </VideoContainer>
         ))}

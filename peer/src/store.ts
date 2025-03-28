@@ -25,8 +25,8 @@ interface CRDTRemoteUpdate {
 
 export interface RemotePeer {
   info: PeerInfo;
-  $streams: PreinitializedWritableAtom<readonly MediaStream[]>;
-  $state: PreinitializedWritableAtom<RTCPeerConnectionState>;
+  streams: readonly MediaStream[];
+  state: RTCPeerConnectionState;
 }
 
 export class PeerStore {
@@ -115,7 +115,10 @@ export class PeerStore {
       sess.ontrack = (ev) => {
         // TODO: find existing and update
         const remotePeer = this.$remotePeers.get()[id];
-        remotePeer.$streams.set(ev.streams);
+        this.$remotePeers.setKey(id, {
+          ...remotePeer,
+          streams: ev.streams,
+        });
       };
 
       sess.onconnectionstatechange = (_ev) => {
@@ -125,7 +128,10 @@ export class PeerStore {
         }
 
         const remotePeer = this.$remotePeers.get()[id];
-        remotePeer.$state.set(sess.connectionState);
+        this.$remotePeers.setKey(id, {
+          ...remotePeer,
+          state: sess.connectionState,
+        });
       };
 
       const localStreams = Object.entries(this.$streams.get());
@@ -137,8 +143,8 @@ export class PeerStore {
 
       this.$remotePeers.setKey(id, {
         info: sess.other,
-        $streams: atom([]),
-        $state: atom(sess.connectionState),
+        streams: atom([]),
+        state: atom(sess.connectionState),
       });
     };
 
