@@ -1,5 +1,10 @@
-import { map, PreinitializedMapStore } from "nanostores";
-import { Peer } from "./peer.ts";
+import {
+  atom,
+  map,
+  PreinitializedMapStore,
+  PreinitializedWritableAtom,
+} from "nanostores";
+import { createPeer, Peer, PeerInfo, PeerOptions } from "./peer.ts";
 
 export type Value = string | number | undefined;
 export type Key = string;
@@ -18,27 +23,60 @@ interface CRDTRemoteUpdate {
   entry: CRDTEntry;
 }
 
+export interface RemotePeer {
+  info: PeerInfo;
+  $streams: PreinitializedWritableAtom<MediaStream[]>;
+  $state: PreinitializedWritableAtom<RTCPeerConnectionState>;
+}
+
 export class PeerStore {
   public static readonly KV_NAMESPACE = "__crdt_kv";
   public readonly $kv: PreinitializedMapStore<KVStore> & object;
   public readonly $localStreams:
     & PreinitializedMapStore<Record<string, MediaStream>>
     & object;
-  public readonly $remoteStreams:
-    & PreinitializedMapStore<Record<string, MediaStream>>
+  public readonly $remotePeers:
+    & PreinitializedMapStore<Record<string, RemotePeer>>
     & object;
+  public readonly $peer: PreinitializedWritableAtom<Peer | null>;
+  public readonly $state;
 
   private readonly crdtStore: CRDTKV;
   private replicaId: string;
   private sendChannels: Record<string, RTCDataChannel>;
+  private peer: Peer | null;
 
-  constructor(private peer: Peer) {
+  constructor() {
     this.crdtStore = {};
     this.$kv = map<KVStore>({});
     this.$localStreams = map<Record<string, MediaStream>>({});
-    this.$remoteStreams = map<Record<string, MediaStream>>({});
+    this.$remotePeers = map<Record<string, RemotePeer>>({});
+    this.$state = atom();
+    this.$peer = atom<Peer | null>(null);
     this.sendChannels = {};
-    this.replicaId = peer.peerId;
+    this.replicaId = "";
+    this.peer = null;
+  }
+
+  async addUserMedia(constraints: MediaStreamConstraints) {
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    this.addMediaStream(stream);
+  }
+
+  async addDisplayMedia(constraints: DisplayMediaStreamOptions) {
+    const stream = await navigator.mediaDevices.getDisplayMedia(constraints);
+    this.addMediaStream(stream);
+  }
+
+  addMediaStream(stream: MediaStream) {
+    this.$localStreams.setKey(stream.id, stream);
+  }
+
+  async start(opts: PeerOptions) {
+    if (this.peer != null) return;
+
+    // TODO: emit error as event
+    const peer = await createPeer(opts);
 
     peer.onsession = (sess) => {
       const id =
@@ -75,11 +113,12 @@ export class PeerStore {
       };
 
       sess.ontrack = (ev) => {
-        for (const stream of ev.streams) {
-          // TODO: better ID scheme, maybe nested?
-          const streamId = `${id}:${stream.id}`;
-          this.$remoteStreams.setKey(streamId, stream);
-        }
+        // TODO: find existing and update
+        this.$remotePeers.setKey(id, {
+          info: sess.other,
+          $streams: atom(ev.streams),
+          $state: atom(sess.connectionState),
+        });
       };
 
       sess.onconnectionstatechange = (_ev) => {
@@ -105,28 +144,14 @@ export class PeerStore {
     // this.$localStreams.listen((newStreams, oldStreams, changedKey) => {
     // TODO: renegotiate media streams
     // });
-  }
 
-  async addUserMedia(constraints: MediaStreamConstraints) {
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    this.addMediaStream(stream);
-  }
-
-  async addDisplayMedia(constraints: DisplayMediaStreamOptions) {
-    const stream = await navigator.mediaDevices.getDisplayMedia(constraints);
-    this.addMediaStream(stream);
-  }
-
-  addMediaStream(stream: MediaStream) {
-    this.$localStreams.setKey(stream.id, stream);
-  }
-
-  start() {
-    this.peer.start();
+    this.$peer.set(peer);
+    this.replicaId = peer.peerId;
+    peer.start();
   }
 
   close() {
-    this.peer.close();
+    this.peer?.close();
   }
 
   private set(key: Key, value: Value) {

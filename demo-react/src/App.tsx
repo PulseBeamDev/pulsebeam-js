@@ -1,20 +1,55 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { usePeerStore } from "./peer.ts";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useSyncURLWithState } from "./util.ts";
+import { PeerStore } from "@pulsebeam/peer";
+import { useStore } from "@nanostores/react";
+
+const PeerContext = createContext<PeerStore | null>(null);
 
 export default function App() {
-  const peer = usePeerStore();
+  const [peer, setPeer] = useState<PeerStore | null>(null);
 
   return (
-    <>
-      {(!peer.localStream || !peer.ref) ? <JoinPage /> : <SessionPage />}
-    </>
+    <PeerContext.Provider value={peer}>
+      {peer === null ? <JoinPage onJoined={setPeer} /> : <SessionPage />}
+    </PeerContext.Provider>
   );
 }
-function JoinPage() {
-  const peer = usePeerStore();
+
+interface JoinPageProps {
+  onJoined: (peer: PeerStore) => void;
+}
+
+function JoinPage(props: JoinPageProps) {
+  const [loading, setLoading] = useState(false);
+  const [baseUrl, setBaseUrl] = useSyncURLWithState("", "baseUrl");
   const [roomId, setRoomId] = useSyncURLWithState("", "roomId");
-  const [peerId, setPeerId] = useState("");
+  const [peerId, setPeerId] = useSyncURLWithState("", "peerId");
+  const peerStoreRef = useRef(new PeerStore());
+  const localStreams = useStore(peerStoreRef.current.$localStreams);
+
+  useEffect(() => {
+    peerStoreRef.current.addUserMedia({
+      video: true,
+      audio: true,
+    });
+  }, []);
+
+  const onJoin = async () => {
+    setLoading(true);
+    try {
+      // See https://pulsebeam.dev/docs/guides/token/#example-nodejs-http-server
+      // For explanation of this token-serving method
+      const resp = await fetch(
+        `/auth?groupId=${roomId}&peerId=${peerId}`,
+      );
+
+      const token = await resp.text();
+      await peerStoreRef.current.start({ token, baseUrl });
+      props.onJoined(peerStoreRef.current);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <article style={{ height: "100vh" }}>
@@ -24,14 +59,14 @@ function JoinPage() {
       >
         <VideoContainer
           className="no-padding"
-          stream={peer.localStream}
+          stream={localStreams["default"]}
           loading={false}
           title={peerId}
         />
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            peer.start(roomId, peerId);
+            onJoin();
           }}
         >
           <nav className="vertical">
@@ -56,12 +91,12 @@ function JoinPage() {
             <button
               className="responsive small-round no-margin"
               type="submit"
-              disabled={!peer.localStream || peer.loading ||
+              disabled={loading ||
                 peerId.length === 0 || roomId.length === 0}
               value="Ready"
               data-testid="btn-ready"
             >
-              {peer.loading
+              {loading
                 ? <progress className="circle small"></progress>
                 : <span>Ready</span>}
             </button>
@@ -73,20 +108,21 @@ function JoinPage() {
 }
 
 function SessionPage() {
-  const peer = usePeerStore();
-  const remoteStreams = Object.entries(peer.sessions);
+  const peerStore = useContext(PeerContext)!;
+  const remotePeersMap = useStore(peerStore.$remotePeers);
+  const remotePeers = Object.entries(remotePeersMap);
 
   return (
     <div>
-      {remoteStreams.length > 1 && (
+      {remotePeers.length > 1 && (
         <nav className="left drawer medium-space">
-          {remoteStreams.slice(1).map(([_, s]) => (
+          {remotePeers.slice(1).map(([id, remote]) => (
             <VideoContainer
-              key={s.key}
+              key={id}
               className="no-padding"
-              title={s.sess.other.peerId}
-              stream={s.remoteStream}
-              loading={s.loading}
+              title={remote.info.peerId}
+              stream={remote.$streams.get()[0]}
+              loading={remote.$state.get() !== "connected"}
             />
           ))}
         </nav>
@@ -95,11 +131,11 @@ function SessionPage() {
       <main className="responsive max grid">
         <VideoContainer
           className="s12 l6 no-padding"
-          stream={peer.localStream}
+          stream={peerStore.$localStreams.get()[0]}
           loading={false}
-          title={peer.peerId}
+          title={peerStore.$peer.get()?.peerId || ""}
         />
-        {remoteStreams.length === 0
+        {remotePeers.length === 0
           ? (
             <div className="s12 l6 no-padding">
               {/* <ConnectForm /> */}
@@ -108,27 +144,27 @@ function SessionPage() {
           : (
             <VideoContainer
               className="s12 l6 no-padding"
-              title={remoteStreams[0][1].sess.other.peerId}
-              stream={remoteStreams[0][1].remoteStream}
-              loading={remoteStreams[0][1].loading}
+              title={remotePeers[0][1].info.peerId}
+              stream={remotePeers[0][1].$streams.get()[0]}
+              loading={remotePeers[0][1].$state.get() !== "connected"}
             />
           )}
       </main>
 
       <nav className="bottom">
-        <button
-          className="secondary small-round"
-          onClick={() => peer.toggleMute()}
-          data-testid="btn-mute"
-        >
-          <i>{peer.isMuted ? "mic_off" : "mic"}</i>
-          {peer.isMuted ? " Unmute" : " Mute"}
-        </button>
+        {/* <button */}
+        {/*   className="secondary small-round" */}
+        {/*   onClick={() => peer.toggleMute()} */}
+        {/*   data-testid="btn-mute" */}
+        {/* > */}
+        {/*   <i>{peer.isMuted ? "mic_off" : "mic"}</i> */}
+        {/*   {peer.isMuted ? " Unmute" : " Mute"} */}
+        {/* </button> */}
 
         <button
           className="error small-round"
           data-testid="btn-endCall"
-          onClick={() => peer.stop()}
+          onClick={() => peerStore.close()}
         >
           <i>call_end</i>
           End Call

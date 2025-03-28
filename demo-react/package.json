@@ -17,6 +17,7 @@
     "preview": "NODE_OPTIONS='--experimental-wasm-modules' vite preview"
   },
   "dependencies": {
+    "@nanostores/react": "^0.8.4",
     "@pulsebeam/demo-server": "^1.0.0",
     "@pulsebeam/peer": "*",
     "@pulsebeam/server": "^0.0.29",
