@@ -25,7 +25,8 @@ function JoinPage(props: JoinPageProps) {
   const [roomId, setRoomId] = useSyncURLWithState("", "roomId");
   const [peerId, setPeerId] = useSyncURLWithState("", "peerId");
   const peerStoreRef = useRef(new PeerStore());
-  const localStreams = useStore(peerStoreRef.current.$localStreams);
+  const defaultStream =
+    Object.values(useStore(peerStoreRef.current.$streams))[0];
 
   useEffect(() => {
     peerStoreRef.current.addUserMedia({
@@ -59,7 +60,7 @@ function JoinPage(props: JoinPageProps) {
       >
         <VideoContainer
           className="no-padding"
-          stream={localStreams["default"]}
+          stream={defaultStream}
           loading={false}
           title={peerId}
         />
@@ -110,45 +111,29 @@ function JoinPage(props: JoinPageProps) {
 function SessionPage() {
   const peerStore = useContext(PeerContext)!;
   const remotePeersMap = useStore(peerStore.$remotePeers);
-  const remotePeers = Object.entries(remotePeersMap);
+  const remotePeers = Object.values(remotePeersMap);
+  console.log(remotePeers);
 
   return (
     <div>
-      {remotePeers.length > 1 && (
-        <nav className="left drawer medium-space">
-          {remotePeers.slice(1).map(([id, remote]) => (
-            <VideoContainer
-              key={id}
-              className="no-padding"
-              title={remote.info.peerId}
-              stream={remote.$streams.get()[0]}
-              loading={remote.$state.get() !== "connected"}
-            />
-          ))}
-        </nav>
-      )}
-
       <main className="responsive max grid">
         <VideoContainer
-          className="s12 l6 no-padding"
-          stream={peerStore.$localStreams.get()[0]}
-          loading={false}
+          className="s6 l3 medium-height"
           title={peerStore.$peer.get()?.peerId || ""}
-        />
-        {remotePeers.length === 0
-          ? (
-            <div className="s12 l6 no-padding">
-              {/* <ConnectForm /> */}
-            </div>
-          )
-          : (
-            <VideoContainer
-              className="s12 l6 no-padding"
-              title={remotePeers[0][1].info.peerId}
-              stream={remotePeers[0][1].$streams.get()[0]}
-              loading={remotePeers[0][1].$state.get() !== "connected"}
-            />
-          )}
+          stream={peerStore.$streams.get()[0]}
+          loading={false}
+        >
+        </VideoContainer>
+        {remotePeers.map((remote) => (
+          <VideoContainer
+            className="s6 l3 medium-height"
+            key={remote.info.peerId}
+            title={remote.info.peerId}
+            stream={remote.$streams.get()[0]}
+            loading={remote.$state.get() !== "connected"}
+          >
+          </VideoContainer>
+        ))}
       </main>
 
       <nav className="bottom">

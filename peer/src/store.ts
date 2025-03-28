@@ -25,14 +25,14 @@ interface CRDTRemoteUpdate {
 
 export interface RemotePeer {
   info: PeerInfo;
-  $streams: PreinitializedWritableAtom<MediaStream[]>;
+  $streams: PreinitializedWritableAtom<readonly MediaStream[]>;
   $state: PreinitializedWritableAtom<RTCPeerConnectionState>;
 }
 
 export class PeerStore {
   public static readonly KV_NAMESPACE = "__crdt_kv";
   public readonly $kv: PreinitializedMapStore<KVStore> & object;
-  public readonly $localStreams:
+  public readonly $streams:
     & PreinitializedMapStore<Record<string, MediaStream>>
     & object;
   public readonly $remotePeers:
@@ -49,7 +49,7 @@ export class PeerStore {
   constructor() {
     this.crdtStore = {};
     this.$kv = map<KVStore>({});
-    this.$localStreams = map<Record<string, MediaStream>>({});
+    this.$streams = map<Record<string, MediaStream>>({});
     this.$remotePeers = map<Record<string, RemotePeer>>({});
     this.$state = atom();
     this.$peer = atom<Peer | null>(null);
@@ -69,7 +69,7 @@ export class PeerStore {
   }
 
   addMediaStream(stream: MediaStream) {
-    this.$localStreams.setKey(stream.id, stream);
+    this.$streams.setKey(stream.id, stream);
   }
 
   async start(opts: PeerOptions) {
@@ -114,11 +114,8 @@ export class PeerStore {
 
       sess.ontrack = (ev) => {
         // TODO: find existing and update
-        this.$remotePeers.setKey(id, {
-          info: sess.other,
-          $streams: atom(ev.streams),
-          $state: atom(sess.connectionState),
-        });
+        const remotePeer = this.$remotePeers.get()[id];
+        remotePeer.$streams.set(ev.streams);
       };
 
       sess.onconnectionstatechange = (_ev) => {
@@ -126,14 +123,23 @@ export class PeerStore {
           delete this.sendChannels[id];
           console.log(`connection failed, removed ${id}`);
         }
+
+        const remotePeer = this.$remotePeers.get()[id];
+        remotePeer.$state.set(sess.connectionState);
       };
 
-      const localStreams = Object.entries(this.$localStreams.get());
+      const localStreams = Object.entries(this.$streams.get());
       for (const [_id, stream] of localStreams) {
         for (const track of stream.getTracks()) {
           sess.addTrack(track, stream);
         }
       }
+
+      this.$remotePeers.setKey(id, {
+        info: sess.other,
+        $streams: atom([]),
+        $state: atom(sess.connectionState),
+      });
     };
 
     this.$kv.listen((newKV, _oldKV, changedKey) => {
