@@ -18,30 +18,38 @@ interface CRDTRemoteUpdate {
   entry: CRDTEntry;
 }
 
-export class Portal {
+export class PeerStore {
   public static readonly NAMESPACE = "__crdt_kv";
   private readonly crdtStore: CRDTKV;
-  private readonly store: PreinitializedMapStore<KVStore> & object;
+  private readonly $kv: PreinitializedMapStore<KVStore> & object;
   private replicaId: string;
-
   private sendChannels: Record<string, RTCDataChannel>;
+  public readonly $localStreams:
+    & PreinitializedMapStore<Record<string, MediaStream>>
+    & object;
+  public readonly $remoteStreams:
+    & PreinitializedMapStore<Record<string, MediaStream>>
+    & object;
 
   constructor(private peer: Peer) {
     this.crdtStore = {};
-    this.store = map<KVStore>({});
+    this.$kv = map<KVStore>({});
+    this.$localStreams = map<Record<string, MediaStream>>({});
+    this.$remoteStreams = map<Record<string, MediaStream>>({});
     this.sendChannels = {};
     this.replicaId = peer.peerId;
 
-    peer.onsession = (s) => {
-      const id = `${s.other.groupId}:${s.other.peerId}:${s.other.connId}`;
-      this.sendChannels[id] = s.createDataChannel(Portal.NAMESPACE, {
+    peer.onsession = (sess) => {
+      const id =
+        `${sess.other.groupId}:${sess.other.peerId}:${sess.other.connId}`;
+      this.sendChannels[id] = sess.createDataChannel(PeerStore.NAMESPACE, {
         ordered: true,
         maxRetransmits: 3,
       });
 
-      s.ondatachannel = (e) => {
+      sess.ondatachannel = (e) => {
         console.log("debug:ondatachannel", e.channel.label);
-        if (e.channel.label !== Portal.NAMESPACE) {
+        if (e.channel.label !== PeerStore.NAMESPACE) {
           return;
         }
 
@@ -65,18 +73,51 @@ export class Portal {
         };
       };
 
-      s.onconnectionstatechange = (_ev) => {
-        if (s.connectionState === "failed") {
+      sess.ontrack = (ev) => {
+        for (const stream of ev.streams) {
+          // TODO: better ID scheme, maybe nested?
+          const streamId = `${id}:${stream.id}`;
+          this.$remoteStreams.setKey(streamId, stream);
+        }
+      };
+
+      sess.onconnectionstatechange = (_ev) => {
+        if (sess.connectionState === "failed") {
           delete this.sendChannels[id];
           console.log(`connection failed, removed ${id}`);
         }
       };
+
+      const localStreams = Object.entries(this.$localStreams.get());
+      for (const [_id, stream] of localStreams) {
+        for (const track of stream.getTracks()) {
+          sess.addTrack(track, stream);
+        }
+      }
     };
 
-    this.store.listen((newKV, _oldKV, changedKey) => {
+    this.$kv.listen((newKV, _oldKV, changedKey) => {
       const newVal = newKV[changedKey];
       this.set(changedKey, newVal);
     });
+
+    this.$localStreams.listen((newStreams, oldStreams, changedKey) => {
+      // TODO: renegotiate media streams
+    });
+  }
+
+  async addUserMedia(constraints: MediaStreamConstraints) {
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    this.addMediaStream(stream);
+  }
+
+  async addDisplayMedia(constraints: DisplayMediaStreamOptions) {
+    const stream = await navigator.mediaDevices.getDisplayMedia(constraints);
+    this.addMediaStream(stream);
+  }
+
+  addMediaStream(stream: MediaStream) {
+    this.$localStreams.setKey(stream.id, stream);
   }
 
   start() {
@@ -85,10 +126,6 @@ export class Portal {
 
   close() {
     this.peer.close();
-  }
-
-  get $store(): PreinitializedMapStore<KVStore> & object {
-    return this.store;
   }
 
   private set(key: Key, value: Value) {
@@ -129,14 +166,14 @@ export class Portal {
       !currentEntry
     ) {
       this.crdtStore[key] = remoteEntry;
-      this.store.setKey(key, remoteEntry.value);
+      this.$kv.setKey(key, remoteEntry.value);
       console.log(
         "debug:received_update accepted (resolution=empty)",
         remoteEntry,
       );
     } else if (remoteEntry.timestamp > currentEntry.timestamp) {
       this.crdtStore[key] = remoteEntry;
-      this.store.setKey(key, remoteEntry.value);
+      this.$kv.setKey(key, remoteEntry.value);
       console.log(
         "debug:received_update accepted (resolution=older)",
         remoteEntry,
@@ -146,7 +183,7 @@ export class Portal {
       remoteEntry.replicaId > this.replicaId
     ) {
       this.crdtStore[key] = remoteEntry;
-      this.store.setKey(key, remoteEntry.value);
+      this.$kv.setKey(key, remoteEntry.value);
       console.log(
         "debug:received_update accepted (resolution=replicaId)",
         remoteEntry,

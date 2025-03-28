@@ -1,4 +1,4 @@
-import { createPeer, Portal } from "./lib.ts";
+import { createPeer, PeerStore } from "./lib.ts";
 
 (async () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -17,7 +17,7 @@ import { createPeer, Portal } from "./lib.ts";
     baseUrl: baseUrl || undefined,
     token,
   });
-  const portal = new Portal(peer);
+  const portal = new PeerStore(peer);
 
   const textDOM = document.getElementById("text")! as HTMLInputElement;
   const formDOM = document.getElementById("form")! as HTMLFormElement;
