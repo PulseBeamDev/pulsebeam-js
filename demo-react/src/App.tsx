@@ -119,6 +119,7 @@ function JoinPage(props: JoinPageProps) {
 function SessionPage() {
   const peerStore = useContext(PeerContext)!;
   const localStreams = useStore(peerStore.$streams);
+  const muted = useStore(peerStore.$muted);
   const remotePeersMap = useStore(peerStore.$remotePeers);
   const remotePeers = Object.values(remotePeersMap);
 
@@ -145,14 +146,14 @@ function SessionPage() {
       </main>
 
       <nav className="bottom">
-        {/* <button */}
-        {/*   className="secondary small-round" */}
-        {/*   onClick={() => peer.toggleMute()} */}
-        {/*   data-testid="btn-mute" */}
-        {/* > */}
-        {/*   <i>{peer.isMuted ? "mic_off" : "mic"}</i> */}
-        {/*   {peer.isMuted ? " Unmute" : " Mute"} */}
-        {/* </button> */}
+        <button
+          className="secondary small-round"
+          onClick={() => peerStore.toggleMute()}
+          data-testid="btn-mute"
+        >
+          <i>{muted ? "mic_off" : "mic"}</i>
+          {muted ? " Unmute" : " Mute"}
+        </button>
 
         <button
           className="error small-round"
