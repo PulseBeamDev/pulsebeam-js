@@ -1,12 +1,14 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useSyncURLWithState } from "./util.ts";
-import { PeerStore } from "@pulsebeam/peer";
+import { createPeer, PeerStore } from "@pulsebeam/peer";
 import { useStore } from "@nanostores/react";
 
 const PeerContext = createContext<PeerStore | null>(null);
 
 export default function App() {
   const [peer, setPeer] = useState<PeerStore | null>(null);
+  // useStore(peer.$state);
+  // const uninitialized = peer === null || peer.$state;
 
   return (
     <PeerContext.Provider value={peer}>
@@ -24,18 +26,22 @@ function JoinPage(props: JoinPageProps) {
   const [baseUrl, setBaseUrl] = useSyncURLWithState("", "baseUrl");
   const [roomId, setRoomId] = useSyncURLWithState("", "roomId");
   const [peerId, setPeerId] = useSyncURLWithState("", "peerId");
-  const peerStoreRef = useRef(new PeerStore());
-  const defaultStream =
-    Object.values(useStore(peerStoreRef.current.$streams))[0];
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
   useEffect(() => {
-    peerStoreRef.current.addUserMedia({
-      video: true,
-      audio: true,
-    });
+    (async () => {
+      const localStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+
+      setStream(localStream);
+    })();
   }, []);
 
   const onJoin = async () => {
+    if (!stream) return;
+
     setLoading(true);
     try {
       // See https://pulsebeam.dev/docs/guides/token/#example-nodejs-http-server
@@ -45,8 +51,10 @@ function JoinPage(props: JoinPageProps) {
       );
 
       const token = await resp.text();
-      await peerStoreRef.current.start({ token, baseUrl });
-      props.onJoined(peerStoreRef.current);
+      const peer = await createPeer({ token, baseUrl });
+      const peerStore = new PeerStore(peer);
+      peerStore.addMediaStream("default", stream);
+      props.onJoined(peerStore);
     } finally {
       setLoading(false);
     }
@@ -60,7 +68,7 @@ function JoinPage(props: JoinPageProps) {
       >
         <VideoContainer
           className="no-padding"
-          stream={defaultStream}
+          stream={stream}
           loading={false}
           title={peerId}
         />
@@ -119,8 +127,8 @@ function SessionPage() {
       <main className="grid">
         <VideoContainer
           className="s3"
-          title={peerStore.$peer.get()?.peerId || ""}
-          stream={Object.values(localStreams)[0]}
+          title={peerStore.peer.peerId || ""}
+          stream={localStreams["default"]}
           loading={false}
         >
         </VideoContainer>

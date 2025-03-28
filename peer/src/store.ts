@@ -4,7 +4,7 @@ import {
   PreinitializedMapStore,
   PreinitializedWritableAtom,
 } from "nanostores";
-import { createPeer, Peer, PeerInfo, PeerOptions } from "./peer.ts";
+import { Peer, PeerInfo, PeerState } from "./peer.ts";
 
 export type Value = string | number | undefined;
 export type Key = string;
@@ -38,45 +38,24 @@ export class PeerStore {
   public readonly $remotePeers:
     & PreinitializedMapStore<Record<string, RemotePeer>>
     & object;
-  public readonly $peer: PreinitializedWritableAtom<Peer | null>;
-  public readonly $state;
+  public readonly $state: PreinitializedWritableAtom<PeerState>;
 
   private readonly crdtStore: CRDTKV;
   private replicaId: string;
   private sendChannels: Record<string, RTCDataChannel>;
-  private peer: Peer | null;
 
-  constructor() {
+  constructor(public readonly peer: Peer) {
     this.crdtStore = {};
     this.$kv = map<KVStore>({});
     this.$streams = map<Record<string, MediaStream>>({});
     this.$remotePeers = map<Record<string, RemotePeer>>({});
-    this.$state = atom();
-    this.$peer = atom<Peer | null>(null);
+    this.$state = atom("new");
     this.sendChannels = {};
-    this.replicaId = "";
-    this.peer = null;
-  }
+    this.replicaId = peer.peerId;
 
-  async addUserMedia(constraints: MediaStreamConstraints) {
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    this.addMediaStream(stream);
-  }
-
-  async addDisplayMedia(constraints: DisplayMediaStreamOptions) {
-    const stream = await navigator.mediaDevices.getDisplayMedia(constraints);
-    this.addMediaStream(stream);
-  }
-
-  addMediaStream(stream: MediaStream) {
-    this.$streams.setKey(stream.id, stream);
-  }
-
-  async start(opts: PeerOptions) {
-    if (this.peer != null) return;
-
-    // TODO: emit error as event
-    const peer = await createPeer(opts);
+    peer.onstatechange = () => {
+      this.$state.set(peer.state);
+    };
 
     peer.onsession = (sess) => {
       const id =
@@ -122,6 +101,13 @@ export class PeerStore {
       };
 
       sess.onconnectionstatechange = (_ev) => {
+        if (sess.connectionState === "closed") {
+          const current = this.$remotePeers.get();
+          delete current[id];
+          this.$remotePeers.set({ ...current });
+          return;
+        }
+
         if (sess.connectionState === "failed") {
           delete this.sendChannels[id];
           console.log(`connection failed, removed ${id}`);
@@ -156,14 +142,15 @@ export class PeerStore {
     // this.$localStreams.listen((newStreams, oldStreams, changedKey) => {
     // TODO: renegotiate media streams
     // });
+    this.peer.start();
+  }
 
-    this.$peer.set(peer);
-    this.replicaId = peer.peerId;
-    peer.start();
+  addMediaStream(id: string, stream: MediaStream) {
+    this.$streams.setKey(id, stream);
   }
 
   close() {
-    this.peer?.close();
+    this.peer.close();
   }
 
   private set(key: Key, value: Value) {
