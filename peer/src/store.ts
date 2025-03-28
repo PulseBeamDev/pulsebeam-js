@@ -1,8 +1,10 @@
 import {
   atom,
+  computed,
   map,
   PreinitializedMapStore,
   PreinitializedWritableAtom,
+  ReadableAtom,
 } from "nanostores";
 import { Peer, PeerInfo, PeerState } from "./peer.ts";
 
@@ -35,11 +37,14 @@ export class PeerStore {
   public readonly $streams:
     & PreinitializedMapStore<Record<string, MediaStream>>
     & object;
-  public readonly $remotePeers:
+
+  public readonly $remotePeers: ReadableAtom<Record<string, RemotePeer>>;
+  public readonly $state: ReadableAtom<PeerState>;
+
+  private readonly $_remotePeers:
     & PreinitializedMapStore<Record<string, RemotePeer>>
     & object;
-  public readonly $state: PreinitializedWritableAtom<PeerState>;
-
+  private readonly $_state: PreinitializedWritableAtom<PeerState>;
   private readonly crdtStore: CRDTKV;
   private replicaId: string;
   private sendChannels: Record<string, RTCDataChannel>;
@@ -48,13 +53,15 @@ export class PeerStore {
     this.crdtStore = {};
     this.$kv = map<KVStore>({});
     this.$streams = map<Record<string, MediaStream>>({});
-    this.$remotePeers = map<Record<string, RemotePeer>>({});
-    this.$state = atom("new");
+    this.$_remotePeers = map<Record<string, RemotePeer>>({});
+    this.$remotePeers = computed(this.$_remotePeers, (v) => v);
+    this.$_state = atom("new");
+    this.$state = computed(this.$_state, (v) => v);
     this.sendChannels = {};
     this.replicaId = peer.peerId;
 
     peer.onstatechange = () => {
-      this.$state.set(peer.state);
+      this.$_state.set(peer.state);
     };
 
     peer.onsession = (sess) => {
@@ -93,8 +100,8 @@ export class PeerStore {
 
       sess.ontrack = (ev) => {
         // TODO: find existing and update
-        const remotePeer = this.$remotePeers.get()[id];
-        this.$remotePeers.setKey(id, {
+        const remotePeer = this.$_remotePeers.get()[id];
+        this.$_remotePeers.setKey(id, {
           ...remotePeer,
           streams: ev.streams,
         });
@@ -102,9 +109,9 @@ export class PeerStore {
 
       sess.onconnectionstatechange = (_ev) => {
         if (sess.connectionState === "closed") {
-          const current = this.$remotePeers.get();
+          const current = this.$_remotePeers.get();
           delete current[id];
-          this.$remotePeers.set({ ...current });
+          this.$_remotePeers.set({ ...current });
           return;
         }
 
@@ -113,8 +120,8 @@ export class PeerStore {
           console.log(`connection failed, removed ${id}`);
         }
 
-        const remotePeer = this.$remotePeers.get()[id];
-        this.$remotePeers.setKey(id, {
+        const remotePeer = this.$_remotePeers.get()[id];
+        this.$_remotePeers.setKey(id, {
           ...remotePeer,
           state: sess.connectionState,
         });
@@ -127,7 +134,7 @@ export class PeerStore {
         }
       }
 
-      this.$remotePeers.setKey(id, {
+      this.$_remotePeers.setKey(id, {
         info: sess.other,
         streams: atom([]),
         state: atom(sess.connectionState),
@@ -143,10 +150,6 @@ export class PeerStore {
     // TODO: renegotiate media streams
     // });
     this.peer.start();
-  }
-
-  addMediaStream(id: string, stream: MediaStream) {
-    this.$streams.setKey(id, stream);
   }
 
   close() {

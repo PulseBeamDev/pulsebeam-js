@@ -53,7 +53,7 @@ function JoinPage(props: JoinPageProps) {
       const token = await resp.text();
       const peer = await createPeer({ token, baseUrl });
       const peerStore = new PeerStore(peer);
-      peerStore.addMediaStream("default", stream);
+      peerStore.$streams.setKey("default", stream);
       props.onJoined(peerStore);
     } finally {
       setLoading(false);
