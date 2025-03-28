@@ -110,9 +110,11 @@ function JoinPage(props: JoinPageProps) {
 
 function SessionPage() {
   const peerStore = useContext(PeerContext)!;
+  const localStreams = useStore(peerStore.$streams);
   const remotePeersMap = useStore(peerStore.$remotePeers);
   const remotePeers = Object.values(remotePeersMap);
   console.log(remotePeers);
+  console.log(Object.values(localStreams)[0]);
 
   return (
     <div>
@@ -120,7 +122,7 @@ function SessionPage() {
         <VideoContainer
           className="s6 l3 medium-height"
           title={peerStore.$peer.get()?.peerId || ""}
-          stream={peerStore.$streams.get()[0]}
+          stream={Object.values(localStreams)[0]}
           loading={false}
         >
         </VideoContainer>
