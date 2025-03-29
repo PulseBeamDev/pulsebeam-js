@@ -50,6 +50,25 @@ function fromSDPType(t: RTCSdpType): SdpKind {
       throw new Error(`unexpected sdp type: ${t}`);
   }
 }
+
+function setCodecPreferences(transceiver: RTCRtpTransceiver) {
+  if (transceiver.receiver.track.kind !== "video") {
+    return;
+  }
+
+  // https://developer.mozilla.org/en-US/docs/Web/API/RTCRtpTransceiver/setCodecPreferences
+  const preferredOrder = ["video/AV1", "video/VP9", "video/VP8", "video/H264"];
+  const codecs = RTCRtpReceiver.getCapabilities("video")?.codecs || [];
+  const preferences = codecs.sort((a, b) => {
+    const indexA = preferredOrder.indexOf(a.mimeType);
+    const indexB = preferredOrder.indexOf(b.mimeType);
+    const orderA = indexA >= 0 ? indexA : Number.MAX_VALUE;
+    const orderB = indexB >= 0 ? indexB : Number.MAX_VALUE;
+    return orderA - orderB;
+  });
+  transceiver.setCodecPreferences(preferences);
+}
+
 /**
  * The Session class is a wrapper around RTCPeerConnection designed to manage
  *  WebRTC connections, signaling, and ICE candidates. It handles negotiation,
@@ -290,7 +309,8 @@ export class Session {
       try {
         this.makingOffer = true;
         this.logger.debug("creating an offer");
-        await this.pc.setLocalDescription();
+
+        await this.setLocalDescription();
         if (!this.pc.localDescription) {
           throw new Error("expect localDescription to be not empty");
         }
@@ -374,6 +394,30 @@ export class Session {
       // @ts-ignore: proxy to RTCPeerConnection
       this.onconnectionstatechange(ev);
     }
+  }
+
+  private async setLocalDescription() {
+    const transceivers = this.pc.getTransceivers();
+    for (const trans of transceivers) {
+      setCodecPreferences(trans);
+    }
+
+    for (const sender of this.pc.getSenders()) {
+      if (sender.track?.kind !== "video") {
+        continue;
+      }
+
+      // https://developer.mozilla.org/en-US/docs/Web/API/RTCRtpSender/setParameters
+      const parameters = sender.getParameters();
+      if (!parameters.encodings || parameters.encodings.length === 0) {
+        parameters.encodings = [{}]; // Initialize if empty
+      }
+
+      parameters.encodings[0].maxBitrate = 550 * 1000;
+      await sender.setParameters(parameters);
+    }
+
+    await this.pc.setLocalDescription();
   }
 
   private triggerIceRestart = () => {
@@ -461,7 +505,7 @@ export class Session {
       sdp: sdp.sdp,
     });
     if (sdp.kind === SdpKind.OFFER) {
-      await this.pc.setLocalDescription();
+      await this.setLocalDescription();
       if (!this.pc.localDescription) {
         this.logger.error("unexpected null local description");
         return;
