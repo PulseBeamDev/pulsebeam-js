@@ -129,42 +129,47 @@ function SessionPage() {
   const remotePeersMap = useStore(peerStore.$remotePeers);
   const remotePeers = Object.values(remotePeersMap);
   const [muted, setMuted] = useState(false);
+  const [hideChat, setHideChat] = useState(false);
 
   return (
     <div>
       <nav className="bottom">
         <button
-          className="secondary small-round"
+          className="circle transparent"
           onClick={() => {
             peerStore.mute(!muted);
             setMuted(!muted);
           }}
           data-testid="btn-mute"
         >
-          <i>{muted ? "mic_off" : "mic"}</i>
-          {muted ? " Unmute" : " Mute"}
+          <i className="large">{muted ? "mic_off" : "mic"}</i>
         </button>
 
         <button
-          className="error small-round"
+          className="circle transparent"
+          onClick={() => setHideChat(!hideChat)}
+        >
+          <i className="large">chat</i>
+        </button>
+
+        <button
+          className="error"
           data-testid="btn-endCall"
           onClick={() => peerStore.close()}
         >
-          <i>call_end</i>
-          End Call
+          <i className="large">call_end</i>
         </button>
 
         <a
           target="_blank"
-          className="button secondary-container secondary-text small-round"
+          className="button"
           href="https://github.com/PulseBeamDev/pulsebeam-js/tree/main/demo-react"
         >
-          <i>code</i>
-          Source Code
+          <i className="large">code</i>
         </a>
       </nav>
 
-      <ChatDialog />
+      <ChatDialog hidden={hideChat} />
 
       <main className="grid">
         <VideoContainer
@@ -189,7 +194,11 @@ function SessionPage() {
   );
 }
 
-function ChatDialog() {
+interface ChatDialogProps {
+  hidden: boolean;
+}
+
+function ChatDialog(props: ChatDialogProps) {
   const peerStore = useContext(PeerContext)!;
   const [text, setText] = useState("");
   const history = useStore(peerStore.$kv);
@@ -206,7 +215,7 @@ function ChatDialog() {
   };
 
   return (
-    <dialog className="right active vertical">
+    <dialog className={`right vertical ${props.hidden || "active"}`}>
       <h5>Chat</h5>
 
       <nav className="vertical scroll" style={{ height: "100%" }}>
