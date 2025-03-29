@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  FormEvent,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useSyncURLWithState } from "./util.ts";
 import { createPeer, PeerStore } from "@pulsebeam/peer";
 import { useStore } from "@nanostores/react";
@@ -125,26 +132,6 @@ function SessionPage() {
 
   return (
     <div>
-      <main className="grid">
-        <VideoContainer
-          className="s3"
-          title={peerStore.peer.peerId || ""}
-          stream={localStreams["default"]}
-          loading={false}
-        >
-        </VideoContainer>
-        {remotePeers.map((remote) => (
-          <VideoContainer
-            className="s3"
-            key={remote.info.peerId}
-            title={remote.info.peerId}
-            stream={remote.streams[0]}
-            loading={remote.state !== "connected"}
-          >
-          </VideoContainer>
-        ))}
-      </main>
-
       <nav className="bottom">
         <button
           className="secondary small-round"
@@ -176,7 +163,86 @@ function SessionPage() {
           Source Code
         </a>
       </nav>
+
+      <ChatDialog />
+
+      <main className="grid">
+        <VideoContainer
+          className="s3"
+          title={peerStore.peer.peerId || ""}
+          stream={localStreams["default"]}
+          loading={false}
+        >
+        </VideoContainer>
+        {remotePeers.map((remote) => (
+          <VideoContainer
+            className="s3"
+            key={remote.info.peerId}
+            title={remote.info.peerId}
+            stream={remote.streams[0]}
+            loading={remote.state !== "connected"}
+          >
+          </VideoContainer>
+        ))}
+      </main>
     </div>
+  );
+}
+
+function ChatDialog() {
+  const peerStore = useContext(PeerContext)!;
+  const [text, setText] = useState("");
+  const history = useStore(peerStore.$kv);
+  const sortedHistory = Object.entries(history).sort((a, b) =>
+    a[0].localeCompare(b[0])
+  );
+
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+
+    const key = `${Date.now()}:${peerStore.peer.peerId}`;
+    peerStore.$kv.setKey(key, text);
+    setText("");
+  };
+
+  return (
+    <dialog className="right active vertical">
+      <h5>Chat</h5>
+
+      <nav className="vertical scroll" style={{ height: "100%" }}>
+        {sortedHistory.map(([key, text]) => {
+          const [ts, peerId] = key.split(":");
+          const date = new Date(Number.parseInt(ts));
+
+          return (
+            <nav>
+              <button className="circle capitalize">
+                {peerId.substring(0, 1)}
+              </button>
+              <div className="max">
+                <h6 className="small">{peerId}</h6>
+                <div>{text}</div>
+
+                <label>{date.toLocaleTimeString()}</label>
+              </div>
+            </nav>
+          );
+        })}
+      </nav>
+
+      <nav>
+        <form className="field round fill row" onSubmit={onSubmit}>
+          <input onChange={(e) => setText(e.target.value)} value={text} />
+          <button
+            type="submit"
+            className="transparent circle"
+            disabled={text === ""}
+          >
+            <i className="front">send</i>
+          </button>
+        </form>
+      </nav>
+    </dialog>
   );
 }
 
