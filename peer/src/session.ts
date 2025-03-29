@@ -413,7 +413,7 @@ export class Session {
         parameters.encodings = [{}]; // Initialize if empty
       }
 
-      parameters.encodings[0].maxBitrate = 550 * 1000;
+      parameters.encodings[0].maxBitrate = 400 * 1000;
       await sender.setParameters(parameters);
     }
 
