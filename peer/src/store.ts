@@ -67,9 +67,9 @@ export class PeerStore {
     peer.onsession = (sess) => {
       const id =
         `${sess.other.groupId}:${sess.other.peerId}:${sess.other.connId}`;
+      // https://stackoverflow.com/questions/54292824/webrtc-channel-reliability
       this.sendChannels[id] = sess.createDataChannel(PeerStore.KV_NAMESPACE, {
         ordered: true,
-        maxRetransmits: 3,
       });
 
       sess.ondatachannel = (e) => {
