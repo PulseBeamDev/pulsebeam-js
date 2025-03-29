@@ -229,7 +229,7 @@ function ChatDialog(props: ChatDialogProps) {
                 {peerId.substring(0, 1)}
               </button>
               <div className="max">
-                <h6 className="small">{peerId}</h6>
+                <h6>{peerId}</h6>
                 <div>{text}</div>
 
                 <label>{date.toLocaleTimeString()}</label>
