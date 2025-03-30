@@ -55,6 +55,7 @@ function JoinPage(props: JoinPageProps) {
           video: true,
           audio: true,
         });
+        localStream.getAudioTracks().forEach((t) => t.enabled = false);
       }
 
       setStream(localStream);
@@ -181,7 +182,7 @@ function SessionPage(props: SessionPageProps) {
   const peerStore = useContext(PeerContext)!;
   const localStreams = useStore(peerStore.$streams);
   const remotePeersMap = useStore(peerStore.$remotePeers);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(true);
   const [hideChat, setHideChat] = useState(false);
   const [screenShare, setScreenShare] = useState(false);
   const state = useStore(peerStore.$state);
@@ -227,7 +228,7 @@ function SessionPage(props: SessionPageProps) {
         </button>
 
         <button
-          className={`circle transparent ${screenShare && "primary"}`}
+          className="circle transparent"
           onClick={() => setScreenShare(!screenShare)}
         >
           <i className="large">present_to_all</i>
@@ -252,9 +253,12 @@ function SessionPage(props: SessionPageProps) {
 
       <ChatDialog hidden={hideChat} />
 
-      <main className="grid">
+      <main
+        className="grid responsive no-padding space"
+        style={{ gridTemplateRows: "1fr 1fr" }}
+      >
         <VideoContainer
-          className="s3"
+          className="s6 no-padding"
           title={peerStore.peer.peerId || ""}
           stream={localStreams["camera"] || null}
           loading={false}
@@ -263,7 +267,7 @@ function SessionPage(props: SessionPageProps) {
         {localStreams["screen"] &&
           (
             <VideoContainer
-              className="s3"
+              className="s6 no-padding"
               title={peerStore.peer.peerId || ""}
               stream={localStreams["screen"]}
               loading={false}
@@ -272,7 +276,7 @@ function SessionPage(props: SessionPageProps) {
         {remotePeers.map((remote) => (
           remote.streams.map((stream) => (
             <VideoContainer
-              className="s3"
+              className="s6 no-padding"
               key={stream.id}
               title={remote.info.peerId}
               stream={stream}
