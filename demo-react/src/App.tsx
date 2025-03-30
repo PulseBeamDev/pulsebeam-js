@@ -9,17 +9,19 @@ import {
 import { useSyncURLWithState } from "./util.ts";
 import { createPeer, PeerStore } from "@pulsebeam/peer";
 import { useStore } from "@nanostores/react";
+// @ts-ignore: no type
+import GetUserMediaMock from "@theopenweb/get-user-media-mock";
 
 const PeerContext = createContext<PeerStore | null>(null);
 
 export default function App() {
   const [peer, setPeer] = useState<PeerStore | null>(null);
-  // useStore(peer.$state);
-  // const uninitialized = peer === null || peer.$state;
 
   return (
     <PeerContext.Provider value={peer}>
-      {peer === null ? <JoinPage onJoined={setPeer} /> : <SessionPage />}
+      {peer === null
+        ? <JoinPage onJoined={setPeer} />
+        : <SessionPage onClosed={() => setPeer(null)} />}
     </PeerContext.Provider>
   );
 }
@@ -30,21 +32,35 @@ interface JoinPageProps {
 
 function JoinPage(props: JoinPageProps) {
   const [loading, setLoading] = useState(false);
-  const [baseUrl, setBaseUrl] = useSyncURLWithState("", "baseUrl");
+  const [streamLoading, setStreamLoading] = useState(false);
+  const [baseUrl, setBaseUrl] = useSyncURLWithState(
+    "https://cloud.pulsebeam.dev/grpc",
+    "baseUrl",
+  );
   const [roomId, setRoomId] = useSyncURLWithState("", "roomId");
   const [peerId, setPeerId] = useSyncURLWithState("", "peerId");
+  const [forceRelay, setForceRelay] = useSyncURLWithState("off", "forceRelay");
+  const [mock, setMock] = useSyncURLWithState("off", "mock");
   const [stream, setStream] = useState<MediaStream | null>(null);
 
   useEffect(() => {
     (async () => {
-      const localStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
+      setStreamLoading(true);
+      let localStream;
+      if (mock === "on") {
+        const mediaMock = new GetUserMediaMock();
+        localStream = await mediaMock.getMockCanvasStream({ video: true });
+      } else {
+        localStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
+      }
 
       setStream(localStream);
+      setStreamLoading(false);
     })();
-  }, []);
+  }, [mock]);
 
   const onJoin = async () => {
     if (!stream) return;
@@ -58,7 +74,11 @@ function JoinPage(props: JoinPageProps) {
       );
 
       const token = await resp.text();
-      const peer = await createPeer({ token, baseUrl });
+      const peer = await createPeer({
+        token,
+        forceRelay: forceRelay === "on",
+        baseUrl: baseUrl,
+      });
       const peerStore = new PeerStore(peer);
       peerStore.$streams.setKey("default", stream);
       props.onJoined(peerStore);
@@ -76,7 +96,7 @@ function JoinPage(props: JoinPageProps) {
         <VideoContainer
           className="no-padding"
           stream={stream}
-          loading={false}
+          loading={streamLoading}
           title={peerId}
         />
         <form
@@ -86,6 +106,14 @@ function JoinPage(props: JoinPageProps) {
           }}
         >
           <nav className="vertical">
+            <div className="field border responsive">
+              <input
+                type="text"
+                placeholder="PulseBeam Base URL"
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+              />
+            </div>
             <div className="field border responsive">
               <input
                 type="text"
@@ -104,6 +132,28 @@ function JoinPage(props: JoinPageProps) {
                 onChange={(e) => setPeerId(e.target.value)}
               />
             </div>
+
+            <nav className="grid">
+              <label className="checkbox s6">
+                <input
+                  type="checkbox"
+                  checked={forceRelay === "on"}
+                  onChange={(e) =>
+                    setForceRelay(e.target.checked ? "on" : "off")}
+                />
+                <span>Force Relay</span>
+              </label>
+              <label className="checkbox s6">
+                <input
+                  type="checkbox"
+                  checked={mock === "on"}
+                  onChange={(e) => {
+                    setMock(e.target.checked ? "on" : "off");
+                  }}
+                />
+                <span>Mock Video Stream</span>
+              </label>
+            </nav>
             <button
               className="responsive small-round no-margin"
               type="submit"
@@ -123,13 +173,25 @@ function JoinPage(props: JoinPageProps) {
   );
 }
 
-function SessionPage() {
+interface SessionPageProps {
+  onClosed: () => void;
+}
+
+function SessionPage(props: SessionPageProps) {
   const peerStore = useContext(PeerContext)!;
   const localStreams = useStore(peerStore.$streams);
   const remotePeersMap = useStore(peerStore.$remotePeers);
-  const remotePeers = Object.values(remotePeersMap);
   const [muted, setMuted] = useState(false);
   const [hideChat, setHideChat] = useState(false);
+  const state = useStore(peerStore.$state);
+
+  useEffect(() => {
+    if (state === "closed") {
+      props.onClosed();
+    }
+  }, [state]);
+
+  const remotePeers = Object.values(remotePeersMap);
 
   return (
     <div>
