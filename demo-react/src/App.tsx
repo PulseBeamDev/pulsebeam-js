@@ -183,6 +183,7 @@ function SessionPage(props: SessionPageProps) {
   const remotePeersMap = useStore(peerStore.$remotePeers);
   const [muted, setMuted] = useState(false);
   const [hideChat, setHideChat] = useState(false);
+  const [screenShare, setScreenShare] = useState(false);
   const state = useStore(peerStore.$state);
 
   useEffect(() => {
@@ -191,10 +192,16 @@ function SessionPage(props: SessionPageProps) {
     }
   }, [state]);
 
-  const toggleScreenshare = async () => {
-    const stream = await navigator.mediaDevices.getDisplayMedia();
-    peerStore.$streams.setKey("screen", stream);
-  };
+  useEffect(() => {
+    (async () => {
+      if (screenShare) {
+        const stream = await navigator.mediaDevices.getDisplayMedia();
+        peerStore.$streams.setKey("screen", stream);
+      } else {
+        peerStore.$streams.setKey("screen", undefined);
+      }
+    })();
+  }, [screenShare]);
 
   const remotePeers = Object.values(remotePeersMap);
 
@@ -220,8 +227,8 @@ function SessionPage(props: SessionPageProps) {
         </button>
 
         <button
-          className="circle transparent"
-          onClick={() => toggleScreenshare()}
+          className={`circle transparent ${screenShare && "primary"}`}
+          onClick={() => setScreenShare(!screenShare)}
         >
           <i className="large">present_to_all</i>
         </button>
@@ -249,7 +256,7 @@ function SessionPage(props: SessionPageProps) {
         <VideoContainer
           className="s3"
           title={peerStore.peer.peerId || ""}
-          stream={localStreams["camera"]}
+          stream={localStreams["camera"] || null}
           loading={false}
         />
 

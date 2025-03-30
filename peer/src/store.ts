@@ -35,7 +35,7 @@ export class PeerStore {
   public static readonly KV_NAMESPACE = "__crdt_kv";
   public readonly $kv: PreinitializedMapStore<KVStore> & object;
   public readonly $streams:
-    & PreinitializedMapStore<Record<string, MediaStream>>
+    & PreinitializedMapStore<Record<string, MediaStream | undefined>>
     & object;
 
   public readonly $remotePeers: ReadableAtom<Record<string, RemotePeer>>;
@@ -52,7 +52,7 @@ export class PeerStore {
   constructor(public readonly peer: Peer) {
     this.crdtStore = {};
     this.$kv = map<KVStore>({});
-    this.$streams = map<Record<string, MediaStream>>({});
+    this.$streams = map<Record<string, MediaStream | undefined>>({});
     this.$_remotePeers = map<Record<string, RemotePeer>>({});
     this.$remotePeers = computed(this.$_remotePeers, (v) => v);
     this.$_state = atom("new");
@@ -105,6 +105,25 @@ export class PeerStore {
           const result = remotePeer.streams.findIndex((v) =>
             v.id === stream.id
           );
+
+          stream.onremovetrack = (ev) => {
+            console.log("debug:onremovetrack", ev.track);
+            for (const stream of remotePeer.streams) {
+              stream.removeTrack(ev.track);
+            }
+            remotePeer.streams = remotePeer.streams.filter((s) => s.active);
+            this.$_remotePeers.setKey(id, {
+              ...remotePeer,
+            });
+          };
+
+          if (!stream.active) {
+            if (result !== -1) {
+              remotePeer.streams.splice(result, 1);
+            }
+            continue;
+          }
+
           if (result === -1) {
             remotePeer.streams.push(stream);
           } else {
@@ -139,6 +158,8 @@ export class PeerStore {
 
       const localStreams = Object.entries(this.$streams.get());
       for (const [_id, stream] of localStreams) {
+        if (!stream) continue;
+
         for (const track of stream.getTracks()) {
           sess.addTrack(track, stream);
         }
@@ -157,9 +178,34 @@ export class PeerStore {
       this.set(changedKey, newVal);
     });
 
-    // this.$localStreams.listen((newStreams, oldStreams, changedKey) => {
-    //   sess.
-    // });
+    this.$streams.listen((newStreams, _oldStreams, _changedKey) => {
+      console.log("debug:sync_streams", { newStreams });
+      for (const sess of this.peer.sessions) {
+        const senders = sess.getSenders();
+        const gcTracks: Record<string, RTCRtpSender> = {};
+
+        for (const sender of senders) {
+          gcTracks[sender.track?.id || ""] = sender;
+        }
+
+        for (const stream of Object.values(newStreams)) {
+          if (!stream) continue;
+
+          for (const track of stream.getTracks()) {
+            if (track.id in gcTracks) {
+              delete gcTracks[track.id];
+            } else {
+              sess.addTrack(track, stream);
+            }
+          }
+        }
+
+        for (const track of Object.values(gcTracks)) {
+          sess.removeTrack(track);
+          console.log("debug:removeTrack", { track });
+        }
+      }
+    });
     this.peer.start();
   }
 
@@ -171,6 +217,7 @@ export class PeerStore {
     const streams = Object.values(this.$streams.get());
 
     for (const stream of streams) {
+      if (!stream) continue;
       for (const track of stream.getAudioTracks()) {
         track.enabled = !disabled;
       }

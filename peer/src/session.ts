@@ -93,19 +93,19 @@ export class Session {
   /**
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ondatachannel}
    */
-  public ondatachannel: RTCPeerConnection["ondatachannel"] = () => { };
+  public ondatachannel: RTCPeerConnection["ondatachannel"] = () => {};
 
   /**
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/onconnectionstatechange}
    */
   public onconnectionstatechange: RTCPeerConnection["onconnectionstatechange"] =
-    () => { };
+    () => {};
 
   /**
    * Callback invoked when a new media track is added to the connection.
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ontrack}
    */
-  public ontrack: RTCPeerConnection["ontrack"] = () => { };
+  public ontrack: RTCPeerConnection["ontrack"] = () => {};
 
   /**
    * Adds a media track to the connection.
@@ -113,7 +113,19 @@ export class Session {
    * @returns {RTCRtpSender} the newly created track
    */
   addTrack(...args: Parameters<RTCPeerConnection["addTrack"]>): RTCRtpSender {
+    console.log("debug:add track", { impolite: this.impolite });
     return this.pc.addTrack(...args);
+  }
+
+  /**
+   * The getSenders() method of the RTCPeerConnection interface returns an array of RTCRtpSender objects,
+   * each of which represents the RTP sender responsible for transmitting one track's data.
+   * A sender object provides methods and properties for examining and controlling the encoding and transmission of the track's data.
+   * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/getSenders}
+   * @returns {RTCRtpSender[]}
+   */
+  getSenders(): RTCRtpSender[] {
+    return this.pc.getSenders();
   }
 
   /**
@@ -290,49 +302,7 @@ export class Session {
           break;
       }
     };
-    let firstOffer = true;
-    this.pc.onnegotiationneeded = async () => {
-      if (firstOffer) {
-        if (!this.impolite) {
-          // the impolite always initiates with an offer
-          this.stream.send({
-            payloadType: {
-              oneofKind: "join",
-              join: {},
-            },
-          }, true);
-          return;
-        }
-        firstOffer = false;
-      }
-
-      try {
-        this.makingOffer = true;
-        this.logger.debug("creating an offer");
-
-        await this.setLocalDescription();
-        if (!this.pc.localDescription) {
-          throw new Error("expect localDescription to be not empty");
-        }
-
-        this.sendSignal({
-          data: {
-            oneofKind: "sdp",
-            sdp: {
-              kind: fromSDPType(this.pc.localDescription.type),
-              sdp: this.pc.localDescription.sdp,
-            },
-          },
-        });
-      } catch (err) {
-        if (err instanceof Error) {
-          this.logger.error("failed in negotiating", { err });
-        }
-      } finally {
-        this.makingOffer = false;
-      }
-    };
-
+    this.pc.onnegotiationneeded = this.onnegotiationneeded.bind(this);
     this.pc.onicecandidate = ({ candidate }) => {
       this.iceBatcher.addCandidate(candidate);
     };
@@ -358,6 +328,34 @@ export class Session {
     this.internalDataChannel = this.pc.createDataChannel(INTERNAL_DATA_CHANNEL);
     // NOTE: reserve internal data channel usage
     this.internalDataChannel;
+  }
+
+  private async onnegotiationneeded() {
+    try {
+      this.makingOffer = true;
+      this.logger.debug("creating an offer");
+
+      await this.setLocalDescription();
+      if (!this.pc.localDescription) {
+        throw new Error("expect localDescription to be not empty");
+      }
+
+      this.sendSignal({
+        data: {
+          oneofKind: "sdp",
+          sdp: {
+            kind: fromSDPType(this.pc.localDescription.type),
+            sdp: this.pc.localDescription.sdp,
+          },
+        },
+      });
+    } catch (err) {
+      if (err instanceof Error) {
+        this.logger.error("failed in negotiating", { err });
+      }
+    } finally {
+      this.makingOffer = false;
+    }
   }
 
   private sendLocalIceCandidates(candidates: RTCIceCandidate[]) {
@@ -414,7 +412,11 @@ export class Session {
       }
 
       parameters.encodings[0].maxBitrate = 400 * 1000;
-      await sender.setParameters(parameters);
+      try {
+        await sender.setParameters(parameters);
+      } catch (e) {
+        this.logger.warn("failed to change max bitrate", { error: e });
+      }
     }
 
     await this.pc.setLocalDescription();

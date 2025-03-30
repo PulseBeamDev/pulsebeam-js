@@ -227,18 +227,18 @@ export type PeerState = "new" | "closed";
 export class Peer {
   private transport: Transport;
   private readonly logger: Logger;
-  private sessions: Session[];
+  private _sessions: Session[];
   private _state: PeerState;
 
   /**
    * Callback invoked when a new session is established.
    * @param _s Session object
    */
-  public onsession = (_s: ISession) => { };
+  public onsession = (_s: ISession) => {};
   /**
    * Callback invoked when the peer’s state changes.
    */
-  public onstatechange = () => { };
+  public onstatechange = () => {};
   /**
    * Identifier for the peer. Valid UTF-8 string of 1-16 characters.
    */
@@ -259,7 +259,7 @@ export class Peer {
   ) {
     this.peerId = opts.peerId;
     this.logger = logger.sub("peer", { peerId: this.peerId });
-    this.sessions = [];
+    this._sessions = [];
     this._state = "new";
 
     const rtcConfig: RTCConfiguration = {
@@ -277,12 +277,16 @@ export class Peer {
     });
     this.transport.onstream = (s) => {
       const sess = new Session(s, rtcConfig);
-      this.sessions.push(sess);
+      this._sessions.push(sess);
       this.onsession(sess);
     };
     this.transport.onclosed = () => {
       this.close();
     };
+  }
+
+  get sessions(): Session[] {
+    return [...this._sessions];
   }
 
   /**
@@ -305,7 +309,7 @@ export class Peer {
    * @returns {Promise<void>} Resolves when the peer has been closed.
    */
   async close() {
-    this.sessions = [];
+    this._sessions = [];
     await this.transport.close();
     this.setState("closed");
   }
