@@ -34,13 +34,16 @@ function JoinPage(props: JoinPageProps) {
   const [loading, setLoading] = useState(false);
   const [streamLoading, setStreamLoading] = useState(false);
   const [baseUrl, setBaseUrl] = useSyncURLWithState(
-    "https://cloud.pulsebeam.dev/grpc",
     "baseUrl",
+    "https://cloud.pulsebeam.dev/grpc",
   );
-  const [roomId, setRoomId] = useSyncURLWithState("", "roomId");
-  const [peerId, setPeerId] = useSyncURLWithState("", "peerId");
-  const [forceRelay, setForceRelay] = useSyncURLWithState("off", "forceRelay");
-  const [mock, setMock] = useSyncURLWithState("off", "mock");
+  const [roomId, setRoomId] = useSyncURLWithState("roomId", "");
+  const [peerId, setPeerId] = useSyncURLWithState("peerId", "");
+  const [forceRelay, setForceRelay] = useSyncURLWithState(
+    "forceRelay",
+    "off",
+  );
+  const [mock, setMock] = useSyncURLWithState("mock", "off");
   const [stream, setStream] = useState<MediaStream | null>(null);
 
   useEffect(() => {

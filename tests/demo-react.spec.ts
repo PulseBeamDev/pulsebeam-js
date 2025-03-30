@@ -40,10 +40,10 @@ async function waitForStableVideo(
       expect(await video.evaluate((v: HTMLVideoElement) => v.readyState)).toBe(
         4,
       );
-      await page.waitForTimeout(delayMs).catch(() => { });
+      await page.waitForTimeout(delayMs).catch(() => {});
       return;
     } catch (_e) {
-      await page.waitForTimeout(1000).catch(() => { });
+      await page.waitForTimeout(1000).catch(() => {});
     }
   }
 
@@ -51,7 +51,7 @@ async function waitForStableVideo(
 }
 
 async function assertClick(btn: Locator) {
-  await btn.click({ timeout: 1000 }).catch(() => { });
+  await btn.click({ timeout: 1000 }).catch(() => {});
   await expect(btn).not.toBeVisible();
 }
 
@@ -109,7 +109,7 @@ test.describe("Connect", () => {
   // basic connection test a->b
   for (const [bA, bB] of pairs) {
     test(`${bA}_${bB} basic connection`, async ({ baseURL }) => {
-      const url = baseURL + "?mock&baseUrl=" + PULSEBEAM_BASE_URL;
+      const url = baseURL + "?mock=on&baseUrl=" + PULSEBEAM_BASE_URL;
       const group = `${randId()}`;
       const peerA = `__${bA}_A`;
       const peerB = `__${bB}_B`;
@@ -143,7 +143,7 @@ test.describe("Connect", () => {
 
     // Disconnect and reconnect with role reversal
     test(`${bA}_${bB} disconnect and reconnect`, async ({ baseURL }) => {
-      const url = `${baseURL}?mock&baseUrl=${PULSEBEAM_BASE_URL}`;
+      const url = `${baseURL}?mock=on&baseUrl=${PULSEBEAM_BASE_URL}`;
       const group = `${randId()}`;
       const peerA = `__${bA}_A`;
       const peerB = `__${bB}_B`;
@@ -160,7 +160,7 @@ test.describe("Connect", () => {
         // Initial connection B -> A
         const [closeA, closeB] = await Promise.all([
           start(pageA, group, peerA),
-          start(pageB, peerB, peerA),
+          start(pageB, group, peerB),
         ]);
 
         // End call

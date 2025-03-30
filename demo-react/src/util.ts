@@ -1,21 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 
 export function useSyncURLWithState(
-  initialState: string | undefined,
   paramName: string,
+  initialState: string,
 ): [string, (newValue: string) => void] {
-  const [state, setState] = useState<string>(initialState || "");
+  // Read initial state from URL on mount
+  const searchParams = new URLSearchParams(window.location.search);
+  const initialValueFromURL = searchParams.get(paramName);
+  if (initialValueFromURL !== null) {
+    initialState = initialValueFromURL;
+  }
+  const [state, setState] = useState<string>(initialState);
 
   useEffect(() => {
-    // Read initial state from URL on mount
-    const searchParams = new URLSearchParams(window.location.search);
-    const initialValueFromURL = searchParams.get(paramName);
-    if (initialValueFromURL !== null) {
-      setState(initialValueFromURL);
-    } else if (initialState !== undefined) {
-      setState(initialState);
-    }
-
     // Listen for changes in the URL (e.g., back/forward button)
     const handlePopstate = () => {
       const newSearchParams = new URLSearchParams(window.location.search);
