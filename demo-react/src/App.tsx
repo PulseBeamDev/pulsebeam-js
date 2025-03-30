@@ -1,83 +1,95 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { usePeerStore } from "./peer.ts";
+import {
+  createContext,
+  FormEvent,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { useSyncURLWithState } from "./util.ts";
+import { createPeer, PeerStore } from "@pulsebeam/peer";
+import { useStore } from "@nanostores/react";
+// @ts-ignore: no type
+import GetUserMediaMock from "@theopenweb/get-user-media-mock";
+
+const PeerContext = createContext<PeerStore | null>(null);
 
 export default function App() {
-  const peer = usePeerStore();
+  const [peer, setPeer] = useState<PeerStore | null>(null);
 
   return (
-    <>
-      {(!peer.localStream || !peer.ref) ? <JoinPage /> : <SessionPage />}
-    </>
+    <PeerContext.Provider value={peer}>
+      {peer === null
+        ? <JoinPage onJoined={setPeer} />
+        : <SessionPage onClosed={() => setPeer(null)} />}
+    </PeerContext.Provider>
   );
 }
 
-function useSyncURLWithState(
-  initialState: string | undefined,
-  paramName: string,
-): [string, (newValue: string) => void] {
-  const [state, setState] = useState<string>(initialState || "");
-
-  useEffect(() => {
-    // Read initial state from URL on mount
-    const searchParams = new URLSearchParams(window.location.search);
-    const initialValueFromURL = searchParams.get(paramName);
-    if (initialValueFromURL !== null) {
-      setState(initialValueFromURL);
-    } else if (initialState !== undefined) {
-      setState(initialState);
-    }
-
-    // Listen for changes in the URL (e.g., back/forward button)
-    const handlePopstate = () => {
-      const newSearchParams = new URLSearchParams(window.location.search);
-      const newValueFromURL = newSearchParams.get(paramName);
-      if (newValueFromURL !== null) {
-        setState(newValueFromURL);
-      } else if (initialState !== undefined) {
-        setState(initialState);
-      } else {
-        setState(""); // Or your desired default if no initial state
-      }
-    };
-
-    window.addEventListener("popstate", handlePopstate);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopstate);
-    };
-  }, [paramName, initialState]);
-
-  const updateState = useCallback((newValue: string) => {
-    setState(newValue);
-    const searchParams = new URLSearchParams(window.location.search);
-    if (newValue) {
-      searchParams.set(paramName, newValue);
-    } else {
-      searchParams.delete(paramName); // Remove if value is empty
-    }
-    const newURL =
-      `${window.location.pathname}?${searchParams.toString()}${window.location.hash}`;
-    window.history.pushState(null, "", newURL);
-  }, [paramName]);
-
-  return [state, updateState];
+interface JoinPageProps {
+  onJoined: (peer: PeerStore) => void;
 }
 
-function JoinPage() {
-  const peer = usePeerStore();
-  const [roomId, setRoomId] = useSyncURLWithState("", "roomId");
-  const [peerId, setPeerId] = useState("");
+function JoinPage(props: JoinPageProps) {
+  const [loading, setLoading] = useState(false);
+  const [streamLoading, setStreamLoading] = useState(false);
+  const [baseUrl, setBaseUrl] = useSyncURLWithState(
+    "baseUrl",
+    "https://cloud.pulsebeam.dev/grpc",
+  );
+  const [roomId, setRoomId] = useSyncURLWithState("roomId", "");
+  const [peerId, setPeerId] = useSyncURLWithState("peerId", "");
+  const [forceRelay, setForceRelay] = useSyncURLWithState(
+    "forceRelay",
+    "off",
+  );
+  const [mock, setMock] = useSyncURLWithState("mock", "off");
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
   useEffect(() => {
     (async () => {
-      const s = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
-      s.getAudioTracks().forEach((track) => track.enabled = false); // Mute by default
-      peer.setLocalStream(s);
+      setStreamLoading(true);
+      let localStream;
+      if (mock === "on") {
+        const mediaMock = new GetUserMediaMock();
+        localStream = await mediaMock.getMockCanvasStream({ video: true });
+      } else {
+        localStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
+        localStream.getAudioTracks().forEach((t) => t.enabled = false);
+      }
+
+      setStream(localStream);
+      setStreamLoading(false);
     })();
-  }, []);
+  }, [mock]);
+
+  const onJoin = async () => {
+    if (!stream) return;
+
+    setLoading(true);
+    try {
+      // See https://pulsebeam.dev/docs/guides/token/#example-nodejs-http-server
+      // For explanation of this token-serving method
+      const resp = await fetch(
+        `/auth?groupId=${roomId}&peerId=${peerId}`,
+      );
+
+      const token = await resp.text();
+      const peer = await createPeer({
+        token,
+        forceRelay: forceRelay === "on",
+        baseUrl: baseUrl,
+      });
+      const peerStore = new PeerStore(peer);
+      peerStore.$streams.setKey("camera", stream);
+      props.onJoined(peerStore);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <article style={{ height: "100vh" }}>
@@ -87,17 +99,25 @@ function JoinPage() {
       >
         <VideoContainer
           className="no-padding"
-          stream={peer.localStream}
-          loading={false}
+          stream={stream}
+          loading={streamLoading}
           title={peerId}
         />
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            peer.start(roomId, peerId);
+            onJoin();
           }}
         >
           <nav className="vertical">
+            <div className="field border responsive">
+              <input
+                type="text"
+                placeholder="PulseBeam Base URL"
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+              />
+            </div>
             <div className="field border responsive">
               <input
                 type="text"
@@ -116,15 +136,37 @@ function JoinPage() {
                 onChange={(e) => setPeerId(e.target.value)}
               />
             </div>
+
+            <nav className="grid">
+              <label className="checkbox s6">
+                <input
+                  type="checkbox"
+                  checked={forceRelay === "on"}
+                  onChange={(e) =>
+                    setForceRelay(e.target.checked ? "on" : "off")}
+                />
+                <span>Force Relay</span>
+              </label>
+              <label className="checkbox s6">
+                <input
+                  type="checkbox"
+                  checked={mock === "on"}
+                  onChange={(e) => {
+                    setMock(e.target.checked ? "on" : "off");
+                  }}
+                />
+                <span>Mock Video Stream</span>
+              </label>
+            </nav>
             <button
               className="responsive small-round no-margin"
               type="submit"
-              disabled={!peer.localStream || peer.loading ||
+              disabled={loading ||
                 peerId.length === 0 || roomId.length === 0}
               value="Ready"
               data-testid="btn-ready"
             >
-              {peer.loading
+              {loading
                 ? <progress className="circle small"></progress>
                 : <span>Ready</span>}
             </button>
@@ -135,117 +177,179 @@ function JoinPage() {
   );
 }
 
-function SessionPage() {
-  const peer = usePeerStore();
-  const remoteStreams = Object.entries(peer.sessions);
+interface SessionPageProps {
+  onClosed: () => void;
+}
+
+function SessionPage(props: SessionPageProps) {
+  const peerStore = useContext(PeerContext)!;
+  const localStreams = useStore(peerStore.$streams);
+  const remotePeersMap = useStore(peerStore.$remotePeers);
+  const [muted, setMuted] = useState(true);
+  const [hideChat, setHideChat] = useState(false);
+  const [screenShare, setScreenShare] = useState(false);
+  const state = useStore(peerStore.$state);
+
+  useEffect(() => {
+    if (state === "closed") {
+      props.onClosed();
+    }
+  }, [state]);
+
+  useEffect(() => {
+    (async () => {
+      if (screenShare) {
+        const stream = await navigator.mediaDevices.getDisplayMedia();
+        peerStore.$streams.setKey("screen", stream);
+      } else {
+        peerStore.$streams.setKey("screen", undefined);
+      }
+    })();
+  }, [screenShare]);
+
+  const remotePeers = Object.values(remotePeersMap);
 
   return (
     <div>
-      {remoteStreams.length > 1 && (
-        <nav className="left drawer medium-space">
-          {remoteStreams.slice(1).map(([_, s]) => (
-            <VideoContainer
-              key={s.key}
-              className="no-padding"
-              title={s.sess.other.peerId}
-              stream={s.remoteStream}
-              loading={s.loading}
-            />
-          ))}
-        </nav>
-      )}
-
-      <main className="responsive max grid">
-        <VideoContainer
-          className="s12 l6 no-padding"
-          stream={peer.localStream}
-          loading={false}
-          title={peer.peerId}
-        />
-        {remoteStreams.length === 0
-          ? (
-            <div className="s12 l6 no-padding">
-              {/* <ConnectForm /> */}
-            </div>
-          )
-          : (
-            <VideoContainer
-              className="s12 l6 no-padding"
-              title={remoteStreams[0][1].sess.other.peerId}
-              stream={remoteStreams[0][1].remoteStream}
-              loading={remoteStreams[0][1].loading}
-            />
-          )}
-      </main>
-
       <nav className="bottom">
         <button
-          className="secondary small-round"
-          onClick={() => peer.toggleMute()}
+          className="circle transparent"
+          onClick={() => {
+            peerStore.mute(!muted);
+            setMuted(!muted);
+          }}
           data-testid="btn-mute"
         >
-          <i>{peer.isMuted ? "mic_off" : "mic"}</i>
-          {peer.isMuted ? " Unmute" : " Mute"}
+          <i className="large">{muted ? "mic_off" : "mic"}</i>
         </button>
 
         <button
-          className="error small-round"
-          data-testid="btn-endCall"
-          onClick={() => peer.stop()}
+          className="circle transparent"
+          onClick={() => setHideChat(!hideChat)}
         >
-          <i>call_end</i>
-          End Call
+          <i className="large">chat</i>
+        </button>
+
+        <button
+          className="circle transparent"
+          onClick={() => setScreenShare(!screenShare)}
+        >
+          <i className="large">present_to_all</i>
+        </button>
+
+        <button
+          className="error"
+          data-testid="btn-endCall"
+          onClick={() => peerStore.close()}
+        >
+          <i className="large">call_end</i>
         </button>
 
         <a
           target="_blank"
-          className="button secondary-container secondary-text small-round"
+          className="button"
           href="https://github.com/PulseBeamDev/pulsebeam-js/tree/main/demo-react"
         >
-          <i>code</i>
-          Source Code
+          <i className="large">code</i>
         </a>
       </nav>
+
+      <ChatDialog hidden={hideChat} />
+
+      <main
+        className="grid responsive no-padding space"
+        style={{ gridTemplateRows: "1fr 1fr" }}
+      >
+        <VideoContainer
+          className="s6 no-padding"
+          title={peerStore.peer.peerId || ""}
+          stream={localStreams["camera"] || null}
+          loading={false}
+        />
+
+        {localStreams["screen"] &&
+          (
+            <VideoContainer
+              className="s6 no-padding"
+              title={peerStore.peer.peerId || ""}
+              stream={localStreams["screen"]}
+              loading={false}
+            />
+          )}
+        {remotePeers.map((remote) => (
+          remote.streams.map((stream) => (
+            <VideoContainer
+              className="s6 no-padding"
+              key={stream.id}
+              title={remote.info.peerId}
+              stream={stream}
+              loading={remote.state !== "connected"}
+            />
+          ))
+        ))}
+      </main>
     </div>
   );
 }
 
-function ConnectForm() {
-  const [otherPeerId, setOtherPeerId] = useState("");
-  const peer = usePeerStore();
+interface ChatDialogProps {
+  hidden: boolean;
+}
+
+function ChatDialog(props: ChatDialogProps) {
+  const peerStore = useContext(PeerContext)!;
+  const [text, setText] = useState("");
+  const history = useStore(peerStore.$kv);
+  const sortedHistory = Object.entries(history).sort((a, b) =>
+    a[0].localeCompare(b[0])
+  );
+
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+
+    const key = `${Date.now()}:${peerStore.peer.peerId}`;
+    peerStore.$kv.setKey(key, text);
+    setText("");
+  };
 
   return (
-    <form
-      className="vertical medium-width center-align auto-margin"
-      style={{ height: "100%" }}
-      onSubmit={(e) => {
-        e.preventDefault();
-      }}
-    >
-      <nav className="vertical">
-        <h3>Who to connect to?</h3>
-        <div className="field border responsive">
-          <input
-            size={6}
-            type="text"
-            placeholder="Other Name"
-            value={otherPeerId}
-            data-testid="dst-peerId"
-            onChange={(e) => setOtherPeerId(e.target.value)}
-          />
-        </div>
-        <button
-          className="responsive small-round"
-          type="submit"
-          data-testid="btn-connect"
-          disabled={peer.loading || otherPeerId.length === 0}
-        >
-          {peer.loading
-            ? <progress className="circle small"></progress>
-            : <span>Connect</span>}
-        </button>
+    <dialog className={`right vertical ${props.hidden || "active"}`}>
+      <h5>Chat</h5>
+
+      <nav className="vertical scroll" style={{ height: "100%" }}>
+        {sortedHistory.map(([key, text]) => {
+          const [ts, peerId] = key.split(":");
+          const date = new Date(Number.parseInt(ts));
+
+          return (
+            <nav>
+              <button className="circle capitalize">
+                {peerId.substring(0, 1)}
+              </button>
+              <div className="max">
+                <b>{peerId}</b>
+                <div>{text}</div>
+
+                <label>{date.toLocaleTimeString()}</label>
+              </div>
+            </nav>
+          );
+        })}
       </nav>
-    </form>
+
+      <nav>
+        <form className="field round fill row" onSubmit={onSubmit}>
+          <input onChange={(e) => setText(e.target.value)} value={text} />
+          <button
+            type="submit"
+            className="transparent circle"
+            disabled={text === ""}
+          >
+            <i className="front">send</i>
+          </button>
+        </form>
+      </nav>
+    </dialog>
   );
 }
 

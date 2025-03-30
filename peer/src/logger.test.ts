@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, it } from "vitest";
 import { Logger, PRETTY_LOG_SINK } from "./logger.ts";
 
 describe("logger", () => {

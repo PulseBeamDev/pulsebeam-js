@@ -1,7 +1,7 @@
 import { type ISignalingClient, SignalingClient } from "./signaling.client.ts";
 import { Transport } from "./transport.ts";
 import type { PeerInfo } from "./signaling.ts";
-import { DEFAULT_LOG_SINK, Logger, PRETTY_LOG_SINK } from "./logger.ts";
+import { Logger, PRETTY_LOG_SINK } from "./logger.ts";
 import { Session } from "./session.ts";
 import { RpcError, RpcOptions, UnaryCall } from "@protobuf-ts/runtime-rpc";
 import {
@@ -67,8 +67,6 @@ export type { PeerInfo } from "./signaling.ts";
  */
 
 const BASE_URL = "https://cloud.pulsebeam.dev/grpc";
-const PREPARE_INITIAL_DELAY_MS = 50;
-const PREPARE_MAX_RETRY = 3;
 
 /**
  * A high-level API for managing the peer-to-peer WebRTC connection. Provides
@@ -229,7 +227,7 @@ export type PeerState = "new" | "closed";
 export class Peer {
   private transport: Transport;
   private readonly logger: Logger;
-  private sessions: Session[];
+  private _sessions: Session[];
   private _state: PeerState;
 
   /**
@@ -261,7 +259,7 @@ export class Peer {
   ) {
     this.peerId = opts.peerId;
     this.logger = logger.sub("peer", { peerId: this.peerId });
-    this.sessions = [];
+    this._sessions = [];
     this._state = "new";
 
     const rtcConfig: RTCConfiguration = {
@@ -279,12 +277,16 @@ export class Peer {
     });
     this.transport.onstream = (s) => {
       const sess = new Session(s, rtcConfig);
-      this.sessions.push(sess);
+      this._sessions.push(sess);
       this.onsession(sess);
     };
     this.transport.onclosed = () => {
       this.close();
     };
+  }
+
+  get sessions(): Session[] {
+    return [...this._sessions];
   }
 
   /**
@@ -307,7 +309,7 @@ export class Peer {
    * @returns {Promise<void>} Resolves when the peer has been closed.
    */
   async close() {
-    this.sessions = [];
+    this._sessions = [];
     await this.transport.close();
     this.setState("closed");
   }

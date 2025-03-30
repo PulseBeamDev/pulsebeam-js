@@ -50,6 +50,7 @@ function fromSDPType(t: RTCSdpType): SdpKind {
       throw new Error(`unexpected sdp type: ${t}`);
   }
 }
+
 /**
  * The Session class is a wrapper around RTCPeerConnection designed to manage
  *  WebRTC connections, signaling, and ICE candidates. It handles negotiation,
@@ -95,6 +96,17 @@ export class Session {
    */
   addTrack(...args: Parameters<RTCPeerConnection["addTrack"]>): RTCRtpSender {
     return this.pc.addTrack(...args);
+  }
+
+  /**
+   * The getSenders() method of the RTCPeerConnection interface returns an array of RTCRtpSender objects,
+   * each of which represents the RTP sender responsible for transmitting one track's data.
+   * A sender object provides methods and properties for examining and controlling the encoding and transmission of the track's data.
+   * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/getSenders}
+   * @returns {RTCRtpSender[]}
+   */
+  getSenders(): RTCRtpSender[] {
+    return this.pc.getSenders();
   }
 
   /**
@@ -271,48 +283,7 @@ export class Session {
           break;
       }
     };
-    let firstOffer = true;
-    this.pc.onnegotiationneeded = async () => {
-      if (firstOffer) {
-        if (!this.impolite) {
-          // the impolite always initiates with an offer
-          this.stream.send({
-            payloadType: {
-              oneofKind: "join",
-              join: {},
-            },
-          }, true);
-          return;
-        }
-        firstOffer = false;
-      }
-
-      try {
-        this.makingOffer = true;
-        this.logger.debug("creating an offer");
-        await this.pc.setLocalDescription();
-        if (!this.pc.localDescription) {
-          throw new Error("expect localDescription to be not empty");
-        }
-
-        this.sendSignal({
-          data: {
-            oneofKind: "sdp",
-            sdp: {
-              kind: fromSDPType(this.pc.localDescription.type),
-              sdp: this.pc.localDescription.sdp,
-            },
-          },
-        });
-      } catch (err) {
-        if (err instanceof Error) {
-          this.logger.error("failed in negotiating", { err });
-        }
-      } finally {
-        this.makingOffer = false;
-      }
-    };
-
+    this.pc.onnegotiationneeded = this.onnegotiationneeded.bind(this);
     this.pc.onicecandidate = ({ candidate }) => {
       this.iceBatcher.addCandidate(candidate);
     };
@@ -336,6 +307,36 @@ export class Session {
     };
 
     this.internalDataChannel = this.pc.createDataChannel(INTERNAL_DATA_CHANNEL);
+    // NOTE: reserve internal data channel usage
+    this.internalDataChannel;
+  }
+
+  private async onnegotiationneeded() {
+    try {
+      this.makingOffer = true;
+      this.logger.debug("creating an offer");
+
+      await this.setLocalDescription();
+      if (!this.pc.localDescription) {
+        throw new Error("expect localDescription to be not empty");
+      }
+
+      this.sendSignal({
+        data: {
+          oneofKind: "sdp",
+          sdp: {
+            kind: fromSDPType(this.pc.localDescription.type),
+            sdp: this.pc.localDescription.sdp,
+          },
+        },
+      });
+    } catch (err) {
+      if (err instanceof Error) {
+        this.logger.error("failed in negotiating", { err });
+      }
+    } finally {
+      this.makingOffer = false;
+    }
   }
 
   private sendLocalIceCandidates(candidates: RTCIceCandidate[]) {
@@ -372,6 +373,53 @@ export class Session {
       // @ts-ignore: proxy to RTCPeerConnection
       this.onconnectionstatechange(ev);
     }
+  }
+
+  private async setLocalDescription() {
+    const transceivers = this.pc.getTransceivers();
+    for (const transceiver of transceivers) {
+      if (transceiver.receiver.track.kind !== "video") {
+        continue;
+      }
+
+      // https://developer.mozilla.org/en-US/docs/Web/API/RTCRtpTransceiver/setCodecPreferences
+      const preferredOrder = [
+        "video/AV1",
+        "video/VP9",
+        "video/VP8",
+        "video/H264",
+      ];
+      const codecs = RTCRtpReceiver.getCapabilities("video")?.codecs || [];
+      const preferences = codecs.sort((a, b) => {
+        const indexA = preferredOrder.indexOf(a.mimeType);
+        const indexB = preferredOrder.indexOf(b.mimeType);
+        const orderA = indexA >= 0 ? indexA : Number.MAX_VALUE;
+        const orderB = indexB >= 0 ? indexB : Number.MAX_VALUE;
+        return orderA - orderB;
+      });
+      transceiver.setCodecPreferences(preferences);
+    }
+
+    for (const sender of this.pc.getSenders()) {
+      if (sender.track?.kind !== "video") {
+        continue;
+      }
+
+      // https://developer.mozilla.org/en-US/docs/Web/API/RTCRtpSender/setParameters
+      const parameters = sender.getParameters();
+      if (!parameters.encodings || parameters.encodings.length === 0) {
+        parameters.encodings = [{}]; // Initialize if empty
+      }
+
+      parameters.encodings[0].maxBitrate = 400 * 1000;
+      try {
+        await sender.setParameters(parameters);
+      } catch (e) {
+        this.logger.warn("failed to change max bitrate", { error: e });
+      }
+    }
+
+    await this.pc.setLocalDescription();
   }
 
   private triggerIceRestart = () => {
@@ -459,7 +507,7 @@ export class Session {
       sdp: sdp.sdp,
     });
     if (sdp.kind === SdpKind.OFFER) {
-      await this.pc.setLocalDescription();
+      await this.setLocalDescription();
       if (!this.pc.localDescription) {
         this.logger.error("unexpected null local description");
         return;

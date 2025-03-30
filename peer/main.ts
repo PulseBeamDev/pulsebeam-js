@@ -1,5 +1,4 @@
-import { Portal } from "./lib.ts";
-import { createPeer } from "@pulsebeam/peer";
+import { createPeer, PeerStore } from "./src/index.ts";
 
 (async () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -18,7 +17,7 @@ import { createPeer } from "@pulsebeam/peer";
     baseUrl: baseUrl || undefined,
     token,
   });
-  const portal = new Portal(peer);
+  const store = new PeerStore(peer);
 
   const textDOM = document.getElementById("text")! as HTMLInputElement;
   const formDOM = document.getElementById("form")! as HTMLFormElement;
@@ -28,13 +27,13 @@ import { createPeer } from "@pulsebeam/peer";
     e.preventDefault();
 
     const key = `${new Date().toISOString()} (${peerId})`;
-    portal.$store.setKey(key, textDOM.value);
+    store.$kv.setKey(key, textDOM.value);
     textDOM.value = "";
   };
 
-  portal.$store.listen(() => {
+  store.$kv.listen(() => {
     // TODO: this is naive, this can be done more efficiently with a binary heap or bst.
-    const snapshot = portal.$store.get();
+    const snapshot = store.$kv.get();
     const messages = Object.entries(snapshot);
 
     messages.sort((a, b) => a[0].localeCompare(b[0]));
@@ -45,5 +44,5 @@ import { createPeer } from "@pulsebeam/peer";
       containerDOM.appendChild(msgDOM);
     }
   });
-  portal.start();
+  store.start();
 })();
