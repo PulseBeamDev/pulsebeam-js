@@ -182,27 +182,39 @@ export class PeerStore {
       console.log("debug:sync_streams", { newStreams });
       for (const sess of this.peer.sessions) {
         const senders = sess.getSenders();
-        const gcTracks: Record<string, RTCRtpSender> = {};
+        const currentSenders: Record<string, RTCRtpSender[]> = {};
+        const toRemove: Record<string, boolean> = {};
 
         for (const sender of senders) {
-          gcTracks[sender.track?.id || ""] = sender;
+          // some senders are reserved for replying. Leave these senders as they
+          // may be reused.
+          if (!sender.track) continue;
+
+          const toRemoveSenders = currentSenders[sender.track.id] || [];
+          currentSenders[sender.track.id] = [...toRemoveSenders, sender];
+          toRemove[sender.track.id] = true;
         }
 
         for (const stream of Object.values(newStreams)) {
           if (!stream) continue;
 
           for (const track of stream.getTracks()) {
-            if (track.id in gcTracks) {
-              delete gcTracks[track.id];
-            } else {
-              sess.addTrack(track, stream);
+            if (track.id in currentSenders) {
+              toRemove[track.id] = false;
+              continue;
             }
+
+            sess.addTrack(track, stream);
           }
         }
 
-        for (const track of Object.values(gcTracks)) {
-          sess.removeTrack(track);
-          console.log("debug:removeTrack", { track });
+        for (const [trackId, remove] of Object.entries(toRemove)) {
+          if (!remove) continue;
+          const senders = currentSenders[trackId];
+          for (const sender of senders) {
+            sess.removeTrack(sender);
+            console.log("debug:removeTrack", { sender });
+          }
         }
       }
     });

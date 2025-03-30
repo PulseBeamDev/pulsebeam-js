@@ -51,24 +51,6 @@ function fromSDPType(t: RTCSdpType): SdpKind {
   }
 }
 
-function setCodecPreferences(transceiver: RTCRtpTransceiver) {
-  if (transceiver.receiver.track.kind !== "video") {
-    return;
-  }
-
-  // https://developer.mozilla.org/en-US/docs/Web/API/RTCRtpTransceiver/setCodecPreferences
-  const preferredOrder = ["video/AV1", "video/VP9", "video/VP8", "video/H264"];
-  const codecs = RTCRtpReceiver.getCapabilities("video")?.codecs || [];
-  const preferences = codecs.sort((a, b) => {
-    const indexA = preferredOrder.indexOf(a.mimeType);
-    const indexB = preferredOrder.indexOf(b.mimeType);
-    const orderA = indexA >= 0 ? indexA : Number.MAX_VALUE;
-    const orderB = indexB >= 0 ? indexB : Number.MAX_VALUE;
-    return orderA - orderB;
-  });
-  transceiver.setCodecPreferences(preferences);
-}
-
 /**
  * The Session class is a wrapper around RTCPeerConnection designed to manage
  *  WebRTC connections, signaling, and ICE candidates. It handles negotiation,
@@ -113,7 +95,6 @@ export class Session {
    * @returns {RTCRtpSender} the newly created track
    */
   addTrack(...args: Parameters<RTCPeerConnection["addTrack"]>): RTCRtpSender {
-    console.log("debug:add track", { impolite: this.impolite });
     return this.pc.addTrack(...args);
   }
 
@@ -396,8 +377,27 @@ export class Session {
 
   private async setLocalDescription() {
     const transceivers = this.pc.getTransceivers();
-    for (const trans of transceivers) {
-      setCodecPreferences(trans);
+    for (const transceiver of transceivers) {
+      if (transceiver.receiver.track.kind !== "video") {
+        continue;
+      }
+
+      // https://developer.mozilla.org/en-US/docs/Web/API/RTCRtpTransceiver/setCodecPreferences
+      const preferredOrder = [
+        "video/AV1",
+        "video/VP9",
+        "video/VP8",
+        "video/H264",
+      ];
+      const codecs = RTCRtpReceiver.getCapabilities("video")?.codecs || [];
+      const preferences = codecs.sort((a, b) => {
+        const indexA = preferredOrder.indexOf(a.mimeType);
+        const indexB = preferredOrder.indexOf(b.mimeType);
+        const orderA = indexA >= 0 ? indexA : Number.MAX_VALUE;
+        const orderB = indexB >= 0 ? indexB : Number.MAX_VALUE;
+        return orderA - orderB;
+      });
+      transceiver.setCodecPreferences(preferences);
     }
 
     for (const sender of this.pc.getSenders()) {
