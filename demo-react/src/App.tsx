@@ -80,7 +80,7 @@ function JoinPage(props: JoinPageProps) {
         baseUrl: baseUrl,
       });
       const peerStore = new PeerStore(peer);
-      peerStore.$streams.setKey("default", stream);
+      peerStore.$streams.setKey("camera", stream);
       props.onJoined(peerStore);
     } finally {
       setLoading(false);
@@ -191,6 +191,11 @@ function SessionPage(props: SessionPageProps) {
     }
   }, [state]);
 
+  const toggleScreenshare = async () => {
+    const stream = await navigator.mediaDevices.getDisplayMedia();
+    peerStore.$streams.setKey("screen", stream);
+  };
+
   const remotePeers = Object.values(remotePeersMap);
 
   return (
@@ -212,6 +217,13 @@ function SessionPage(props: SessionPageProps) {
           onClick={() => setHideChat(!hideChat)}
         >
           <i className="large">chat</i>
+        </button>
+
+        <button
+          className="circle transparent"
+          onClick={() => toggleScreenshare()}
+        >
+          <i className="large">present_to_all</i>
         </button>
 
         <button
@@ -237,19 +249,29 @@ function SessionPage(props: SessionPageProps) {
         <VideoContainer
           className="s3"
           title={peerStore.peer.peerId || ""}
-          stream={localStreams["default"]}
+          stream={localStreams["camera"]}
           loading={false}
-        >
-        </VideoContainer>
+        />
+
+        {localStreams["screen"] &&
+          (
+            <VideoContainer
+              className="s3"
+              title={peerStore.peer.peerId || ""}
+              stream={localStreams["screen"]}
+              loading={false}
+            />
+          )}
         {remotePeers.map((remote) => (
-          <VideoContainer
-            className="s3"
-            key={remote.info.peerId}
-            title={remote.info.peerId}
-            stream={remote.streams[0]}
-            loading={remote.state !== "connected"}
-          >
-          </VideoContainer>
+          remote.streams.map((stream) => (
+            <VideoContainer
+              className="s3"
+              key={stream.id}
+              title={remote.info.peerId}
+              stream={stream}
+              loading={remote.state !== "connected"}
+            />
+          ))
         ))}
       </main>
     </div>

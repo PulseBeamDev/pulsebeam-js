@@ -13,7 +13,7 @@ export type Key = string;
 
 interface CRDTEntry {
   value: Value;
-  timestamp: number;
+  version: number;
   replicaId: string;
 }
 
@@ -27,7 +27,7 @@ interface CRDTRemoteUpdate {
 
 export interface RemotePeer {
   info: PeerInfo;
-  streams: readonly MediaStream[];
+  streams: MediaStream[];
   state: RTCPeerConnectionState;
 }
 
@@ -101,10 +101,20 @@ export class PeerStore {
       sess.ontrack = (ev) => {
         // TODO: find existing and update
         const remotePeer = this.$_remotePeers.get()[id];
+        for (const stream of ev.streams) {
+          const result = remotePeer.streams.findIndex((v) =>
+            v.id === stream.id
+          );
+          if (result === -1) {
+            remotePeer.streams.push(stream);
+          } else {
+            remotePeer.streams[result] = stream;
+          }
+        }
         this.$_remotePeers.setKey(id, {
           ...remotePeer,
-          streams: ev.streams,
         });
+        console.log("debug:ontrack", { id, streams: remotePeer.streams });
       };
 
       sess.onconnectionstatechange = (_ev) => {
@@ -132,12 +142,13 @@ export class PeerStore {
         for (const track of stream.getTracks()) {
           sess.addTrack(track, stream);
         }
+        console.log("debug:onsession", { _id, stream });
       }
 
       this.$_remotePeers.setKey(id, {
         info: sess.other,
-        streams: atom([]),
-        state: atom(sess.connectionState),
+        streams: [],
+        state: sess.connectionState,
       });
     };
 
@@ -147,7 +158,7 @@ export class PeerStore {
     });
 
     // this.$localStreams.listen((newStreams, oldStreams, changedKey) => {
-    // TODO: renegotiate media streams
+    //   sess.
     // });
     this.peer.start();
   }
@@ -173,11 +184,9 @@ export class PeerStore {
       return;
     }
 
-    const entry = {
-      value: value,
-      timestamp: Date.now(),
-      replicaId: this.replicaId,
-    };
+    const entry = current
+      ? { version: current.version + 1, replicaId: this.replicaId, value }
+      : { version: 0, replicaId: this.replicaId, value };
     this.notifyPeers(key, entry);
   }
 
@@ -209,7 +218,7 @@ export class PeerStore {
         "debug:received_update accepted (resolution=empty)",
         remoteEntry,
       );
-    } else if (remoteEntry.timestamp > currentEntry.timestamp) {
+    } else if (remoteEntry.version > currentEntry.version) {
       this.crdtStore[key] = remoteEntry;
       this.$kv.setKey(key, remoteEntry.value);
       console.log(
@@ -217,7 +226,7 @@ export class PeerStore {
         remoteEntry,
       );
     } else if (
-      remoteEntry.timestamp === currentEntry.timestamp &&
+      remoteEntry.version === currentEntry.version &&
       remoteEntry.replicaId > this.replicaId
     ) {
       this.crdtStore[key] = remoteEntry;
