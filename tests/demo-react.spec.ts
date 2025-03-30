@@ -83,7 +83,7 @@ function getAllPairs<T>(list: T[]): [T, T][] {
 test(`load`, async ({ browser, browserName, baseURL }) => {
   const context = await browser.newContext();
   const page = await context.newPage();
-  await page.goto(baseURL! + "?mock");
+  await page.goto(baseURL! + "?mock=on");
   await waitForStableVideo(page, "", 1000);
 });
 
