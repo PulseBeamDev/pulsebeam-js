@@ -212,6 +212,7 @@ export class PeerStore {
           if (!remove) continue;
           const senders = currentSenders[trackId];
           for (const sender of senders) {
+            sender.track?.stop();
             sess.removeTrack(sender);
             console.log("debug:removeTrack", { sender });
           }
