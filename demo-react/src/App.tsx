@@ -328,7 +328,7 @@ function ChatDialog(props: ChatDialogProps) {
           const date = new Date(Number.parseInt(ts));
 
           return (
-            <nav>
+            <nav key={key}>
               <button className="circle capitalize">
                 {peerId.substring(0, 1)}
               </button>

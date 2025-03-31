@@ -140,13 +140,10 @@ export class PeerStore {
         if (sess.connectionState === "closed") {
           const current = this.$_remotePeers.get();
           delete current[id];
-          this.$_remotePeers.set({ ...current });
-          return;
-        }
-
-        if (sess.connectionState === "failed") {
           delete this.sendChannels[id];
           console.log(`connection failed, removed ${id}`);
+          this.$_remotePeers.set({ ...current });
+          return;
         }
 
         const remotePeer = this.$_remotePeers.get()[id];
