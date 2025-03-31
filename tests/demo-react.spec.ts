@@ -12,6 +12,17 @@ import { Browser, expect, type Page, test } from "@playwright/test";
 const PULSEBEAM_BASE_URL = process.env.PULSEBEAM_BASE_URL ||
   "https://cloud.pulsebeam.dev/grpc";
 
+const PRESETS = {
+  baseUrl: PULSEBEAM_BASE_URL,
+  forceRelay: "on",
+  mock: "on",
+};
+
+function toUrl(base: string, presets: typeof PRESETS): string {
+  return base +
+    `?mock=${presets.mock}&baseUrl=${presets.baseUrl}&forceRelay=${presets.forceRelay}`;
+}
+
 // https://playwright.dev/docs/test-retries#serial-mode
 test.describe.configure({ mode: "serial" });
 
@@ -40,10 +51,10 @@ async function waitForStableVideo(
       expect(await video.evaluate((v: HTMLVideoElement) => v.readyState)).toBe(
         4,
       );
-      await page.waitForTimeout(delayMs).catch(() => {});
+      await page.waitForTimeout(delayMs).catch(() => { });
       return;
     } catch (_e) {
-      await page.waitForTimeout(1000).catch(() => {});
+      await page.waitForTimeout(1000).catch(() => { });
     }
   }
 
@@ -51,7 +62,7 @@ async function waitForStableVideo(
 }
 
 async function assertClick(btn: Locator) {
-  await btn.click({ timeout: 1000 }).catch(() => {});
+  await btn.click({ timeout: 1000 }).catch(() => { });
   await expect(btn).not.toBeVisible();
 }
 
@@ -81,9 +92,10 @@ function getAllPairs<T>(list: T[]): [T, T][] {
 }
 
 test(`load`, async ({ browser, browserName, baseURL }) => {
+  const url = toUrl(baseURL!, PRESETS);
   const context = await browser.newContext();
   const page = await context.newPage();
-  await page.goto(baseURL! + "?mock=on");
+  await page.goto(url);
   await waitForStableVideo(page, "", 1000);
 });
 
@@ -109,7 +121,7 @@ test.describe("Connect", () => {
   // basic connection test a->b
   for (const [bA, bB] of pairs) {
     test(`${bA}_${bB} basic connection`, async ({ baseURL }) => {
-      const url = baseURL + "?mock=on&baseUrl=" + PULSEBEAM_BASE_URL;
+      const url = toUrl(baseURL!, PRESETS);
       const group = `${randId()}`;
       const peerA = `__${bA}_A`;
       const peerB = `__${bB}_B`;
@@ -143,7 +155,7 @@ test.describe("Connect", () => {
 
     // Disconnect and reconnect with role reversal
     test(`${bA}_${bB} disconnect and reconnect`, async ({ baseURL }) => {
-      const url = `${baseURL}?mock=on&baseUrl=${PULSEBEAM_BASE_URL}`;
+      const url = toUrl(baseURL!, PRESETS);
       const group = `${randId()}`;
       const peerA = `__${bA}_A`;
       const peerB = `__${bB}_B`;
