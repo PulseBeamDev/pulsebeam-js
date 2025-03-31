@@ -186,7 +186,7 @@ function SessionPage(props: SessionPageProps) {
   const localStreams = useStore(peerStore.$streams);
   const remotePeersMap = useStore(peerStore.$remotePeers);
   const [muted, setMuted] = useState(true);
-  const [hideChat, setHideChat] = useState(false);
+  const [hideChat, setHideChat] = useState(true);
   const [screenShare, setScreenShare] = useState(false);
   const state = useStore(peerStore.$state);
 
@@ -254,7 +254,7 @@ function SessionPage(props: SessionPageProps) {
         </a>
       </nav>
 
-      <ChatDialog hidden={hideChat} />
+      <ChatDialog hidden={hideChat} onClose={() => setHideChat(true)} />
 
       <main
         className="grid responsive no-padding space"
@@ -294,6 +294,7 @@ function SessionPage(props: SessionPageProps) {
 
 interface ChatDialogProps {
   hidden: boolean;
+  onClose: () => void;
 }
 
 function ChatDialog(props: ChatDialogProps) {
@@ -313,8 +314,13 @@ function ChatDialog(props: ChatDialogProps) {
   };
 
   return (
-    <dialog className={`right vertical ${props.hidden || "active"}`}>
-      <h5>Chat</h5>
+    <dialog className={`right overlay vertical ${props.hidden || "active"}`}>
+      <nav>
+        <button className="transparent circle" onClick={props.onClose}>
+          <i>close</i>
+        </button>
+        <h5>Chat</h5>
+      </nav>
 
       <nav className="vertical scroll" style={{ height: "100%" }}>
         {sortedHistory.map(([key, text]) => {
@@ -339,7 +345,11 @@ function ChatDialog(props: ChatDialogProps) {
 
       <nav>
         <form className="field round fill row" onSubmit={onSubmit}>
-          <input onChange={(e) => setText(e.target.value)} value={text} />
+          <input
+            onChange={(e) =>
+              setText(e.target.value)}
+            value={text}
+          />
           <button
             type="submit"
             className="transparent circle"
