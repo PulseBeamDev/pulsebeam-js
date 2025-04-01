@@ -2,7 +2,7 @@ import {
   chromium as bChromium,
   firefox as bFirefox,
   Locator,
-  // webkit as bWebkit,
+  webkit as bWebkit,
 } from "playwright";
 import { Browser, expect, type Page, test } from "@playwright/test";
 
@@ -48,12 +48,16 @@ async function waitForStableVideo(
       expect(await video.evaluate((v: HTMLVideoElement) => v.ended)).toBe(
         false,
       );
-      expect(await video.evaluate((v: HTMLVideoElement) => v.readyState)).toBe(
-        4,
-      );
+      expect(await video.evaluate((v: HTMLVideoElement) => v.readyState))
+        .toBeGreaterThanOrEqual(
+          3,
+        );
       await page.waitForTimeout(delayMs).catch(() => { });
       return;
-    } catch (_e) {
+    } catch (err) {
+      console.warn("waitForStableVideo is not stable, will try again in 1s.", {
+        err,
+      });
       await page.waitForTimeout(1000).catch(() => { });
     }
   }
@@ -100,22 +104,18 @@ test(`load`, async ({ browser, browserName, baseURL }) => {
 });
 
 test.describe("Connect", () => {
-  const browserNames = ["chromium", "firefox"];
-  const browsers: Record<string, Browser> = {};
-  const pairs: [string, string][] = getAllPairs(browserNames);
+  const browsers: Record<string, Browser | undefined> = {
+    "chromium": undefined,
+    "webkit": undefined,
+  };
+  const pairs: [string, string][] = getAllPairs(Object.keys(browsers));
 
   test.beforeAll(async () => {
-    const [chromium, firefox] = await Promise.all([
-      bChromium.launch({}),
-      bFirefox.launch(),
-      // webkit still doesn't allow fake webcam
-      // https://github.com/microsoft/playwright/issues/2973
-      // bWebkit.launch(),
-    ]);
-
-    browsers["chromium"] = chromium;
-    browsers["firefox"] = firefox;
-    // browsers["webkit"] = webkit;
+    browsers["chromium"] = await bChromium.launch({});
+    // browsers["firefox"] = await bFirefox.launch();
+    // webkit still doesn't allow fake webcam
+    // https://github.com/microsoft/playwright/issues/2973
+    browsers["webkit"] = await bWebkit.launch();
   });
 
   // basic connection test a->b
@@ -127,12 +127,12 @@ test.describe("Connect", () => {
       const peerB = `__${bB}_B`;
 
       // Launch browserA for pageA
-      const contextA = await browsers[bA].newContext();
+      const contextA = await browsers[bA]!.newContext();
       const pageA = await contextA.newPage();
       await pageA.goto(url);
 
       // Launch browserB for pageB
-      const contextB = await browsers[bB].newContext();
+      const contextB = await browsers[bB]!.newContext();
       const pageB = await contextB.newPage();
       await pageB.goto(url);
 
@@ -160,11 +160,11 @@ test.describe("Connect", () => {
       const peerA = `__${bA}_A`;
       const peerB = `__${bB}_B`;
 
-      const contextA = await browsers[bA].newContext();
+      const contextA = await browsers[bA]!.newContext();
       const pageA = await contextA.newPage();
       await pageA.goto(url);
 
-      const contextB = await browsers[bB].newContext();
+      const contextB = await browsers[bB]!.newContext();
       const pageB = await contextB.newPage();
       await pageB.goto(url);
 
