@@ -106,7 +106,7 @@ test(`load`, async ({ browser, browserName, baseURL }) => {
 test.describe("Connect", () => {
   const browsers: Record<string, Browser | undefined> = {
     "chromium": undefined,
-    "webkit": undefined,
+    // "webkit": undefined,
   };
   const pairs: [string, string][] = getAllPairs(Object.keys(browsers));
 
@@ -115,7 +115,7 @@ test.describe("Connect", () => {
     // browsers["firefox"] = await bFirefox.launch();
     // webkit still doesn't allow fake webcam
     // https://github.com/microsoft/playwright/issues/2973
-    browsers["webkit"] = await bWebkit.launch();
+    // browsers["webkit"] = await bWebkit.launch();
   });
 
   // basic connection test a->b
