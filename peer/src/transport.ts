@@ -1,4 +1,5 @@
 import type {
+  AnalyticsReportReq,
   Message,
   MessageHeader,
   MessagePayload,
@@ -321,6 +322,39 @@ export class Transport {
         ), retryOpt);
       if (resp === null) {
         this.logger.warn("aborted, message dropped from sending", { msg });
+        return;
+      }
+
+      return;
+    } catch (err) {
+      this.logger.error("unrecoverable error, force closing", { err });
+      this.close();
+      return;
+    }
+  }
+
+  async reportAnalytics(event: AnalyticsReportReq) {
+    const rpcOpt: RpcOptions = {
+      abort: this.abort.signal,
+      timeout: POLL_TIMEOUT_MS,
+    };
+    const retryOpt: RetryOptions = {
+      baseDelay: POLL_RETRY_BASE_DELAY_MS,
+      maxDelay: POLL_RETRY_MAX_DELAY_MS,
+      maxRetries: -1,
+      abortSignal: this.abort.signal,
+      isRecoverable: this.isRecoverable,
+    };
+
+    try {
+      const resp = await retry(
+        async () => await this.client.analyticsReport(event, rpcOpt),
+        retryOpt,
+      );
+      if (resp === null) {
+        this.logger.warn("aborted, message dropped from sending analytics", {
+          msg: event,
+        });
         return;
       }
 

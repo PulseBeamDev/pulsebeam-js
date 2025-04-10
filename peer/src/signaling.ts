@@ -3,6 +3,7 @@
 // tslint:disable
 import { ServiceType } from "@protobuf-ts/runtime-rpc";
 import { MessageType } from "@protobuf-ts/runtime";
+import { Timestamp } from "./google/protobuf/timestamp.ts";
 /**
  * @generated from protobuf message pulsebeam.v1.PrepareReq
  */
@@ -312,6 +313,68 @@ export interface DataChannel {
 export interface DataChannelHeartbeat {
 }
 /**
+ * @generated from protobuf message pulsebeam.v1.AnalyticsReportReq
+ */
+export interface AnalyticsReportReq {
+    /**
+     * @generated from protobuf field: repeated pulsebeam.v1.AnalyticsEvent events = 1;
+     */
+    events: AnalyticsEvent[];
+}
+/**
+ * @generated from protobuf message pulsebeam.v1.AnalyticsEvent
+ */
+export interface AnalyticsEvent {
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp timestamp = 1;
+     */
+    timestamp?: Timestamp;
+    /**
+     * @generated from protobuf field: pulsebeam.v1.AnalyticsTags tags = 2;
+     */
+    tags?: AnalyticsTags;
+    /**
+     * @generated from protobuf field: pulsebeam.v1.AnalyticsMetric metrics = 3;
+     */
+    metrics?: AnalyticsMetric;
+}
+/**
+ * @generated from protobuf message pulsebeam.v1.AnalyticsTags
+ */
+export interface AnalyticsTags {
+    /**
+     * @generated from protobuf field: pulsebeam.v1.PeerInfo src = 1;
+     */
+    src?: PeerInfo;
+    /**
+     * @generated from protobuf field: pulsebeam.v1.PeerInfo dst = 2;
+     */
+    dst?: PeerInfo;
+}
+/**
+ * "scaled" = trunc(X * 10^3)
+ *
+ * @generated from protobuf message pulsebeam.v1.AnalyticsMetric
+ */
+export interface AnalyticsMetric {
+    /**
+     * The overall derived quality score:
+     * - 80-100: excellent
+     * - 60-79: good
+     * - 40-59: fair
+     * - 20-39: poor
+     * - 0-19: bad
+     *
+     * @generated from protobuf field: sint64 quality_score = 1;
+     */
+    qualityScore: bigint;
+}
+/**
+ * @generated from protobuf message pulsebeam.v1.AnalyticsReportResp
+ */
+export interface AnalyticsReportResp {
+}
+/**
  * @generated from protobuf enum pulsebeam.v1.SdpKind
  */
 export enum SdpKind {
@@ -609,11 +672,73 @@ class DataChannelHeartbeat$Type extends MessageType<DataChannelHeartbeat> {
  * @generated MessageType for protobuf message pulsebeam.v1.DataChannelHeartbeat
  */
 export const DataChannelHeartbeat = new DataChannelHeartbeat$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AnalyticsReportReq$Type extends MessageType<AnalyticsReportReq> {
+    constructor() {
+        super("pulsebeam.v1.AnalyticsReportReq", [
+            { no: 1, name: "events", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => AnalyticsEvent }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message pulsebeam.v1.AnalyticsReportReq
+ */
+export const AnalyticsReportReq = new AnalyticsReportReq$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AnalyticsEvent$Type extends MessageType<AnalyticsEvent> {
+    constructor() {
+        super("pulsebeam.v1.AnalyticsEvent", [
+            { no: 1, name: "timestamp", kind: "message", T: () => Timestamp },
+            { no: 2, name: "tags", kind: "message", T: () => AnalyticsTags },
+            { no: 3, name: "metrics", kind: "message", T: () => AnalyticsMetric }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message pulsebeam.v1.AnalyticsEvent
+ */
+export const AnalyticsEvent = new AnalyticsEvent$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AnalyticsTags$Type extends MessageType<AnalyticsTags> {
+    constructor() {
+        super("pulsebeam.v1.AnalyticsTags", [
+            { no: 1, name: "src", kind: "message", T: () => PeerInfo },
+            { no: 2, name: "dst", kind: "message", T: () => PeerInfo }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message pulsebeam.v1.AnalyticsTags
+ */
+export const AnalyticsTags = new AnalyticsTags$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AnalyticsMetric$Type extends MessageType<AnalyticsMetric> {
+    constructor() {
+        super("pulsebeam.v1.AnalyticsMetric", [
+            { no: 1, name: "quality_score", kind: "scalar", T: 18 /*ScalarType.SINT64*/, L: 0 /*LongType.BIGINT*/ }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message pulsebeam.v1.AnalyticsMetric
+ */
+export const AnalyticsMetric = new AnalyticsMetric$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AnalyticsReportResp$Type extends MessageType<AnalyticsReportResp> {
+    constructor() {
+        super("pulsebeam.v1.AnalyticsReportResp", []);
+    }
+}
+/**
+ * @generated MessageType for protobuf message pulsebeam.v1.AnalyticsReportResp
+ */
+export const AnalyticsReportResp = new AnalyticsReportResp$Type();
 /**
  * @generated ServiceType for protobuf service pulsebeam.v1.Signaling
  */
 export const Signaling = new ServiceType("pulsebeam.v1.Signaling", [
     { name: "Prepare", options: {}, I: PrepareReq, O: PrepareResp },
     { name: "Send", options: {}, I: SendReq, O: SendResp },
-    { name: "Recv", serverStreaming: true, options: {}, I: RecvReq, O: RecvResp }
+    { name: "Recv", serverStreaming: true, options: {}, I: RecvReq, O: RecvResp },
+    { name: "AnalyticsReport", options: {}, I: AnalyticsReportReq, O: AnalyticsReportResp }
 ]);

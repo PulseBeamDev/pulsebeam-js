@@ -1,6 +1,10 @@
 import { type ISignalingClient, SignalingClient } from "./signaling.client.ts";
 import { Transport } from "./transport.ts";
-import type { PeerInfo } from "./signaling.ts";
+import type {
+  AnalyticsEvent,
+  AnalyticsReportReq,
+  PeerInfo,
+} from "./signaling.ts";
 import { Logger, PRETTY_LOG_SINK } from "./logger.ts";
 import { Session } from "./session.ts";
 import { RpcError, RpcOptions, UnaryCall } from "@protobuf-ts/runtime-rpc";
@@ -8,10 +12,14 @@ import {
   GrpcStatusCode,
   GrpcWebFetchTransport,
 } from "@protobuf-ts/grpcweb-transport";
-import { retry } from "./util.ts";
+import { asleep, retry } from "./util.ts";
 import { jwtDecode } from "jwt-decode";
+import { calculateWebRTCQuality, collectWebRTCStats } from "./quality.ts";
+import { Timestamp } from "./google/protobuf/timestamp.ts";
 
 export type { PeerInfo } from "./signaling.ts";
+
+const ANALYTICS_POLL_INTERVAL_MS = 60_000;
 
 /**
  * Streamline real-time application development.`@pulsebeam/peer` abstracts
@@ -182,6 +190,12 @@ export interface PeerOptionsFull {
   token: string;
 
   /**
+   * By default, client analytics is enabled. To opt out, set this field to true.
+   * @type {boolean} disableAnalytics
+   */
+  disableAnalytics?: boolean;
+
+  /**
    * (Optional) Base URL for API calls. Defaults to using our servers: "https://cloud.pulsebeam.dev/twirp".
    * @type {string | undefined} [baseUrl]
    */
@@ -234,11 +248,11 @@ export class Peer {
    * Callback invoked when a new session is established.
    * @param _s Session object
    */
-  public onsession = (_s: ISession) => {};
+  public onsession = (_s: ISession) => { };
   /**
    * Callback invoked when the peer’s state changes.
    */
-  public onstatechange = () => {};
+  public onstatechange = () => { };
   /**
    * Identifier for the peer. Valid UTF-8 string of 1-16 characters.
    */
@@ -254,7 +268,7 @@ export class Peer {
   constructor(
     logger: Logger,
     client: ISignalingClient,
-    opts: PeerOptionsFull,
+    private readonly opts: PeerOptionsFull,
     isRecoverable: (_err: unknown) => boolean,
   ) {
     this.peerId = opts.peerId;
@@ -299,6 +313,40 @@ export class Peer {
   start() {
     if (this._state === "closed") throw new Error("peer is already closed");
     this.transport.listen();
+    if (
+      this.opts.disableAnalytics != undefined ||
+      this.opts.disableAnalytics === false
+    ) {
+      this.analyticsLoop();
+    }
+  }
+
+  async analyticsLoop() {
+    while (this.state != "closed") {
+      const events: AnalyticsEvent[] = [];
+      for (const sess of this.sessions) {
+        const rawStats = await sess.getStats();
+        const at = Timestamp.now();
+        const stats = collectWebRTCStats(rawStats);
+        const quality = calculateWebRTCQuality(stats);
+
+        events.push({
+          timestamp: at,
+          tags: {
+            src: this.transport.info,
+            dst: sess.other,
+          },
+          metrics: {
+            qualityScore: BigInt(quality),
+          },
+        });
+      }
+
+      const request: AnalyticsReportReq = { events };
+      this.transport.reportAnalytics(request);
+
+      await asleep(ANALYTICS_POLL_INTERVAL_MS);
+    }
   }
 
   /**
@@ -389,7 +437,7 @@ interface JwtClaims {
 export async function createPeer(opts: PeerOptions): Promise<Peer> {
   // TODO: add hook for refresh token
   const token = opts.token;
-  const twirp = new GrpcWebFetchTransport({
+  const transport = new GrpcWebFetchTransport({
     baseUrl: opts.baseUrl || BASE_URL,
     sendJson: false,
     format: "binary",
@@ -411,7 +459,7 @@ export async function createPeer(opts: PeerOptions): Promise<Peer> {
       },
     ],
   });
-  const client = new SignalingClient(twirp);
+  const client = new SignalingClient(transport);
 
   const resp = await retry(
     async () => await client.prepare({}),

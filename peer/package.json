@@ -19,7 +19,7 @@
     }
   },
   "scripts": {
-    "gen": "protoc --ts_out=. --experimental_allow_proto3_optional --ts_opt=client_generic --proto_path proto/v1 ./proto/v1/signaling.proto && node ./scripts/patch.cjs",
+    "gen": "protoc --ts_out=src --experimental_allow_proto3_optional --ts_opt=client_generic --proto_path proto/v1 ./proto/v1/signaling.proto && node ./scripts/patch.cjs",
     "dev": "vite",
     "build": "tsup src/index.ts --format esm,cjs --dts --minify",
     "clean": "rm -rf dist",

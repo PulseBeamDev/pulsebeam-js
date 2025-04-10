@@ -4,6 +4,8 @@
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { Signaling } from "./signaling.ts";
+import type { AnalyticsReportResp } from "./signaling.ts";
+import type { AnalyticsReportReq } from "./signaling.ts";
 import type { RecvResp } from "./signaling.ts";
 import type { RecvReq } from "./signaling.ts";
 import type { ServerStreamingCall } from "@protobuf-ts/runtime-rpc";
@@ -30,6 +32,10 @@ export interface ISignalingClient {
      * @generated from protobuf rpc: Recv(pulsebeam.v1.RecvReq) returns (stream pulsebeam.v1.RecvResp);
      */
     recv(input: RecvReq, options?: RpcOptions): ServerStreamingCall<RecvReq, RecvResp>;
+    /**
+     * @generated from protobuf rpc: AnalyticsReport(pulsebeam.v1.AnalyticsReportReq) returns (pulsebeam.v1.AnalyticsReportResp);
+     */
+    analyticsReport(input: AnalyticsReportReq, options?: RpcOptions): UnaryCall<AnalyticsReportReq, AnalyticsReportResp>;
 }
 /**
  * @generated from protobuf service pulsebeam.v1.Signaling
@@ -60,5 +66,12 @@ export class SignalingClient implements ISignalingClient, ServiceInfo {
     recv(input: RecvReq, options?: RpcOptions): ServerStreamingCall<RecvReq, RecvResp> {
         const method = this.methods[2], opt = this._transport.mergeOptions(options);
         return stackIntercept<RecvReq, RecvResp>("serverStreaming", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: AnalyticsReport(pulsebeam.v1.AnalyticsReportReq) returns (pulsebeam.v1.AnalyticsReportResp);
+     */
+    analyticsReport(input: AnalyticsReportReq, options?: RpcOptions): UnaryCall<AnalyticsReportReq, AnalyticsReportResp> {
+        const method = this.methods[3], opt = this._transport.mergeOptions(options);
+        return stackIntercept<AnalyticsReportReq, AnalyticsReportResp>("unary", this._transport, method, opt, input);
     }
 }

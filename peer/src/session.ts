@@ -128,6 +128,12 @@ export class Session {
     return this.pc.createDataChannel(...args);
   }
 
+  getStats(
+    ...args: Parameters<RTCPeerConnection["getStats"]>
+  ): Promise<RTCStatsReport> {
+    return this.pc.getStats(...args);
+  }
+
   /**
    * Returns the current connection state of the underlying RTCPeerConnection
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/connectionState}
