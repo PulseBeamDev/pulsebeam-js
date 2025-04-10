@@ -19,7 +19,7 @@ import { Timestamp } from "./google/protobuf/timestamp.ts";
 
 export type { PeerInfo } from "./signaling.ts";
 
-const ANALYTICS_POLL_INTERVAL_MS = 60_000;
+const ANALYTICS_POLL_INTERVAL_MS = 5_000;
 
 /**
  * Streamline real-time application development.`@pulsebeam/peer` abstracts
@@ -313,10 +313,11 @@ export class Peer {
   start() {
     if (this._state === "closed") throw new Error("peer is already closed");
     this.transport.listen();
-    if (
-      this.opts.disableAnalytics != undefined ||
-      this.opts.disableAnalytics === false
-    ) {
+    const analyticsEnabled = this.opts.disableAnalytics == undefined ||
+      this.opts.disableAnalytics === false;
+
+    this.logger.info(`analytics ${analyticsEnabled ? "enabled" : "disabled"}`);
+    if (analyticsEnabled) {
       this.analyticsLoop();
     }
   }

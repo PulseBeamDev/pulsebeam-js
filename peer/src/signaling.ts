@@ -334,9 +334,9 @@ export interface AnalyticsEvent {
      */
     tags?: AnalyticsTags;
     /**
-     * @generated from protobuf field: pulsebeam.v1.AnalyticsMetric metrics = 3;
+     * @generated from protobuf field: pulsebeam.v1.AnalyticsMetrics metrics = 3;
      */
-    metrics?: AnalyticsMetric;
+    metrics?: AnalyticsMetrics;
 }
 /**
  * @generated from protobuf message pulsebeam.v1.AnalyticsTags
@@ -354,9 +354,9 @@ export interface AnalyticsTags {
 /**
  * "scaled" = trunc(X * 10^3)
  *
- * @generated from protobuf message pulsebeam.v1.AnalyticsMetric
+ * @generated from protobuf message pulsebeam.v1.AnalyticsMetrics
  */
-export interface AnalyticsMetric {
+export interface AnalyticsMetrics {
     /**
      * The overall derived quality score:
      * - 80-100: excellent
@@ -690,7 +690,7 @@ class AnalyticsEvent$Type extends MessageType<AnalyticsEvent> {
         super("pulsebeam.v1.AnalyticsEvent", [
             { no: 1, name: "timestamp", kind: "message", T: () => Timestamp },
             { no: 2, name: "tags", kind: "message", T: () => AnalyticsTags },
-            { no: 3, name: "metrics", kind: "message", T: () => AnalyticsMetric }
+            { no: 3, name: "metrics", kind: "message", T: () => AnalyticsMetrics }
         ]);
     }
 }
@@ -712,17 +712,17 @@ class AnalyticsTags$Type extends MessageType<AnalyticsTags> {
  */
 export const AnalyticsTags = new AnalyticsTags$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class AnalyticsMetric$Type extends MessageType<AnalyticsMetric> {
+class AnalyticsMetrics$Type extends MessageType<AnalyticsMetrics> {
     constructor() {
-        super("pulsebeam.v1.AnalyticsMetric", [
+        super("pulsebeam.v1.AnalyticsMetrics", [
             { no: 1, name: "quality_score", kind: "scalar", T: 18 /*ScalarType.SINT64*/, L: 0 /*LongType.BIGINT*/ }
         ]);
     }
 }
 /**
- * @generated MessageType for protobuf message pulsebeam.v1.AnalyticsMetric
+ * @generated MessageType for protobuf message pulsebeam.v1.AnalyticsMetrics
  */
-export const AnalyticsMetric = new AnalyticsMetric$Type();
+export const AnalyticsMetrics = new AnalyticsMetrics$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AnalyticsReportResp$Type extends MessageType<AnalyticsReportResp> {
     constructor() {
