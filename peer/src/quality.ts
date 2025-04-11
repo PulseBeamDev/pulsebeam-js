@@ -92,7 +92,8 @@ export function calculateWebRTCQuality(stats: WebRTCStats): number {
   };
 
   const aggregateAndScore = (channelStats: ChannelStats[]): number => {
-    if (channelStats.length === 0) return 100;
+    // no data, we assume not connecting
+    if (channelStats.length === 0) return 0;
 
     const aggregated = aggregateChannelStats(channelStats);
 

@@ -15,6 +15,9 @@ const POLL_TIMEOUT_MS = 900000;
 const POLL_RETRY_BASE_DELAY_MS = 50;
 const POLL_RETRY_MAX_DELAY_MS = 1000;
 
+const ANALYTICS_POLL_RETRY_BASE_DELAY_MS = 1000;
+const ANALYTICS_POLL_RETRY_MAX_DELAY_MS = 4000;
+
 export enum ReservedConnId {
   Discovery = 0,
   Max = 16,
@@ -339,9 +342,9 @@ export class Transport {
       timeout: POLL_TIMEOUT_MS,
     };
     const retryOpt: RetryOptions = {
-      baseDelay: POLL_RETRY_BASE_DELAY_MS,
-      maxDelay: POLL_RETRY_MAX_DELAY_MS,
-      maxRetries: -1,
+      baseDelay: ANALYTICS_POLL_RETRY_BASE_DELAY_MS,
+      maxDelay: ANALYTICS_POLL_RETRY_MAX_DELAY_MS,
+      maxRetries: 3,
       abortSignal: this.abort.signal,
       isRecoverable: this.isRecoverable,
     };
@@ -360,8 +363,10 @@ export class Transport {
 
       return;
     } catch (err) {
-      this.logger.error("unrecoverable error, force closing", { err });
-      this.close();
+      this.logger.error(
+        "analytics backend is in unrecoverable state, dropping analytics event",
+        { err },
+      );
       return;
     }
   }

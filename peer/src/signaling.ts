@@ -3,7 +3,6 @@
 // tslint:disable
 import { ServiceType } from "@protobuf-ts/runtime-rpc";
 import { MessageType } from "@protobuf-ts/runtime";
-import { Timestamp } from "./google/protobuf/timestamp.ts";
 /**
  * @generated from protobuf message pulsebeam.v1.PrepareReq
  */
@@ -326,9 +325,9 @@ export interface AnalyticsReportReq {
  */
 export interface AnalyticsEvent {
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp timestamp = 1;
+     * @generated from protobuf field: sint64 timestamp_us = 1;
      */
-    timestamp?: Timestamp;
+    timestampUs: bigint;
     /**
      * @generated from protobuf field: pulsebeam.v1.AnalyticsTags tags = 2;
      */
@@ -688,7 +687,7 @@ export const AnalyticsReportReq = new AnalyticsReportReq$Type();
 class AnalyticsEvent$Type extends MessageType<AnalyticsEvent> {
     constructor() {
         super("pulsebeam.v1.AnalyticsEvent", [
-            { no: 1, name: "timestamp", kind: "message", T: () => Timestamp },
+            { no: 1, name: "timestamp_us", kind: "scalar", T: 18 /*ScalarType.SINT64*/, L: 0 /*LongType.BIGINT*/ },
             { no: 2, name: "tags", kind: "message", T: () => AnalyticsTags },
             { no: 3, name: "metrics", kind: "message", T: () => AnalyticsMetrics }
         ]);

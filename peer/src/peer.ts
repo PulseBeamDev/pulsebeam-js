@@ -15,11 +15,10 @@ import {
 import { asleep, retry } from "./util.ts";
 import { jwtDecode } from "jwt-decode";
 import { calculateWebRTCQuality, collectWebRTCStats } from "./quality.ts";
-import { Timestamp } from "./google/protobuf/timestamp.ts";
 
 export type { PeerInfo } from "./signaling.ts";
 
-const ANALYTICS_POLL_INTERVAL_MS = 5_000;
+const ANALYTICS_POLL_INTERVAL_MS = 60_000;
 
 /**
  * Streamline real-time application development.`@pulsebeam/peer` abstracts
@@ -327,12 +326,12 @@ export class Peer {
       const events: AnalyticsEvent[] = [];
       for (const sess of this.sessions) {
         const rawStats = await sess.getStats();
-        const at = Timestamp.now();
+        const at = Date.now() * 1_000;
         const stats = collectWebRTCStats(rawStats);
         const quality = calculateWebRTCQuality(stats);
 
         events.push({
-          timestamp: at,
+          timestampUs: BigInt(at),
           tags: {
             src: this.transport.info,
             dst: sess.other,
