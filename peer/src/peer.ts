@@ -328,18 +328,24 @@ export class Peer {
         const rawStats = await sess.getStats();
         const at = Date.now() * 1_000;
         const stats = collectWebRTCStats(rawStats);
-        const quality = calculateWebRTCQuality(stats);
 
-        events.push({
-          timestampUs: BigInt(at),
-          tags: {
-            src: this.transport.info,
-            dst: sess.other,
-          },
-          metrics: {
-            qualityScore: BigInt(quality),
-          },
-        });
+        if (
+          stats.audio.length != 0 ||
+          stats.video.length != 0 && stats.data.length != 0
+        ) {
+          const quality = calculateWebRTCQuality(stats);
+
+          events.push({
+            timestampUs: BigInt(at),
+            tags: {
+              src: this.transport.info,
+              dst: sess.other,
+            },
+            metrics: {
+              qualityScore: BigInt(quality),
+            },
+          });
+        }
       }
 
       const request: AnalyticsReportReq = { events };
