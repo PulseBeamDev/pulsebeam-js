@@ -1,185 +1,158 @@
-export interface ChannelStats {
-  rttMs?: number;
-  jitterMs?: number;
-  packetLossPercent?: number;
-  availableOutgoingBitrateKbps?: number;
-  frameRate?: number;
-  resolution?: {
-    width: number;
-    height: number;
-  };
-  freezeCount?: number;
-  audioLevelVariance?: number;
-  messagesSent?: number;
-  messagesReceived?: number;
-  messagesLost?: number;
+interface RTCStats {
+  id: string;
+  timestamp: number;
+  type: RTCStatsType;
 }
 
-export interface WebRTCStats {
-  audio: ChannelStats[];
-  video: ChannelStats[];
-  data: ChannelStats[];
+type RTCStatsType =
+  | "candidate-pair"
+  | "certificate"
+  | "codec"
+  | "data-channel"
+  | "ice-candidate"
+  | "ice-server"
+  | "inbound-rtp"
+  | "local-candidate"
+  | "outbound-rtp"
+  | "peer-connection"
+  | "remote-candidate"
+  | "remote-inbound-rtp"
+  | "remote-outbound-rtp"
+  | "rtp-sender"
+  | "rtp-receiver"
+  | "sctp-transport"
+  | "track"
+  | "transport";
+
+interface RTCReceiverStats extends RTCStats {
+  type: "inbound-rtp" | "rtp-receiver" | "remote-outbound-rtp";
+  kind?: "audio" | "video";
+  bytesReceived?: number;
+  packetsReceived?: number;
+  packetsLost?: number;
+  jitter?: number;
+  framesDecoded?: number;
+  framesDropped?: number;
+  framesPerSecond?: number;
+  totalSamplesReceived?: number;
 }
 
-export interface MetricWeight {
-  weight: number;
-  scoreFunction: (value: number) => number;
+interface RTCIceCandidatePairStats extends RTCStats {
+  type: "candidate-pair";
+  state?:
+    | "new"
+    | "checking"
+    | "connected"
+    | "completed"
+    | "failed"
+    | "disconnected";
+  roundTripTime?: number;
+  localCandidateId?: string;
+  remoteCandidateId?: string;
 }
 
-function normalize(value: number, min: number, max: number): number {
-  return Math.max(0, Math.min(1, (value - min) / (max - min)));
+interface RTCPeerConnectionStats extends RTCStats {
+  type: "peer-connection";
+  iceConnectionState?:
+    | "new"
+    | "checking"
+    | "connected"
+    | "completed"
+    | "failed"
+    | "disconnected"
+    | "closed";
+  iceGatheringState?: "new" | "gathering" | "complete";
 }
 
-function aggregateChannelStats(channelStats: ChannelStats[]): ChannelStats {
-  const aggregated: ChannelStats = {};
+export function calculateQualityScore(stats: RTCStatsReport): number {
+  let audioReceiverStats: RTCReceiverStats | undefined;
+  let videoReceiverStats: RTCReceiverStats | undefined;
+  let activeCandidatePairStats: RTCIceCandidatePairStats | undefined;
+  let peerConnectionStats: RTCPeerConnectionStats | undefined;
 
-  const sum = (values: number[]) => values.reduce((a, b) => a + b, 0);
-  const avg = (values: number[]) =>
-    values.length ? sum(values) / values.length : undefined;
-
-  const collect = (key: keyof ChannelStats) =>
-    channelStats.map((stat) => stat[key]).filter((v): v is number =>
-      typeof v === "number"
-    );
-
-  aggregated.rttMs = avg(collect("rttMs"));
-  aggregated.jitterMs = avg(collect("jitterMs"));
-  aggregated.packetLossPercent = avg(collect("packetLossPercent"));
-  aggregated.availableOutgoingBitrateKbps = avg(
-    collect("availableOutgoingBitrateKbps"),
-  );
-  aggregated.frameRate = avg(collect("frameRate"));
-  aggregated.freezeCount = sum(collect("freezeCount"));
-  aggregated.audioLevelVariance = avg(collect("audioLevelVariance"));
-  aggregated.messagesSent = sum(collect("messagesSent"));
-  aggregated.messagesReceived = sum(collect("messagesReceived"));
-  aggregated.messagesLost = sum(collect("messagesLost"));
-
-  const resolutions = channelStats.map((stat) => stat.resolution).filter(
-    Boolean,
-  ) as { width: number; height: number }[];
-  if (resolutions.length) {
-    aggregated.resolution = {
-      width: Math.round(avg(resolutions.map((r) => r.width))!),
-      height: Math.round(avg(resolutions.map((r) => r.height))!),
-    };
+  for (const stat of stats.values()) {
+    if (stat.type === "inbound-rtp" || stat.type === "rtp-receiver") {
+      const receiverStat = stat as RTCReceiverStats;
+      if (receiverStat.kind === "audio") {
+        audioReceiverStats = receiverStat;
+      } else {
+        videoReceiverStats = receiverStat;
+      }
+    } else if (stat.type === "candidate-pair") {
+      const candidatePairStat = stat as RTCIceCandidatePairStats;
+      if (candidatePairStat.state === "connected") {
+        activeCandidatePairStats = candidatePairStat;
+      }
+    } else if (stat.type === "peer-connection") {
+      peerConnectionStats = stat as RTCPeerConnectionStats;
+    }
   }
 
-  return aggregated;
-}
+  if (
+    peerConnectionStats && peerConnectionStats.iceConnectionState &&
+    !["connected", "completed"].includes(peerConnectionStats.iceConnectionState)
+  ) {
+    return 15; // Low score for connection issues
+  }
 
-export function calculateWebRTCQuality(stats: WebRTCStats): number {
-  const metricsConfig: Record<string, MetricWeight> = {
-    rttMs: { weight: 0.2, scoreFunction: (v) => 1 - normalize(v, 50, 400) },
-    jitterMs: { weight: 0.15, scoreFunction: (v) => 1 - normalize(v, 5, 50) },
-    packetLossPercent: {
-      weight: 0.2,
-      scoreFunction: (v) => 1 - normalize(v, 0, 5),
-    },
-    availableOutgoingBitrateKbps: {
-      weight: 0.15,
-      scoreFunction: (v) => normalize(v, 300, 2500),
-    },
-    frameRate: { weight: 0.1, scoreFunction: (v) => normalize(v, 15, 60) },
-    audioLevelVariance: {
-      weight: 0.05,
-      scoreFunction: (v) => normalize(v, 0, 0.5),
-    },
-    messagesLost: {
-      weight: 0.15,
-      scoreFunction: (v) => 1 - normalize(v, 0, 5),
-    },
-  };
+  let audioQuality = 100;
+  if (audioReceiverStats) {
+    const packetsLost = audioReceiverStats.packetsLost ?? 0;
+    const packetsReceived = audioReceiverStats.packetsReceived ?? 0;
+    const audioPacketLossRatio = packetsReceived > 0
+      ? packetsLost / packetsReceived
+      : 0;
+    const audioPacketLossScore = Math.max(
+      0,
+      100 - (audioPacketLossRatio * 100),
+    );
+    const audioJitter = audioReceiverStats.jitter ?? 0;
+    const audioJitterScore = audioJitter < 0.02
+      ? 100
+      : (audioJitter < 0.1 ? 70 : 30);
+    audioQuality = (audioPacketLossScore + audioJitterScore) / 2;
+  }
 
-  const aggregateAndScore = (channelStats: ChannelStats[]): number => {
-    // no data, we assume not connecting
-    if (channelStats.length === 0) return 0;
+  let videoQuality = 100;
+  if (videoReceiverStats) {
+    const packetsLost = videoReceiverStats.packetsLost ?? 0;
+    const packetsReceived = videoReceiverStats.packetsReceived ?? 0;
+    const videoPacketLossRatio = packetsReceived > 0
+      ? packetsLost / packetsReceived
+      : 0;
+    const videoPacketLossScore = Math.max(
+      0,
+      100 - (videoPacketLossRatio * 100),
+    );
+    const videoJitter = videoReceiverStats.jitter ?? 0;
+    const videoJitterScore = videoJitter < 0.02
+      ? 100
+      : (videoJitter < 0.1 ? 70 : 30);
+    const framesDropped = videoReceiverStats.framesDropped ?? 0;
+    const framesDecoded = videoReceiverStats.framesDecoded ?? 0;
+    const frameDropRatio = framesDecoded > 0
+      ? framesDropped / framesDecoded
+      : 0;
+    const videoFrameDropScore = Math.max(0, 100 - (frameDropRatio * 100));
+    const videoFps = videoReceiverStats.framesPerSecond;
+    const videoFpsScore = videoFps !== undefined
+      ? Math.min(100, (videoFps / 15) * (100 / 1))
+      : 100;
+    videoQuality =
+      (videoPacketLossScore + videoJitterScore + videoFrameDropScore +
+        videoFpsScore) / 4;
+  }
 
-    const aggregated = aggregateChannelStats(channelStats);
-
-    let totalScore = 0;
-    let totalWeight = 0;
-
-    for (const [key, config] of Object.entries(metricsConfig)) {
-      const value = (aggregated as any)[key];
-      if (typeof value === "number") {
-        totalScore += config.scoreFunction(value) * config.weight;
-        totalWeight += config.weight;
-      }
+  let latencyScore = 80;
+  if (activeCandidatePairStats) {
+    const rtt = activeCandidatePairStats.roundTripTime;
+    if (rtt !== undefined) {
+      latencyScore = rtt < 0.1 ? 100 : (rtt < 0.3 ? 80 : (rtt < 0.5 ? 60 : 40));
     }
+  }
 
-    const score = totalWeight > 0 ? (totalScore / totalWeight) * 100 : 100;
-    return Math.max(0, Math.min(100, Math.round(score)));
-  };
-
-  const audioScore = aggregateAndScore(stats.audio);
-  const videoScore = aggregateAndScore(stats.video);
-  const dataScore = aggregateAndScore(stats.data);
-
-  const overallScore = Math.round((audioScore + videoScore + dataScore) / 3);
-  return overallScore;
-}
-
-export function collectWebRTCStats(
-  statsReport: RTCStatsReport,
-): WebRTCStats {
-  const audioStats: ChannelStats[] = [];
-  const videoStats: ChannelStats[] = [];
-  const dataStats: ChannelStats[] = [];
-
-  statsReport.forEach((report) => {
-    if (report.type === "inbound-rtp" || report.type === "outbound-rtp") {
-      const baseStats: ChannelStats = {
-        rttMs: (report.roundTripTime ?? report.currentRoundTripTime)
-          ? ((report.roundTripTime ?? report.currentRoundTripTime) * 1000)
-          : undefined,
-        jitterMs: report.jitter ? report.jitter * 1000 : undefined,
-        packetLossPercent:
-          report.packetsLost !== undefined && report.packetsSent !== undefined
-            ? (report.packetsLost / (report.packetsSent + report.packetsLost)) *
-            100
-            : undefined,
-        availableOutgoingBitrateKbps: report.availableOutgoingBitrate
-          ? report.availableOutgoingBitrate / 1000
-          : undefined,
-        frameRate: report.framesPerSecond,
-        resolution: report.frameWidth && report.frameHeight
-          ? { width: report.frameWidth, height: report.frameHeight }
-          : undefined,
-        messagesSent: report.packetsSent,
-        messagesReceived: report.packetsReceived,
-        messagesLost: report.packetsLost,
-      };
-
-      if (report.kind === "audio") {
-        audioStats.push(baseStats);
-      } else if (report.kind === "video") {
-        videoStats.push(baseStats);
-      }
-    }
-
-    if (report.type === "data-channel") {
-      const dataChannelStats: ChannelStats = {
-        messagesSent: report.messagesSent,
-        messagesReceived: report.messagesReceived,
-        messagesLost: undefined, // WebRTC stats API does not yet expose lost messages for data channels
-      };
-      dataStats.push(dataChannelStats);
-    }
-
-    if (report.type === "candidate-pair" && report.selected) {
-      const rttMs = report.currentRoundTripTime
-        ? report.currentRoundTripTime * 1000
-        : undefined;
-      [...audioStats, ...videoStats, ...dataStats].forEach((stat) => {
-        stat.rttMs = stat.rttMs ?? rttMs;
-      });
-    }
-  });
-
-  return {
-    audio: audioStats,
-    video: videoStats,
-    data: dataStats,
-  };
+  const overallQuality = Math.round(
+    (videoQuality * 0.5) + (audioQuality * 0.3) + (latencyScore * 0.2),
+  );
+  return Math.max(0, Math.min(100, overallQuality));
 }

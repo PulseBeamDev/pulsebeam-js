@@ -14,11 +14,11 @@ import {
 } from "@protobuf-ts/grpcweb-transport";
 import { asleep, retry } from "./util.ts";
 import { jwtDecode } from "jwt-decode";
-import { calculateWebRTCQuality, collectWebRTCStats } from "./quality.ts";
+import { calculateQualityScore } from "./quality.ts";
 
 export type { PeerInfo } from "./signaling.ts";
 
-const ANALYTICS_POLL_INTERVAL_MS = 60_000;
+const ANALYTICS_POLL_INTERVAL_MS = 10_000;
 
 /**
  * Streamline real-time application development.`@pulsebeam/peer` abstracts
@@ -247,11 +247,11 @@ export class Peer {
    * Callback invoked when a new session is established.
    * @param _s Session object
    */
-  public onsession = (_s: ISession) => { };
+  public onsession = (_s: ISession) => {};
   /**
    * Callback invoked when the peer’s state changes.
    */
-  public onstatechange = () => { };
+  public onstatechange = () => {};
   /**
    * Identifier for the peer. Valid UTF-8 string of 1-16 characters.
    */
@@ -299,6 +299,11 @@ export class Peer {
   }
 
   get sessions(): Session[] {
+    // lazily remove closed sessions. This is to maintain session list without listening to
+    // each session's event.
+    this._sessions = this._sessions.filter((s) =>
+      s.connectionState != "closed"
+    );
     return [...this._sessions];
   }
 
@@ -326,26 +331,20 @@ export class Peer {
       const events: AnalyticsEvent[] = [];
       for (const sess of this.sessions) {
         const rawStats = await sess.getStats();
+
         const at = Date.now() * 1_000;
-        const stats = collectWebRTCStats(rawStats);
+        const quality = calculateQualityScore(rawStats);
 
-        if (
-          stats.audio.length != 0 ||
-          stats.video.length != 0 && stats.data.length != 0
-        ) {
-          const quality = calculateWebRTCQuality(stats);
-
-          events.push({
-            timestampUs: BigInt(at),
-            tags: {
-              src: this.transport.info,
-              dst: sess.other,
-            },
-            metrics: {
-              qualityScore: BigInt(quality),
-            },
-          });
-        }
+        events.push({
+          timestampUs: BigInt(at),
+          tags: {
+            src: this.transport.info,
+            dst: sess.other,
+          },
+          metrics: {
+            qualityScore: BigInt(quality),
+          },
+        });
       }
 
       const request: AnalyticsReportReq = { events };

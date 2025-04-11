@@ -12,7 +12,7 @@ import { asleep, joinSignals, retry, RetryOptions } from "./util.ts";
 import { RpcOptions } from "@protobuf-ts/runtime-rpc";
 
 const POLL_TIMEOUT_MS = 900000;
-const POLL_RETRY_BASE_DELAY_MS = 50;
+const POLL_RETRY_BASE_DELAY_MS = 250;
 const POLL_RETRY_MAX_DELAY_MS = 1000;
 
 const ANALYTICS_POLL_RETRY_BASE_DELAY_MS = 1000;
@@ -47,7 +47,7 @@ class Queue {
   private unreliable: Message[];
   private processing: boolean;
   private readonly logger: Logger;
-  public onmsg = async (_: Message) => { };
+  public onmsg = async (_: Message) => {};
 
   constructor(logger: Logger) {
     this.logger = logger.sub("queue");
@@ -119,8 +119,8 @@ export class Transport {
   public readonly asleep: typeof defaultAsleep;
   private readonly randUint32: typeof defaultRandUint32;
   private readonly isRecoverable: typeof defaultIsRecoverable;
-  public onstream = (_: Stream) => { };
-  public onclosed = (_reason: string) => { };
+  public onstream = (_: Stream) => {};
+  public onclosed = (_reason: string) => {};
 
   constructor(
     private readonly client: ISignalingClient,
@@ -295,7 +295,7 @@ export class Transport {
         header,
         payload,
       });
-      await this.asleep(POLL_RETRY_MAX_DELAY_MS, joinedSignal).catch(() => { });
+      await this.asleep(POLL_RETRY_MAX_DELAY_MS, joinedSignal).catch(() => {});
 
       found = !!this.streams.find((s) =>
         s.other.groupId === otherGroupId && s.other.peerId === otherPeerId
@@ -312,7 +312,7 @@ export class Transport {
     const retryOpt: RetryOptions = {
       baseDelay: POLL_RETRY_BASE_DELAY_MS,
       maxDelay: POLL_RETRY_MAX_DELAY_MS,
-      maxRetries: -1,
+      maxRetries: 5,
       abortSignal: joinedSignal,
       isRecoverable: this.isRecoverable,
     };
@@ -379,8 +379,8 @@ export class Stream {
   private abort: AbortController;
   public recvq: Queue;
   private lastSeqnum: number;
-  public onsignal = async (_: Signal) => { };
-  public onclosed = (_reason: string) => { };
+  public onsignal = async (_: Signal) => {};
+  public onclosed = (_reason: string) => {};
 
   constructor(
     private readonly transport: Transport,
