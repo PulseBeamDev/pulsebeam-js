@@ -24,6 +24,7 @@ type RTCStatsType =
   | "track"
   | "transport";
 
+// https://developer.mozilla.org/en-US/docs/Web/API/RTCInboundRtpStreamStats
 interface RTCReceiverStats extends RTCStats {
   type: "inbound-rtp" | "rtp-receiver" | "remote-outbound-rtp";
   kind?: "audio" | "video";
@@ -31,24 +32,23 @@ interface RTCReceiverStats extends RTCStats {
   packetsReceived?: number;
   packetsLost?: number;
   jitter?: number;
-  framesDecoded?: number;
-  framesDropped?: number;
-  framesPerSecond?: number;
   totalSamplesReceived?: number;
+
+  // unsupported in Safari
+  // framesDecoded?: number;
+  // framesDropped?: number;
+  // framesPerSecond?: number;
 }
 
 interface RTCIceCandidatePairStats extends RTCStats {
   type: "candidate-pair";
   state?:
-    | "new"
-    | "checking"
-    | "connected"
-    | "completed"
     | "failed"
-    | "disconnected";
-  roundTripTime?: number;
-  localCandidateId?: string;
-  remoteCandidateId?: string;
+    | "frozen"
+    | "in-progress"
+    | "succeeded"
+    | "waiting";
+  currentRoundTripTime?: number;
 }
 
 interface RTCPeerConnectionStats extends RTCStats {
@@ -64,7 +64,15 @@ interface RTCPeerConnectionStats extends RTCStats {
   iceGatheringState?: "new" | "gathering" | "complete";
 }
 
-export function calculateQualityScore(stats: RTCStatsReport): number {
+export interface QualityStats {
+  qualityScore?: bigint;
+  // rtt in microseconds
+  rttUs?: bigint;
+}
+
+export function calculateQualityScore(
+  stats: RTCStatsReport,
+): QualityStats | null {
   let audioReceiverStats: RTCReceiverStats | undefined;
   let videoReceiverStats: RTCReceiverStats | undefined;
   let activeCandidatePairStats: RTCIceCandidatePairStats | undefined;
@@ -72,6 +80,7 @@ export function calculateQualityScore(stats: RTCStatsReport): number {
 
   for (const stat of stats.values()) {
     if (stat.type === "inbound-rtp" || stat.type === "rtp-receiver") {
+      // https://developer.mozilla.org/en-US/docs/Web/API/RTCInboundRtpStreamStats
       const receiverStat = stat as RTCReceiverStats;
       if (receiverStat.kind === "audio") {
         audioReceiverStats = receiverStat;
@@ -79,8 +88,9 @@ export function calculateQualityScore(stats: RTCStatsReport): number {
         videoReceiverStats = receiverStat;
       }
     } else if (stat.type === "candidate-pair") {
+      // https://developer.mozilla.org/en-US/docs/Web/API/RTCIceCandidatePairStats
       const candidatePairStat = stat as RTCIceCandidatePairStats;
-      if (candidatePairStat.state === "connected") {
+      if (candidatePairStat.state === "succeeded") {
         activeCandidatePairStats = candidatePairStat;
       }
     } else if (stat.type === "peer-connection") {
@@ -92,8 +102,10 @@ export function calculateQualityScore(stats: RTCStatsReport): number {
     peerConnectionStats && peerConnectionStats.iceConnectionState &&
     !["connected", "completed"].includes(peerConnectionStats.iceConnectionState)
   ) {
-    return 15; // Low score for connection issues
+    return null;
   }
+
+  const quality: QualityStats = {};
 
   let audioQuality = 100;
   if (audioReceiverStats) {
@@ -128,25 +140,15 @@ export function calculateQualityScore(stats: RTCStatsReport): number {
     const videoJitterScore = videoJitter < 0.02
       ? 100
       : (videoJitter < 0.1 ? 70 : 30);
-    const framesDropped = videoReceiverStats.framesDropped ?? 0;
-    const framesDecoded = videoReceiverStats.framesDecoded ?? 0;
-    const frameDropRatio = framesDecoded > 0
-      ? framesDropped / framesDecoded
-      : 0;
-    const videoFrameDropScore = Math.max(0, 100 - (frameDropRatio * 100));
-    const videoFps = videoReceiverStats.framesPerSecond;
-    const videoFpsScore = videoFps !== undefined
-      ? Math.min(100, (videoFps / 15) * (100 / 1))
-      : 100;
-    videoQuality =
-      (videoPacketLossScore + videoJitterScore + videoFrameDropScore +
-        videoFpsScore) / 4;
+    videoQuality = (videoPacketLossScore + videoJitterScore) / 2;
   }
 
   let latencyScore = 80;
   if (activeCandidatePairStats) {
-    const rtt = activeCandidatePairStats.roundTripTime;
+    const rtt = activeCandidatePairStats.currentRoundTripTime;
     if (rtt !== undefined) {
+      // second to microseconds
+      quality.rttUs = BigInt(rtt * 1e6);
       latencyScore = rtt < 0.1 ? 100 : (rtt < 0.3 ? 80 : (rtt < 0.5 ? 60 : 40));
     }
   }
@@ -154,5 +156,8 @@ export function calculateQualityScore(stats: RTCStatsReport): number {
   const overallQuality = Math.round(
     (videoQuality * 0.5) + (audioQuality * 0.3) + (latencyScore * 0.2),
   );
-  return Math.max(0, Math.min(100, overallQuality));
+  const qualityScore = Math.max(0, Math.min(100, overallQuality));
+  quality.qualityScore = BigInt(qualityScore);
+
+  return quality;
 }

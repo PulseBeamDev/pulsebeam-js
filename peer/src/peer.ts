@@ -334,6 +334,9 @@ export class Peer {
 
         const at = Date.now() * 1_000;
         const quality = calculateQualityScore(rawStats);
+        if (!quality) {
+          continue;
+        }
 
         events.push({
           timestampUs: BigInt(at),
@@ -342,7 +345,8 @@ export class Peer {
             dst: sess.other,
           },
           metrics: {
-            qualityScore: BigInt(quality),
+            qualityScore: quality.qualityScore,
+            rttUs: quality.rtt,
           },
         });
       }

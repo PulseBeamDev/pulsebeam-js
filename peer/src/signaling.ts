@@ -364,9 +364,13 @@ export interface AnalyticsMetrics {
      * - 20-39: poor
      * - 0-19: bad
      *
-     * @generated from protobuf field: sint64 quality_score = 1;
+     * @generated from protobuf field: optional sint64 quality_score = 1;
      */
-    qualityScore: bigint;
+    qualityScore?: bigint;
+    /**
+     * @generated from protobuf field: optional sint64 rtt_us = 2;
+     */
+    rttUs?: bigint;
 }
 /**
  * @generated from protobuf message pulsebeam.v1.AnalyticsReportResp
@@ -714,7 +718,8 @@ export const AnalyticsTags = new AnalyticsTags$Type();
 class AnalyticsMetrics$Type extends MessageType<AnalyticsMetrics> {
     constructor() {
         super("pulsebeam.v1.AnalyticsMetrics", [
-            { no: 1, name: "quality_score", kind: "scalar", T: 18 /*ScalarType.SINT64*/, L: 0 /*LongType.BIGINT*/ }
+            { no: 1, name: "quality_score", kind: "scalar", opt: true, T: 18 /*ScalarType.SINT64*/, L: 0 /*LongType.BIGINT*/ },
+            { no: 2, name: "rtt_us", kind: "scalar", opt: true, T: 18 /*ScalarType.SINT64*/, L: 0 /*LongType.BIGINT*/ }
         ]);
     }
 }
