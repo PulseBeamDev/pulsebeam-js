@@ -346,7 +346,7 @@ export class Peer {
           },
           metrics: {
             qualityScore: quality.qualityScore,
-            rttUs: quality.rtt,
+            rttUs: quality.rttUs,
           },
         });
       }

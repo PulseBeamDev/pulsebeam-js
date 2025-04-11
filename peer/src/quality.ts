@@ -40,6 +40,13 @@ interface RTCReceiverStats extends RTCStats {
   // framesPerSecond?: number;
 }
 
+// https://developer.mozilla.org/en-US/docs/Web/API/RTCRemoteInboundRtpStreamStats
+interface RTCRemoteInboundRtpStreamStats extends RTCStats {
+  type: "remote-inbound-rtp";
+  kind?: "audio" | "video";
+  roundTripTime: number;
+}
+
 interface RTCIceCandidatePairStats extends RTCStats {
   type: "candidate-pair";
   state?:
@@ -73,12 +80,13 @@ export interface QualityStats {
 export function calculateQualityScore(
   stats: RTCStatsReport,
 ): QualityStats | null {
+  const statsIter = stats.values() as MapIterator<RTCStats>;
   let audioReceiverStats: RTCReceiverStats | undefined;
   let videoReceiverStats: RTCReceiverStats | undefined;
-  let activeCandidatePairStats: RTCIceCandidatePairStats | undefined;
+  let rtt: number | undefined;
   let peerConnectionStats: RTCPeerConnectionStats | undefined;
 
-  for (const stat of stats.values()) {
+  for (const stat of statsIter) {
     if (stat.type === "inbound-rtp" || stat.type === "rtp-receiver") {
       // https://developer.mozilla.org/en-US/docs/Web/API/RTCInboundRtpStreamStats
       const receiverStat = stat as RTCReceiverStats;
@@ -90,11 +98,20 @@ export function calculateQualityScore(
     } else if (stat.type === "candidate-pair") {
       // https://developer.mozilla.org/en-US/docs/Web/API/RTCIceCandidatePairStats
       const candidatePairStat = stat as RTCIceCandidatePairStats;
-      if (candidatePairStat.state === "succeeded") {
-        activeCandidatePairStats = candidatePairStat;
+      // prioritize remote-inbound-rtp rtt
+      if (candidatePairStat.state === "succeeded" && !rtt) {
+        rtt = candidatePairStat.currentRoundTripTime;
       }
     } else if (stat.type === "peer-connection") {
       peerConnectionStats = stat as RTCPeerConnectionStats;
+    } else if (stat.type === "remote-inbound-rtp") {
+      // There are 2 cases when we need this:
+      //   1. Fallback for Firefox's missing ICE RTT support
+      //   2. Faster RTT calculation as it is used in RTP streams
+      //
+      // If there's only data channel without media streams, Firefox won't generate RTT.
+      const remoteInboundStat = stat as RTCRemoteInboundRtpStreamStats;
+      rtt = remoteInboundStat.roundTripTime;
     }
   }
 
@@ -144,13 +161,10 @@ export function calculateQualityScore(
   }
 
   let latencyScore = 80;
-  if (activeCandidatePairStats) {
-    const rtt = activeCandidatePairStats.currentRoundTripTime;
-    if (rtt !== undefined) {
-      // second to microseconds
-      quality.rttUs = BigInt(rtt * 1e6);
-      latencyScore = rtt < 0.1 ? 100 : (rtt < 0.3 ? 80 : (rtt < 0.5 ? 60 : 40));
-    }
+  if (!!rtt) {
+    // second to microseconds
+    quality.rttUs = BigInt(Math.trunc(rtt * 1e6));
+    latencyScore = rtt < 0.1 ? 100 : (rtt < 0.3 ? 80 : (rtt < 0.5 ? 60 : 40));
   }
 
   const overallQuality = Math.round(
