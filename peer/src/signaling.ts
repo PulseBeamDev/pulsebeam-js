@@ -417,386 +417,395 @@ export enum EventType {
      */
     UNKNOWN_EVENT = 0,
     /**
-     * --- ICE Candidate Events (Range: 1000 - 1099) ---
-     *
-     * Base for ICE candidate related events
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_BASE = 1000;
-     */
-    EVENT_ICE_CANDIDATE_BASE = 1000,
-    /**
-     * ICE gathering process initiated
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_GATHERING_STARTED = 1001;
-     */
-    EVENT_ICE_CANDIDATE_GATHERING_STARTED = 1001,
-    /**
-     * A reflexive ICE candidate was discovered
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_LOCAL_REFLEXIVE_FOUND = 1002;
-     */
-    EVENT_ICE_CANDIDATE_LOCAL_REFLEXIVE_FOUND = 1002,
-    /**
-     * A host ICE candidate was discovered
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_LOCAL_HOST_FOUND = 1003;
-     */
-    EVENT_ICE_CANDIDATE_LOCAL_HOST_FOUND = 1003,
-    /**
-     * A server-reflexive (STUN) ICE candidate was discovered
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_LOCAL_SRFLX_FOUND = 1004;
-     */
-    EVENT_ICE_CANDIDATE_LOCAL_SRFLX_FOUND = 1004,
-    /**
-     * A peer-reflexive ICE candidate was discovered (less common)
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_LOCAL_PRFLX_FOUND = 1005;
-     */
-    EVENT_ICE_CANDIDATE_LOCAL_PRFLX_FOUND = 1005,
-    /**
-     * An ICE candidate from the remote peer was received
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_REMOTE_RECEIVED = 1006;
-     */
-    EVENT_ICE_CANDIDATE_REMOTE_RECEIVED = 1006,
-    /**
-     * ICE candidate pair succeeded in establishing a connection
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_PAIRING_SUCCESS = 1007;
-     */
-    EVENT_ICE_CANDIDATE_PAIRING_SUCCESS = 1007,
-    /**
-     * ICE candidate pair failed to establish a connection
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_PAIRING_FAILED = 1008;
-     */
-    EVENT_ICE_CANDIDATE_PAIRING_FAILED = 1008,
-    /**
-     * The ICE connection state has changed (e.g., connecting, connected, failed)
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_CONNECTION_STATE_CHANGED = 1009;
-     */
-    EVENT_ICE_CANDIDATE_CONNECTION_STATE_CHANGED = 1009,
-    /**
-     * ICE gathering process finished
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_GATHERING_COMPLETED = 1010;
-     */
-    EVENT_ICE_CANDIDATE_GATHERING_COMPLETED = 1010,
-    /**
-     * The best ICE candidate pair was selected for communication
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_SELECTED_PAIR = 1011;
-     */
-    EVENT_ICE_CANDIDATE_SELECTED_PAIR = 1011,
-    /**
-     * --- Signaling Events (Range: 2000 - 2099) ---
-     *
-     * Base for signaling related events
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_BASE = 2000;
-     */
-    EVENT_SIGNALING_BASE = 2000,
-    /**
-     * A signaling offer (e.g., SDP) was created locally
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_OFFER_CREATED = 2001;
-     */
-    EVENT_SIGNALING_OFFER_CREATED = 2001,
-    /**
-     * A signaling offer was sent to the remote peer
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_OFFER_SENT = 2002;
-     */
-    EVENT_SIGNALING_OFFER_SENT = 2002,
-    /**
-     * A signaling offer was received from the remote peer
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_OFFER_RECEIVED = 2003;
-     */
-    EVENT_SIGNALING_OFFER_RECEIVED = 2003,
-    /**
-     * A signaling answer (e.g., SDP) was created locally
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_ANSWER_CREATED = 2004;
-     */
-    EVENT_SIGNALING_ANSWER_CREATED = 2004,
-    /**
-     * A signaling answer was sent to the remote peer
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_ANSWER_SENT = 2005;
-     */
-    EVENT_SIGNALING_ANSWER_SENT = 2005,
-    /**
-     * A signaling answer was received from the remote peer
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_ANSWER_RECEIVED = 2006;
-     */
-    EVENT_SIGNALING_ANSWER_RECEIVED = 2006,
-    /**
-     * A signal indicating that negotiation is required
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_NEGOTIATION_NEEDED = 2007;
-     */
-    EVENT_SIGNALING_NEGOTIATION_NEEDED = 2007,
-    /**
-     * A request to restart ICE negotiation was initiated
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_ICE_RESTART_TRIGGERED = 2008;
-     */
-    EVENT_SIGNALING_ICE_RESTART_TRIGGERED = 2008,
-    /**
-     * Signaling connection established
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_CONNECTED = 2009;
-     */
-    EVENT_SIGNALING_CONNECTED = 2009,
-    /**
-     * Signaling connection lost
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_DISCONNECTED = 2010;
-     */
-    EVENT_SIGNALING_DISCONNECTED = 2010,
-    /**
-     * --- User Interaction Events (Range: 3000 - 3099) ---
-     *
-     * Base for user interaction events
-     *
-     * @generated from protobuf enum value: EVENT_USER_INTERACTION_BASE = 3000;
-     */
-    EVENT_USER_INTERACTION_BASE = 3000,
-    /**
-     * A user joined the communication session
-     *
-     * @generated from protobuf enum value: EVENT_USER_JOINED_SESSION = 3001;
-     */
-    EVENT_USER_JOINED_SESSION = 3001,
-    /**
-     * A user left the communication session
-     *
-     * @generated from protobuf enum value: EVENT_USER_LEFT_SESSION = 3002;
-     */
-    EVENT_USER_LEFT_SESSION = 3002,
-    /**
-     * A user muted their audio
-     *
-     * @generated from protobuf enum value: EVENT_USER_MUTED_AUDIO = 3003;
-     */
-    EVENT_USER_MUTED_AUDIO = 3003,
-    /**
-     * A user unmuted their audio
-     *
-     * @generated from protobuf enum value: EVENT_USER_UNMUTED_AUDIO = 3004;
-     */
-    EVENT_USER_UNMUTED_AUDIO = 3004,
-    /**
-     * A user muted their video
-     *
-     * @generated from protobuf enum value: EVENT_USER_MUTED_VIDEO = 3005;
-     */
-    EVENT_USER_MUTED_VIDEO = 3005,
-    /**
-     * A user unmuted their video
-     *
-     * @generated from protobuf enum value: EVENT_USER_UNMUTED_VIDEO = 3006;
-     */
-    EVENT_USER_UNMUTED_VIDEO = 3006,
-    /**
-     * A user started sharing their screen
-     *
-     * @generated from protobuf enum value: EVENT_USER_SCREEN_SHARE_STARTED = 3007;
-     */
-    EVENT_USER_SCREEN_SHARE_STARTED = 3007,
-    /**
-     * A user stopped sharing their screen
-     *
-     * @generated from protobuf enum value: EVENT_USER_SCREEN_SHARE_STOPPED = 3008;
-     */
-    EVENT_USER_SCREEN_SHARE_STOPPED = 3008,
-    /**
-     * A user sent a text message
-     *
-     * @generated from protobuf enum value: EVENT_USER_INPUT_TEXT_MESSAGE_SENT = 3009;
-     */
-    EVENT_USER_INPUT_TEXT_MESSAGE_SENT = 3009,
-    /**
-     * A user received a text message
-     *
-     * @generated from protobuf enum value: EVENT_USER_INPUT_TEXT_MESSAGE_RECEIVED = 3010;
-     */
-    EVENT_USER_INPUT_TEXT_MESSAGE_RECEIVED = 3010,
-    /**
-     * --- Media Handling Events (Range: 4000 - 4099) ---
-     *
-     * Base for media handling events
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_HANDLING_BASE = 4000;
-     */
-    EVENT_MEDIA_HANDLING_BASE = 4000,
-    /**
-     * A local audio track was added
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_LOCAL_AUDIO_TRACK_ADDED = 4001;
-     */
-    EVENT_MEDIA_LOCAL_AUDIO_TRACK_ADDED = 4001,
-    /**
-     * A local video track was added
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_LOCAL_VIDEO_TRACK_ADDED = 4002;
-     */
-    EVENT_MEDIA_LOCAL_VIDEO_TRACK_ADDED = 4002,
-    /**
-     * A remote audio track was added
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_REMOTE_AUDIO_TRACK_ADDED = 4003;
-     */
-    EVENT_MEDIA_REMOTE_AUDIO_TRACK_ADDED = 4003,
-    /**
-     * A remote video track was added
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_REMOTE_VIDEO_TRACK_ADDED = 4004;
-     */
-    EVENT_MEDIA_REMOTE_VIDEO_TRACK_ADDED = 4004,
-    /**
-     * A local audio track was removed
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_LOCAL_AUDIO_TRACK_REMOVED = 4005;
-     */
-    EVENT_MEDIA_LOCAL_AUDIO_TRACK_REMOVED = 4005,
-    /**
-     * A local video track was removed
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_LOCAL_VIDEO_TRACK_REMOVED = 4006;
-     */
-    EVENT_MEDIA_LOCAL_VIDEO_TRACK_REMOVED = 4006,
-    /**
-     * A remote audio track was removed
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_REMOTE_AUDIO_TRACK_REMOVED = 4007;
-     */
-    EVENT_MEDIA_REMOTE_AUDIO_TRACK_REMOVED = 4007,
-    /**
-     * A remote video track was removed
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_REMOTE_VIDEO_TRACK_REMOVED = 4008;
-     */
-    EVENT_MEDIA_REMOTE_VIDEO_TRACK_REMOVED = 4008,
-    /**
-     * Audio playback started
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_AUDIO_PLAYBACK_STARTED = 4009;
-     */
-    EVENT_MEDIA_AUDIO_PLAYBACK_STARTED = 4009,
-    /**
-     * Video playback started
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_VIDEO_PLAYBACK_STARTED = 4010;
-     */
-    EVENT_MEDIA_VIDEO_PLAYBACK_STARTED = 4010,
-    /**
-     * Audio playback stopped
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_AUDIO_PLAYBACK_STOPPED = 4011;
-     */
-    EVENT_MEDIA_AUDIO_PLAYBACK_STOPPED = 4011,
-    /**
-     * Video playback stopped
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_VIDEO_PLAYBACK_STOPPED = 4012;
-     */
-    EVENT_MEDIA_VIDEO_PLAYBACK_STOPPED = 4012,
-    /**
-     * --- Error Reporting Events (Range: 5000 - 5099) ---
+     * --- Error Reporting Events (Range: 1000 - 1099) ---
      *
      * Base for error reporting events
      *
-     * @generated from protobuf enum value: EVENT_ERROR_REPORTING_BASE = 5000;
+     * @generated from protobuf enum value: EVENT_ERROR_REPORTING_BASE = 1000;
      */
-    EVENT_ERROR_REPORTING_BASE = 5000,
+    EVENT_ERROR_REPORTING_BASE = 1000,
     /**
      * An error occurred with the signaling connection
      *
-     * @generated from protobuf enum value: EVENT_ERROR_SIGNALING_CONNECTION_FAILED = 5001;
+     * @generated from protobuf enum value: EVENT_ERROR_SIGNALING_CONNECTION_FAILED = 1001;
      */
-    EVENT_ERROR_SIGNALING_CONNECTION_FAILED = 5001,
+    EVENT_ERROR_SIGNALING_CONNECTION_FAILED = 1001,
     /**
      * An error occurred with the ICE connection
      *
-     * @generated from protobuf enum value: EVENT_ERROR_ICE_CONNECTION_FAILED = 5002;
+     * @generated from protobuf enum value: EVENT_ERROR_ICE_CONNECTION_FAILED = 1002;
      */
-    EVENT_ERROR_ICE_CONNECTION_FAILED = 5002,
+    EVENT_ERROR_ICE_CONNECTION_FAILED = 1002,
     /**
      * An error occurred while capturing audio
      *
-     * @generated from protobuf enum value: EVENT_ERROR_MEDIA_CAPTURE_AUDIO_FAILED = 5003;
+     * @generated from protobuf enum value: EVENT_ERROR_MEDIA_CAPTURE_AUDIO_FAILED = 1003;
      */
-    EVENT_ERROR_MEDIA_CAPTURE_AUDIO_FAILED = 5003,
+    EVENT_ERROR_MEDIA_CAPTURE_AUDIO_FAILED = 1003,
     /**
      * An error occurred while capturing video
      *
-     * @generated from protobuf enum value: EVENT_ERROR_MEDIA_CAPTURE_VIDEO_FAILED = 5004;
+     * @generated from protobuf enum value: EVENT_ERROR_MEDIA_CAPTURE_VIDEO_FAILED = 1004;
      */
-    EVENT_ERROR_MEDIA_CAPTURE_VIDEO_FAILED = 5004,
+    EVENT_ERROR_MEDIA_CAPTURE_VIDEO_FAILED = 1004,
     /**
      * An error occurred while capturing screen
      *
-     * @generated from protobuf enum value: EVENT_ERROR_MEDIA_CAPTURE_SCREEN_FAILED = 5005;
+     * @generated from protobuf enum value: EVENT_ERROR_MEDIA_CAPTURE_SCREEN_FAILED = 1005;
      */
-    EVENT_ERROR_MEDIA_CAPTURE_SCREEN_FAILED = 5005,
+    EVENT_ERROR_MEDIA_CAPTURE_SCREEN_FAILED = 1005,
     /**
      * An error occurred during SDP negotiation
      *
-     * @generated from protobuf enum value: EVENT_ERROR_SDP_NEGOTIATION_FAILED = 5006;
+     * @generated from protobuf enum value: EVENT_ERROR_SDP_NEGOTIATION_FAILED = 1006;
      */
-    EVENT_ERROR_SDP_NEGOTIATION_FAILED = 5006,
+    EVENT_ERROR_SDP_NEGOTIATION_FAILED = 1006,
     /**
      * A general or uncategorized error
      *
-     * @generated from protobuf enum value: EVENT_ERROR_OTHER = 5099;
+     * @generated from protobuf enum value: EVENT_ERROR_OTHER = 1099;
      */
-    EVENT_ERROR_OTHER = 5099,
+    EVENT_ERROR_OTHER = 1099,
     /**
-     * --- Performance Monitoring Events (Range: 6000 - 6099) ---
+     * --- ICE Candidate Events (Range: 2000 - 2099) ---
      *
-     * Base for performance monitoring events
+     * Base for ICE candidate related events
      *
-     * @generated from protobuf enum value: EVENT_PERFORMANCE_MONITORING_BASE = 6000;
+     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_BASE = 2000;
      */
-    EVENT_PERFORMANCE_MONITORING_BASE = 6000,
+    EVENT_ICE_CANDIDATE_BASE = 2000,
     /**
-     * Round Trip Time (RTT) measurement
+     * ICE gathering process initiated
      *
-     * @generated from protobuf enum value: EVENT_PERFORMANCE_RTT_MEASUREMENT = 6001;
+     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_GATHERING_STARTED = 2001;
      */
-    EVENT_PERFORMANCE_RTT_MEASUREMENT = 6001,
+    EVENT_ICE_CANDIDATE_GATHERING_STARTED = 2001,
     /**
-     * Report on packet loss
+     * A reflexive ICE candidate was discovered
      *
-     * @generated from protobuf enum value: EVENT_PERFORMANCE_PACKET_LOSS_REPORT = 6002;
+     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_LOCAL_REFLEXIVE_FOUND = 2002;
      */
-    EVENT_PERFORMANCE_PACKET_LOSS_REPORT = 6002,
+    EVENT_ICE_CANDIDATE_LOCAL_REFLEXIVE_FOUND = 2002,
     /**
-     * Measurement of jitter
+     * A host ICE candidate was discovered
      *
-     * @generated from protobuf enum value: EVENT_PERFORMANCE_JITTER_MEASUREMENT = 6003;
+     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_LOCAL_HOST_FOUND = 2003;
      */
-    EVENT_PERFORMANCE_JITTER_MEASUREMENT = 6003,
+    EVENT_ICE_CANDIDATE_LOCAL_HOST_FOUND = 2003,
     /**
-     * Estimated bandwidth has changed
+     * A server-reflexive (STUN) ICE candidate was discovered
      *
-     * @generated from protobuf enum value: EVENT_PERFORMANCE_BANDWIDTH_ESTIMATION_CHANGED = 6004;
+     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_LOCAL_SRFLX_FOUND = 2004;
      */
-    EVENT_PERFORMANCE_BANDWIDTH_ESTIMATION_CHANGED = 6004,
+    EVENT_ICE_CANDIDATE_LOCAL_SRFLX_FOUND = 2004,
     /**
-     * --- Application Specific Events
+     * A peer-reflexive ICE candidate was discovered (less common)
      *
-     * EVENT_FEATURE_X_ENABLED = 7001;
-     * EVENT_FEATURE_Y_TRIGGERED = 7002;
-     *
-     * @generated from protobuf enum value: EVENT_APPLICATION_SPECIFIC_BASE = 7000;
+     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_LOCAL_PRFLX_FOUND = 2005;
      */
-    EVENT_APPLICATION_SPECIFIC_BASE = 7000
+    EVENT_ICE_CANDIDATE_LOCAL_PRFLX_FOUND = 2005,
+    /**
+     * An ICE candidate from the remote peer was received
+     *
+     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_REMOTE_RECEIVED = 2006;
+     */
+    EVENT_ICE_CANDIDATE_REMOTE_RECEIVED = 2006,
+    /**
+     * A reflexive ICE candidate was discovered
+     *
+     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_REMOTE_REFLEXIVE_FOUND = 2007;
+     */
+    EVENT_ICE_CANDIDATE_REMOTE_REFLEXIVE_FOUND = 2007,
+    /**
+     * A host ICE candidate was discovered
+     *
+     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_REMOTE_HOST_FOUND = 2008;
+     */
+    EVENT_ICE_CANDIDATE_REMOTE_HOST_FOUND = 2008,
+    /**
+     * A server-reflexive (STUN) ICE candidate was discovered
+     *
+     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_REMOTE_SRFLX_FOUND = 2009;
+     */
+    EVENT_ICE_CANDIDATE_REMOTE_SRFLX_FOUND = 2009,
+    /**
+     * A peer-reflexive ICE candidate was discovered (less common)
+     *
+     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_REMOTE_PRFLX_FOUND = 2010;
+     */
+    EVENT_ICE_CANDIDATE_REMOTE_PRFLX_FOUND = 2010,
+    /**
+     * ICE candidate pair succeeded in establishing a connection
+     *
+     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_PAIRING_SUCCESS = 2011;
+     */
+    EVENT_ICE_CANDIDATE_PAIRING_SUCCESS = 2011,
+    /**
+     * ICE candidate pair failed to establish a connection
+     *
+     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_PAIRING_FAILED = 2012;
+     */
+    EVENT_ICE_CANDIDATE_PAIRING_FAILED = 2012,
+    /**
+     * The ICE connection state has changed (e.g., connecting, connected, failed)
+     *
+     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_CONNECTION_STATE_CHANGED = 2013;
+     */
+    EVENT_ICE_CANDIDATE_CONNECTION_STATE_CHANGED = 2013,
+    /**
+     * ICE gathering process finished
+     *
+     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_GATHERING_COMPLETED = 2014;
+     */
+    EVENT_ICE_CANDIDATE_GATHERING_COMPLETED = 2014,
+    /**
+     * The best ICE candidate pair was selected for communication
+     *
+     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_SELECTED_PAIR = 2015;
+     */
+    EVENT_ICE_CANDIDATE_SELECTED_PAIR = 2015,
+    /**
+     * --- Signaling Events (Range: 3000 - 3099) ---
+     *
+     * Base for signaling related events
+     *
+     * @generated from protobuf enum value: EVENT_SIGNALING_BASE = 3000;
+     */
+    EVENT_SIGNALING_BASE = 3000,
+    /**
+     * A signaling offer (e.g., SDP) was created locally
+     *
+     * @generated from protobuf enum value: EVENT_SIGNALING_OFFER_CREATED = 3001;
+     */
+    EVENT_SIGNALING_OFFER_CREATED = 3001,
+    /**
+     * A signaling offer was sent to the remote peer
+     *
+     * @generated from protobuf enum value: EVENT_SIGNALING_OFFER_SENT = 3002;
+     */
+    EVENT_SIGNALING_OFFER_SENT = 3002,
+    /**
+     * A signaling offer was received from the remote peer
+     *
+     * @generated from protobuf enum value: EVENT_SIGNALING_OFFER_RECEIVED = 3003;
+     */
+    EVENT_SIGNALING_OFFER_RECEIVED = 3003,
+    /**
+     * A signaling answer (e.g., SDP) was created locally
+     *
+     * @generated from protobuf enum value: EVENT_SIGNALING_ANSWER_CREATED = 3004;
+     */
+    EVENT_SIGNALING_ANSWER_CREATED = 3004,
+    /**
+     * A signaling answer was sent to the remote peer
+     *
+     * @generated from protobuf enum value: EVENT_SIGNALING_ANSWER_SENT = 3005;
+     */
+    EVENT_SIGNALING_ANSWER_SENT = 3005,
+    /**
+     * A signaling answer was received from the remote peer
+     *
+     * @generated from protobuf enum value: EVENT_SIGNALING_ANSWER_RECEIVED = 3006;
+     */
+    EVENT_SIGNALING_ANSWER_RECEIVED = 3006,
+    /**
+     * A signal indicating that negotiation is required
+     *
+     * @generated from protobuf enum value: EVENT_SIGNALING_NEGOTIATION_NEEDED = 3007;
+     */
+    EVENT_SIGNALING_NEGOTIATION_NEEDED = 3007,
+    /**
+     * A request to restart ICE negotiation was initiated
+     *
+     * @generated from protobuf enum value: EVENT_SIGNALING_ICE_RESTART_TRIGGERED = 3008;
+     */
+    EVENT_SIGNALING_ICE_RESTART_TRIGGERED = 3008,
+    /**
+     * Signaling connection established
+     *
+     * @generated from protobuf enum value: EVENT_SIGNALING_CONNECTED = 3009;
+     */
+    EVENT_SIGNALING_CONNECTED = 3009,
+    /**
+     * Signaling connection lost
+     *
+     * @generated from protobuf enum value: EVENT_SIGNALING_DISCONNECTED = 3010;
+     */
+    EVENT_SIGNALING_DISCONNECTED = 3010,
+    /**
+     * --- User Interaction Events (Range: 4000 - 4099) ---
+     *
+     * Base for user interaction events
+     *
+     * @generated from protobuf enum value: EVENT_USER_INTERACTION_BASE = 4000;
+     */
+    EVENT_USER_INTERACTION_BASE = 4000,
+    /**
+     * A user joined the communication session
+     *
+     * @generated from protobuf enum value: EVENT_USER_JOINED_SESSION = 4001;
+     */
+    EVENT_USER_JOINED_SESSION = 4001,
+    /**
+     * A user left the communication session
+     *
+     * @generated from protobuf enum value: EVENT_USER_LEFT_SESSION = 4002;
+     */
+    EVENT_USER_LEFT_SESSION = 4002,
+    /**
+     * A user muted their audio
+     *
+     * @generated from protobuf enum value: EVENT_USER_MUTED_AUDIO = 4003;
+     */
+    EVENT_USER_MUTED_AUDIO = 4003,
+    /**
+     * A user unmuted their audio
+     *
+     * @generated from protobuf enum value: EVENT_USER_UNMUTED_AUDIO = 4004;
+     */
+    EVENT_USER_UNMUTED_AUDIO = 4004,
+    /**
+     * A user muted their video
+     *
+     * @generated from protobuf enum value: EVENT_USER_MUTED_VIDEO = 4005;
+     */
+    EVENT_USER_MUTED_VIDEO = 4005,
+    /**
+     * A user unmuted their video
+     *
+     * @generated from protobuf enum value: EVENT_USER_UNMUTED_VIDEO = 4006;
+     */
+    EVENT_USER_UNMUTED_VIDEO = 4006,
+    /**
+     * A user started sharing their screen
+     *
+     * @generated from protobuf enum value: EVENT_USER_SCREEN_SHARE_STARTED = 4007;
+     */
+    EVENT_USER_SCREEN_SHARE_STARTED = 4007,
+    /**
+     * A user stopped sharing their screen
+     *
+     * @generated from protobuf enum value: EVENT_USER_SCREEN_SHARE_STOPPED = 4008;
+     */
+    EVENT_USER_SCREEN_SHARE_STOPPED = 4008,
+    /**
+     * A user sent a text message
+     *
+     * @generated from protobuf enum value: EVENT_USER_INPUT_TEXT_MESSAGE_SENT = 4009;
+     */
+    EVENT_USER_INPUT_TEXT_MESSAGE_SENT = 4009,
+    /**
+     * A user received a text message
+     *
+     * @generated from protobuf enum value: EVENT_USER_INPUT_TEXT_MESSAGE_RECEIVED = 4010;
+     */
+    EVENT_USER_INPUT_TEXT_MESSAGE_RECEIVED = 4010,
+    /**
+     * --- Media Handling Events (Range: 5000 - 5099) ---
+     *
+     * Base for media handling events
+     *
+     * @generated from protobuf enum value: EVENT_MEDIA_HANDLING_BASE = 5000;
+     */
+    EVENT_MEDIA_HANDLING_BASE = 5000,
+    /**
+     * A local audio track was added
+     *
+     * @generated from protobuf enum value: EVENT_MEDIA_LOCAL_AUDIO_TRACK_ADDED = 5001;
+     */
+    EVENT_MEDIA_LOCAL_AUDIO_TRACK_ADDED = 5001,
+    /**
+     * A local video track was added
+     *
+     * @generated from protobuf enum value: EVENT_MEDIA_LOCAL_VIDEO_TRACK_ADDED = 5002;
+     */
+    EVENT_MEDIA_LOCAL_VIDEO_TRACK_ADDED = 5002,
+    /**
+     * A remote audio track was added
+     *
+     * @generated from protobuf enum value: EVENT_MEDIA_REMOTE_AUDIO_TRACK_ADDED = 5003;
+     */
+    EVENT_MEDIA_REMOTE_AUDIO_TRACK_ADDED = 5003,
+    /**
+     * A remote video track was added
+     *
+     * @generated from protobuf enum value: EVENT_MEDIA_REMOTE_VIDEO_TRACK_ADDED = 5004;
+     */
+    EVENT_MEDIA_REMOTE_VIDEO_TRACK_ADDED = 5004,
+    /**
+     * A local audio track was removed
+     *
+     * @generated from protobuf enum value: EVENT_MEDIA_LOCAL_AUDIO_TRACK_REMOVED = 5005;
+     */
+    EVENT_MEDIA_LOCAL_AUDIO_TRACK_REMOVED = 5005,
+    /**
+     * A local video track was removed
+     *
+     * @generated from protobuf enum value: EVENT_MEDIA_LOCAL_VIDEO_TRACK_REMOVED = 5006;
+     */
+    EVENT_MEDIA_LOCAL_VIDEO_TRACK_REMOVED = 5006,
+    /**
+     * A remote audio track was removed
+     *
+     * @generated from protobuf enum value: EVENT_MEDIA_REMOTE_AUDIO_TRACK_REMOVED = 5007;
+     */
+    EVENT_MEDIA_REMOTE_AUDIO_TRACK_REMOVED = 5007,
+    /**
+     * A remote video track was removed
+     *
+     * @generated from protobuf enum value: EVENT_MEDIA_REMOTE_VIDEO_TRACK_REMOVED = 5008;
+     */
+    EVENT_MEDIA_REMOTE_VIDEO_TRACK_REMOVED = 5008,
+    /**
+     * Audio playback started
+     *
+     * @generated from protobuf enum value: EVENT_MEDIA_AUDIO_PLAYBACK_STARTED = 5009;
+     */
+    EVENT_MEDIA_AUDIO_PLAYBACK_STARTED = 5009,
+    /**
+     * Video playback started
+     *
+     * @generated from protobuf enum value: EVENT_MEDIA_VIDEO_PLAYBACK_STARTED = 5010;
+     */
+    EVENT_MEDIA_VIDEO_PLAYBACK_STARTED = 5010,
+    /**
+     * Audio playback stopped
+     *
+     * @generated from protobuf enum value: EVENT_MEDIA_AUDIO_PLAYBACK_STOPPED = 5011;
+     */
+    EVENT_MEDIA_AUDIO_PLAYBACK_STOPPED = 5011,
+    /**
+     * Video playback stopped
+     *
+     * @generated from protobuf enum value: EVENT_MEDIA_VIDEO_PLAYBACK_STOPPED = 5012;
+     */
+    EVENT_MEDIA_VIDEO_PLAYBACK_STOPPED = 5012,
+    /**
+     * --- ICE Connection Type (Range: 6000 - 6099) ---
+     *
+     * @generated from protobuf enum value: CONNECTION_TYPE_UNKNOWN = 6000;
+     */
+    CONNECTION_TYPE_UNKNOWN = 6000,
+    /**
+     * @generated from protobuf enum value: CONNECTION_TYPE_DIRECT = 6001;
+     */
+    CONNECTION_TYPE_DIRECT = 6001,
+    /**
+     * @generated from protobuf enum value: CONNECTION_TYPE_RELAY = 6002;
+     */
+    CONNECTION_TYPE_RELAY = 6002,
+    /**
+     * Server Reflexive
+     *
+     * @generated from protobuf enum value: CONNECTION_TYPE_SRFLX = 6003;
+     */
+    CONNECTION_TYPE_SRFLX = 6003,
+    /**
+     * Peer Reflexive
+     *
+     * @generated from protobuf enum value: CONNECTION_TYPE_PRFLX = 6004;
+     */
+    CONNECTION_TYPE_PRFLX = 6004
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class PrepareReq$Type extends MessageType<PrepareReq> {

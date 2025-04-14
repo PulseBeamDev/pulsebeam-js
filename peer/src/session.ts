@@ -1,5 +1,7 @@
 import {
-  type EventType,
+  AnalyticsEvent,
+  AnalyticsMetrics,
+  EventType,
   type ICECandidate,
   PeerInfo,
   SdpKind,
@@ -7,7 +9,7 @@ import {
 } from "./signaling.ts";
 import { Logger } from "./logger.ts";
 import type { Stream } from "./transport.ts";
-export type { PeerInfo } from "./signaling.ts";
+import * as analytics from "./analytics.ts";
 
 const ICE_RESTART_MAX_COUNT = 1;
 const ICE_RESTART_DEBOUNCE_DELAY_MS = 5000;
@@ -72,7 +74,7 @@ export class Session {
   private _closeReason?: string;
   private _connectionState: RTCPeerConnectionState;
   private internalDataChannel: RTCDataChannel;
-  private _events: EventType[];
+  private _metrics: AnalyticsMetrics[];
 
   /**
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ondatachannel}
@@ -96,8 +98,17 @@ export class Session {
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/addTrack}
    * @returns {RTCRtpSender} the newly created track
    */
-  addTrack(...args: Parameters<RTCPeerConnection["addTrack"]>): RTCRtpSender {
-    return this.pc.addTrack(...args);
+  addTrack(track: MediaStreamTrack, ...streams: MediaStream[]): RTCRtpSender {
+    if (track.kind === "audio") {
+      this.recordEvent({
+        eventType: EventType.EVENT_MEDIA_LOCAL_AUDIO_TRACK_ADDED,
+      });
+    } else if (track.kind === "video") {
+      this.recordEvent({
+        eventType: EventType.EVENT_MEDIA_LOCAL_VIDEO_TRACK_ADDED,
+      });
+    }
+    return this.pc.addTrack(track, ...streams);
   }
 
   /**
@@ -116,8 +127,17 @@ export class Session {
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/removeTrack}
    * @returns {void}
    */
-  removeTrack(...args: Parameters<RTCPeerConnection["removeTrack"]>): void {
-    return this.pc.removeTrack(...args);
+  removeTrack(sender: RTCRtpSender): void {
+    if (sender.track?.kind === "audio") {
+      this.recordEvent({
+        eventType: EventType.EVENT_MEDIA_LOCAL_AUDIO_TRACK_REMOVED,
+      });
+    } else if (sender.track?.kind === "video") {
+      this.recordEvent({
+        eventType: EventType.EVENT_MEDIA_LOCAL_VIDEO_TRACK_REMOVED,
+      });
+    }
+    return this.pc.removeTrack(sender);
   }
 
   /**
@@ -227,6 +247,7 @@ export class Session {
     this.lastIceRestart = 0;
     this.timers = [];
     this._connectionState = "new";
+    this._metrics = [];
     this.iceBatcher = new IceCandidateBatcher(
       this.logger,
       100,
@@ -281,12 +302,18 @@ export class Session {
         case "connected": {
           const elapsed = performance.now() - start;
           this.logger.debug(`it took ${elapsed}ms to connect`);
+          this.recordEvent({
+            eventType: EventType.EVENT_ICE_CANDIDATE_PAIRING_SUCCESS,
+          });
           this.iceRestartCount = 0;
           break;
         }
         case "disconnected":
           break;
         case "failed":
+          this.recordEvent({
+            eventType: EventType.EVENT_ERROR_ICE_CONNECTION_FAILED,
+          });
           this.triggerIceRestart();
           break;
         case "closed":
@@ -309,10 +336,20 @@ export class Session {
       }
     };
 
-    this.pc.ontrack = (...args) => {
+    this.pc.ontrack = (ev) => {
+      if (ev.track.kind === "audio") {
+        this.recordEvent({
+          eventType: EventType.EVENT_MEDIA_REMOTE_AUDIO_TRACK_ADDED,
+        });
+      } else if (ev.track.kind === "video") {
+        this.recordEvent({
+          eventType: EventType.EVENT_MEDIA_REMOTE_VIDEO_TRACK_ADDED,
+        });
+      }
+
       if (this.ontrack) {
         // @ts-ignore: proxy to RTCPeerConnection
-        this.ontrack(...args);
+        this.ontrack(ev);
       }
     };
 
@@ -321,8 +358,40 @@ export class Session {
     this.internalDataChannel;
   }
 
+  private recordEvent(metric: Omit<AnalyticsMetrics, "timestampUs">) {
+    const now = analytics.now();
+    this._metrics.push({
+      ...metric,
+      timestampUs: now,
+    });
+  }
+
+  public async collectMetrics(): Promise<AnalyticsEvent> {
+    const rawStats = await this.getStats();
+    const quality = analytics.calculateQualityScore(rawStats);
+    if (!!quality) {
+      this.recordEvent({
+        qualityScore: quality.qualityScore,
+        rttUs: quality.rttUs,
+      });
+    }
+
+    const buffered = this._metrics;
+    this._metrics = [];
+    return {
+      tags: {
+        src: this.stream.info,
+        dst: this.other,
+      },
+      metrics: buffered,
+    };
+  }
+
   private async onnegotiationneeded() {
     try {
+      this.recordEvent({
+        eventType: EventType.EVENT_SIGNALING_NEGOTIATION_NEEDED,
+      });
       this.makingOffer = true;
       this.logger.debug("creating an offer");
 
@@ -429,7 +498,14 @@ export class Session {
       }
     }
 
-    await this.pc.setLocalDescription();
+    try {
+      await this.pc.setLocalDescription();
+    } catch (e) {
+      this.recordEvent({
+        eventType: EventType.EVENT_ERROR_SDP_NEGOTIATION_FAILED,
+      });
+      throw e;
+    }
   }
 
   private triggerIceRestart = () => {
@@ -454,12 +530,24 @@ export class Session {
     }
     this.logger.debug("triggered ICE restart");
     this.pc.restartIce();
+    this.recordEvent({
+      eventType: EventType.EVENT_SIGNALING_ICE_RESTART_TRIGGERED,
+    });
     this.generationCounter++;
     this.iceRestartCount++;
     this.lastIceRestart = performance.now();
   };
 
   private sendSignal = (signal: Omit<Signal, "generationCounter">) => {
+    if (signal.data.oneofKind === "sdp") {
+      const sdpKind = signal.data.sdp.kind;
+      if (sdpKind === SdpKind.OFFER) {
+        this.recordEvent({ eventType: EventType.EVENT_SIGNALING_OFFER_SENT });
+      } else if (sdpKind === SdpKind.ANSWER) {
+        this.recordEvent({ eventType: EventType.EVENT_SIGNALING_ANSWER_SENT });
+      }
+    }
+
     this.stream.send({
       payloadType: {
         oneofKind: "signal",
@@ -502,6 +590,14 @@ export class Session {
 
     const sdp = msg.sdp;
     this.logger.debug("received a SDP signal", { sdpKind: sdp.kind });
+    if (sdp.kind === SdpKind.OFFER) {
+      this.recordEvent({ eventType: EventType.EVENT_SIGNALING_OFFER_RECEIVED });
+    } else if (sdp.kind === SdpKind.ANSWER) {
+      this.recordEvent({
+        eventType: EventType.EVENT_SIGNALING_ANSWER_RECEIVED,
+      });
+    }
+
     const offerCollision = sdp.kind === SdpKind.OFFER &&
       (this.makingOffer || this.pc.signalingState !== "stable");
 

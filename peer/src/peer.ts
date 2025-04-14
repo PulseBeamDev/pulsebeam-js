@@ -332,25 +332,8 @@ export class Peer {
     while (this.state != "closed") {
       const events: AnalyticsEvent[] = [];
       for (const sess of this.sessions) {
-        const rawStats = await sess.getStats();
-
-        const at = Date.now() * 1_000;
-        const quality = calculateQualityScore(rawStats);
-        if (!quality) {
-          continue;
-        }
-
-        events.push({
-          timestampUs: BigInt(at),
-          tags: {
-            src: this.transport.info,
-            dst: sess.other,
-          },
-          metrics: {
-            qualityScore: quality.qualityScore,
-            rttUs: quality.rttUs,
-          },
-        });
+        const metrics = await sess.collectMetrics();
+        events.push(metrics);
       }
 
       const request: AnalyticsReportReq = { events };
