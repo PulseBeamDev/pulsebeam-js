@@ -14,7 +14,9 @@ import {
 } from "@protobuf-ts/grpcweb-transport";
 import { asleep, retry } from "./util.ts";
 import { jwtDecode } from "jwt-decode";
-import { calculateQualityScore } from "./quality.ts";
+import { calculateQualityScore } from "./analytics.ts";
+import { CompressionStream } from "stream/web"; // optional, but TS may need it
+import { RpcInterceptor } from "@protobuf-ts/runtime-rpc";
 
 export type { PeerInfo } from "./signaling.ts";
 
@@ -247,11 +249,11 @@ export class Peer {
    * Callback invoked when a new session is established.
    * @param _s Session object
    */
-  public onsession = (_s: ISession) => {};
+  public onsession = (_s: ISession) => { };
   /**
    * Callback invoked when the peer’s state changes.
    */
-  public onstatechange = () => {};
+  public onstatechange = () => { };
   /**
    * Identifier for the peer. Valid UTF-8 string of 1-16 characters.
    */

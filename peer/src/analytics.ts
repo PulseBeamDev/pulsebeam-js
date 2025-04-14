@@ -1,3 +1,5 @@
+import { AnalyticsMetrics, AnalyticsTags, EventType } from "./signaling.ts";
+
 interface RTCStats {
   id: string;
   timestamp: number;
@@ -50,24 +52,24 @@ interface RTCRemoteInboundRtpStreamStats extends RTCStats {
 interface RTCIceCandidatePairStats extends RTCStats {
   type: "candidate-pair";
   state?:
-    | "failed"
-    | "frozen"
-    | "in-progress"
-    | "succeeded"
-    | "waiting";
+  | "failed"
+  | "frozen"
+  | "in-progress"
+  | "succeeded"
+  | "waiting";
   currentRoundTripTime?: number;
 }
 
 interface RTCPeerConnectionStats extends RTCStats {
   type: "peer-connection";
   iceConnectionState?:
-    | "new"
-    | "checking"
-    | "connected"
-    | "completed"
-    | "failed"
-    | "disconnected"
-    | "closed";
+  | "new"
+  | "checking"
+  | "connected"
+  | "completed"
+  | "failed"
+  | "disconnected"
+  | "closed";
   iceGatheringState?: "new" | "gathering" | "complete";
 }
 
@@ -174,4 +176,8 @@ export function calculateQualityScore(
   quality.qualityScore = BigInt(qualityScore);
 
   return quality;
+}
+
+export function now(): bigint {
+  return BigInt(Date.now() * 1000);
 }

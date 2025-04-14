@@ -1,4 +1,5 @@
 import {
+  type EventType,
   type ICECandidate,
   PeerInfo,
   SdpKind,
@@ -71,6 +72,7 @@ export class Session {
   private _closeReason?: string;
   private _connectionState: RTCPeerConnectionState;
   private internalDataChannel: RTCDataChannel;
+  private _events: EventType[];
 
   /**
    * See {@link https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/ondatachannel}
@@ -271,6 +273,8 @@ export class Session {
       });
       this.setConnectionState(this.pc.connectionState, ev);
       switch (this.pc.connectionState) {
+        case "new":
+          break;
         case "connecting":
           start = performance.now();
           break;
