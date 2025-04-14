@@ -47,7 +47,7 @@ class Queue {
   private unreliable: Message[];
   private processing: boolean;
   private readonly logger: Logger;
-  public onmsg = async (_: Message) => {};
+  public onmsg = async (_: Message) => { };
 
   constructor(logger: Logger) {
     this.logger = logger.sub("queue");
@@ -119,8 +119,8 @@ export class Transport {
   public readonly asleep: typeof defaultAsleep;
   private readonly randUint32: typeof defaultRandUint32;
   private readonly isRecoverable: typeof defaultIsRecoverable;
-  public onstream = (_: Stream) => {};
-  public onclosed = (_reason: string) => {};
+  public onstream = (_: Stream) => { };
+  public onclosed = (_reason: string) => { };
 
   constructor(
     private readonly client: ISignalingClient,
@@ -295,7 +295,7 @@ export class Transport {
         header,
         payload,
       });
-      await this.asleep(POLL_RETRY_MAX_DELAY_MS, joinedSignal).catch(() => {});
+      await this.asleep(POLL_RETRY_MAX_DELAY_MS, joinedSignal).catch(() => { });
 
       found = !!this.streams.find((s) =>
         s.other.groupId === otherGroupId && s.other.peerId === otherPeerId
@@ -358,16 +358,12 @@ export class Transport {
         this.logger.warn("aborted, message dropped from sending analytics", {
           msg: event,
         });
-        return;
       }
-
-      return;
     } catch (err) {
       this.logger.error(
         "analytics backend is in unrecoverable state, dropping analytics event",
         { err },
       );
-      return;
     }
   }
 }
@@ -379,8 +375,8 @@ export class Stream {
   private abort: AbortController;
   public recvq: Queue;
   private lastSeqnum: number;
-  public onsignal = async (_: Signal) => {};
-  public onclosed = (_reason: string) => {};
+  public onsignal = async (_: Signal) => { };
+  public onclosed = (_reason: string) => { };
 
   constructor(
     private readonly transport: Transport,

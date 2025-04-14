@@ -14,11 +14,10 @@ import {
 } from "@protobuf-ts/grpcweb-transport";
 import { asleep, retry } from "./util.ts";
 import { jwtDecode } from "jwt-decode";
-import { calculateQualityScore } from "./quality.ts";
 
 export type { PeerInfo } from "./signaling.ts";
 
-const ANALYTICS_POLL_INTERVAL_MS = 10_000;
+const ANALYTICS_POLL_INTERVAL_MS = 60_000;
 
 /**
  * Streamline real-time application development.`@pulsebeam/peer` abstracts
@@ -247,11 +246,11 @@ export class Peer {
    * Callback invoked when a new session is established.
    * @param _s Session object
    */
-  public onsession = (_s: ISession) => {};
+  public onsession = (_s: ISession) => { };
   /**
    * Callback invoked when the peer’s state changes.
    */
-  public onstatechange = () => {};
+  public onstatechange = () => { };
   /**
    * Identifier for the peer. Valid UTF-8 string of 1-16 characters.
    */
@@ -317,42 +316,23 @@ export class Peer {
   start() {
     if (this._state === "closed") throw new Error("peer is already closed");
     this.transport.listen();
-    const analyticsEnabled = this.opts.disableAnalytics == undefined ||
-      this.opts.disableAnalytics === false;
-
-    this.logger.info(`analytics ${analyticsEnabled ? "enabled" : "disabled"}`);
-    if (analyticsEnabled) {
-      this.analyticsLoop();
-    }
   }
 
   async analyticsLoop() {
     while (this.state != "closed") {
       const events: AnalyticsEvent[] = [];
       for (const sess of this.sessions) {
-        const rawStats = await sess.getStats();
-
-        const at = Date.now() * 1_000;
-        const quality = calculateQualityScore(rawStats);
-        if (!quality) {
-          continue;
-        }
-
-        events.push({
-          timestampUs: BigInt(at),
-          tags: {
-            src: this.transport.info,
-            dst: sess.other,
-          },
-          metrics: {
-            qualityScore: quality.qualityScore,
-            rttUs: quality.rttUs,
-          },
-        });
+        const metrics = await sess.collectMetrics();
+        events.push(metrics);
       }
 
       const request: AnalyticsReportReq = { events };
-      this.transport.reportAnalytics(request);
+
+      const analyticsEnabled = this.opts.disableAnalytics == undefined ||
+        this.opts.disableAnalytics === false;
+      if (analyticsEnabled) {
+        this.transport.reportAnalytics(request);
+      }
 
       await asleep(ANALYTICS_POLL_INTERVAL_MS);
     }
