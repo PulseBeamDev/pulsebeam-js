@@ -316,13 +316,6 @@ export class Peer {
   start() {
     if (this._state === "closed") throw new Error("peer is already closed");
     this.transport.listen();
-    const analyticsEnabled = this.opts.disableAnalytics == undefined ||
-      this.opts.disableAnalytics === false;
-
-    this.logger.info(`analytics ${analyticsEnabled ? "enabled" : "disabled"}`);
-    if (analyticsEnabled) {
-      this.analyticsLoop();
-    }
   }
 
   async analyticsLoop() {
@@ -334,7 +327,12 @@ export class Peer {
       }
 
       const request: AnalyticsReportReq = { events };
-      this.transport.reportAnalytics(request);
+
+      const analyticsEnabled = this.opts.disableAnalytics == undefined ||
+        this.opts.disableAnalytics === false;
+      if (analyticsEnabled) {
+        this.transport.reportAnalytics(request);
+      }
 
       await asleep(ANALYTICS_POLL_INTERVAL_MS);
     }
