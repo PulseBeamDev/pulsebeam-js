@@ -14,13 +14,10 @@ import {
 } from "@protobuf-ts/grpcweb-transport";
 import { asleep, retry } from "./util.ts";
 import { jwtDecode } from "jwt-decode";
-import { calculateQualityScore } from "./analytics.ts";
-import { CompressionStream } from "stream/web"; // optional, but TS may need it
-import { RpcInterceptor } from "@protobuf-ts/runtime-rpc";
 
 export type { PeerInfo } from "./signaling.ts";
 
-const ANALYTICS_POLL_INTERVAL_MS = 10_000;
+const ANALYTICS_POLL_INTERVAL_MS = 60_000;
 
 /**
  * Streamline real-time application development.`@pulsebeam/peer` abstracts
