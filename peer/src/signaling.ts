@@ -404,53 +404,6 @@ export interface AnalyticsMetrics {
 export interface AnalyticsReportResp {
 }
 /**
- * @generated from protobuf message pulsebeam.v1.AnalyticsEvent
- */
-export interface AnalyticsEvent {
-    /**
-     * @generated from protobuf oneof: kind
-     */
-    kind: {
-        oneofKind: "errorEvent";
-        /**
-         * @generated from protobuf field: pulsebeam.v1.ErrorEvent error_event = 2;
-         */
-        errorEvent: ErrorEvent;
-    } | {
-        oneofKind: "iceCandidateEvent";
-        /**
-         * @generated from protobuf field: pulsebeam.v1.IceCandidateEvent ice_candidate_event = 3;
-         */
-        iceCandidateEvent: IceCandidateEvent;
-    } | {
-        oneofKind: "signalingEvent";
-        /**
-         * @generated from protobuf field: pulsebeam.v1.SignalingEvent signaling_event = 4;
-         */
-        signalingEvent: SignalingEvent;
-    } | {
-        oneofKind: "userInteractionEvent";
-        /**
-         * @generated from protobuf field: pulsebeam.v1.UserInteractionEvent user_interaction_event = 5;
-         */
-        userInteractionEvent: UserInteractionEvent;
-    } | {
-        oneofKind: "mediaHandlingEvent";
-        /**
-         * @generated from protobuf field: pulsebeam.v1.MediaHandlingEvent media_handling_event = 6;
-         */
-        mediaHandlingEvent: MediaHandlingEvent;
-    } | {
-        oneofKind: "iceConnectionType";
-        /**
-         * @generated from protobuf field: pulsebeam.v1.IceConnectionType ice_connection_type = 7;
-         */
-        iceConnectionType: IceConnectionType;
-    } | {
-        oneofKind: undefined;
-    };
-}
-/**
  * @generated from protobuf enum pulsebeam.v1.SdpKind
  */
 export enum SdpKind {
@@ -1158,23 +1111,6 @@ class AnalyticsReportResp$Type extends MessageType<AnalyticsReportResp> {
  * @generated MessageType for protobuf message pulsebeam.v1.AnalyticsReportResp
  */
 export const AnalyticsReportResp = new AnalyticsReportResp$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class AnalyticsEvent$Type extends MessageType<AnalyticsEvent> {
-    constructor() {
-        super("pulsebeam.v1.AnalyticsEvent", [
-            { no: 2, name: "error_event", kind: "enum", oneof: "kind", T: () => ["pulsebeam.v1.ErrorEvent", ErrorEvent] },
-            { no: 3, name: "ice_candidate_event", kind: "enum", oneof: "kind", T: () => ["pulsebeam.v1.IceCandidateEvent", IceCandidateEvent] },
-            { no: 4, name: "signaling_event", kind: "enum", oneof: "kind", T: () => ["pulsebeam.v1.SignalingEvent", SignalingEvent] },
-            { no: 5, name: "user_interaction_event", kind: "enum", oneof: "kind", T: () => ["pulsebeam.v1.UserInteractionEvent", UserInteractionEvent] },
-            { no: 6, name: "media_handling_event", kind: "enum", oneof: "kind", T: () => ["pulsebeam.v1.MediaHandlingEvent", MediaHandlingEvent] },
-            { no: 7, name: "ice_connection_type", kind: "enum", oneof: "kind", T: () => ["pulsebeam.v1.IceConnectionType", IceConnectionType, "ICE_CONNECTION_TYPE_"] }
-        ]);
-    }
-}
-/**
- * @generated MessageType for protobuf message pulsebeam.v1.AnalyticsEvent
- */
-export const AnalyticsEvent = new AnalyticsEvent$Type();
 /**
  * @generated ServiceType for protobuf service pulsebeam.v1.Signaling
  */
