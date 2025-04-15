@@ -357,9 +357,31 @@ export interface AnalyticsMetrics {
      */
     timestampUs: bigint;
     /**
-     * @generated from protobuf field: optional pulsebeam.v1.AnalyticsEvent event = 2;
+     * events
+     *
+     * @generated from protobuf field: optional pulsebeam.v1.ErrorEvent error_event = 2;
      */
-    event?: AnalyticsEvent;
+    errorEvent?: ErrorEvent;
+    /**
+     * @generated from protobuf field: optional pulsebeam.v1.IceCandidateEvent ice_candidate_event = 3;
+     */
+    iceCandidateEvent?: IceCandidateEvent;
+    /**
+     * @generated from protobuf field: optional pulsebeam.v1.SignalingEvent signaling_event = 4;
+     */
+    signalingEvent?: SignalingEvent;
+    /**
+     * @generated from protobuf field: optional pulsebeam.v1.UserInteractionEvent user_interaction_event = 5;
+     */
+    userInteractionEvent?: UserInteractionEvent;
+    /**
+     * @generated from protobuf field: optional pulsebeam.v1.MediaHandlingEvent media_handling_event = 6;
+     */
+    mediaHandlingEvent?: MediaHandlingEvent;
+    /**
+     * @generated from protobuf field: optional pulsebeam.v1.IceConnectionType ice_connection_type = 7;
+     */
+    iceConnectionType?: IceConnectionType;
     /**
      * The overall derived quality score:
      * - 80-100: excellent
@@ -368,11 +390,11 @@ export interface AnalyticsMetrics {
      * - 20-39: poor
      * - 0-19: bad
      *
-     * @generated from protobuf field: optional sint64 quality_score = 3;
+     * @generated from protobuf field: optional sint64 quality_score = 17;
      */
     qualityScore?: bigint;
     /**
-     * @generated from protobuf field: optional sint64 rtt_us = 4;
+     * @generated from protobuf field: optional sint64 rtt_us = 18;
      */
     rttUs?: bigint;
 }
@@ -503,9 +525,9 @@ export enum IceCandidateEvent {
      */
     ICE_CANDIDATE_GATHERING_STARTED = 1,
     /**
-     * @generated from protobuf enum value: ICE_CANDIDATE_LOCAL_REFLEXIVE_FOUND = 2;
+     * @generated from protobuf enum value: ICE_CANDIDATE_LOCAL_RELAY_FOUND = 2;
      */
-    ICE_CANDIDATE_LOCAL_REFLEXIVE_FOUND = 2,
+    ICE_CANDIDATE_LOCAL_RELAY_FOUND = 2,
     /**
      * @generated from protobuf enum value: ICE_CANDIDATE_LOCAL_HOST_FOUND = 3;
      */
@@ -523,9 +545,9 @@ export enum IceCandidateEvent {
      */
     ICE_CANDIDATE_REMOTE_RECEIVED = 6,
     /**
-     * @generated from protobuf enum value: ICE_CANDIDATE_REMOTE_REFLEXIVE_FOUND = 7;
+     * @generated from protobuf enum value: ICE_CANDIDATE_REMOTE_RELAY_FOUND = 7;
      */
-    ICE_CANDIDATE_REMOTE_REFLEXIVE_FOUND = 7,
+    ICE_CANDIDATE_REMOTE_RELAY_FOUND = 7,
     /**
      * @generated from protobuf enum value: ICE_CANDIDATE_REMOTE_HOST_FOUND = 8;
      */
@@ -1111,9 +1133,14 @@ class AnalyticsMetrics$Type extends MessageType<AnalyticsMetrics> {
     constructor() {
         super("pulsebeam.v1.AnalyticsMetrics", [
             { no: 1, name: "timestamp_us", kind: "scalar", T: 18 /*ScalarType.SINT64*/, L: 0 /*LongType.BIGINT*/ },
-            { no: 2, name: "event", kind: "message", T: () => AnalyticsEvent },
-            { no: 3, name: "quality_score", kind: "scalar", opt: true, T: 18 /*ScalarType.SINT64*/, L: 0 /*LongType.BIGINT*/ },
-            { no: 4, name: "rtt_us", kind: "scalar", opt: true, T: 18 /*ScalarType.SINT64*/, L: 0 /*LongType.BIGINT*/ }
+            { no: 2, name: "error_event", kind: "enum", opt: true, T: () => ["pulsebeam.v1.ErrorEvent", ErrorEvent] },
+            { no: 3, name: "ice_candidate_event", kind: "enum", opt: true, T: () => ["pulsebeam.v1.IceCandidateEvent", IceCandidateEvent] },
+            { no: 4, name: "signaling_event", kind: "enum", opt: true, T: () => ["pulsebeam.v1.SignalingEvent", SignalingEvent] },
+            { no: 5, name: "user_interaction_event", kind: "enum", opt: true, T: () => ["pulsebeam.v1.UserInteractionEvent", UserInteractionEvent] },
+            { no: 6, name: "media_handling_event", kind: "enum", opt: true, T: () => ["pulsebeam.v1.MediaHandlingEvent", MediaHandlingEvent] },
+            { no: 7, name: "ice_connection_type", kind: "enum", opt: true, T: () => ["pulsebeam.v1.IceConnectionType", IceConnectionType, "ICE_CONNECTION_TYPE_"] },
+            { no: 17, name: "quality_score", kind: "scalar", opt: true, T: 18 /*ScalarType.SINT64*/, L: 0 /*LongType.BIGINT*/ },
+            { no: 18, name: "rtt_us", kind: "scalar", opt: true, T: 18 /*ScalarType.SINT64*/, L: 0 /*LongType.BIGINT*/ }
         ]);
     }
 }
