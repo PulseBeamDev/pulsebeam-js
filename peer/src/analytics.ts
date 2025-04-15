@@ -1,5 +1,3 @@
-import { AnalyticsMetrics, AnalyticsTags, EventType } from "./signaling.ts";
-
 interface RTCStats {
   id: string;
   timestamp: number;
@@ -182,7 +180,9 @@ export function now(): bigint {
   // https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/High_precision_timing#time_origins
   // the following combination prevents clock skewing or clock going backward due to users
   // changing their system clocks.
-  return BigInt(
-    Math.floor(performance.timeOrigin + performance.now()) * 1000,
-  );
+  // but, timeOrigin starts skewing from the UTC overtime, https://dev.to/noamr/when-a-millisecond-is-not-a-millisecond-3h6
+  // return BigInt(
+  //   Math.floor(performance.timeOrigin + performance.now()) * 1000,
+  // );
+  return BigInt(Date.now() * 1000);
 }
