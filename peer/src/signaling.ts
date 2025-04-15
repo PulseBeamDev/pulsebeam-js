@@ -316,14 +316,14 @@ export interface DataChannelHeartbeat {
  */
 export interface AnalyticsReportReq {
     /**
-     * @generated from protobuf field: repeated pulsebeam.v1.AnalyticsEvent events = 1;
+     * @generated from protobuf field: repeated pulsebeam.v1.AnalyticsReport reports = 1;
      */
-    events: AnalyticsEvent[];
+    reports: AnalyticsReport[];
 }
 /**
- * @generated from protobuf message pulsebeam.v1.AnalyticsEvent
+ * @generated from protobuf message pulsebeam.v1.AnalyticsReport
  */
-export interface AnalyticsEvent {
+export interface AnalyticsReport {
     /**
      * @generated from protobuf field: pulsebeam.v1.AnalyticsTags tags = 1;
      */
@@ -357,9 +357,9 @@ export interface AnalyticsMetrics {
      */
     timestampUs: bigint;
     /**
-     * @generated from protobuf field: optional pulsebeam.v1.EventType event_type = 2;
+     * @generated from protobuf field: optional pulsebeam.v1.AnalyticsEvent event = 2;
      */
-    eventType?: EventType;
+    event?: AnalyticsEvent;
     /**
      * The overall derived quality score:
      * - 80-100: excellent
@@ -380,6 +380,53 @@ export interface AnalyticsMetrics {
  * @generated from protobuf message pulsebeam.v1.AnalyticsReportResp
  */
 export interface AnalyticsReportResp {
+}
+/**
+ * @generated from protobuf message pulsebeam.v1.AnalyticsEvent
+ */
+export interface AnalyticsEvent {
+    /**
+     * @generated from protobuf oneof: kind
+     */
+    kind: {
+        oneofKind: "errorEvent";
+        /**
+         * @generated from protobuf field: pulsebeam.v1.ErrorEvent error_event = 2;
+         */
+        errorEvent: ErrorEvent;
+    } | {
+        oneofKind: "iceCandidateEvent";
+        /**
+         * @generated from protobuf field: pulsebeam.v1.IceCandidateEvent ice_candidate_event = 3;
+         */
+        iceCandidateEvent: IceCandidateEvent;
+    } | {
+        oneofKind: "signalingEvent";
+        /**
+         * @generated from protobuf field: pulsebeam.v1.SignalingEvent signaling_event = 4;
+         */
+        signalingEvent: SignalingEvent;
+    } | {
+        oneofKind: "userInteractionEvent";
+        /**
+         * @generated from protobuf field: pulsebeam.v1.UserInteractionEvent user_interaction_event = 5;
+         */
+        userInteractionEvent: UserInteractionEvent;
+    } | {
+        oneofKind: "mediaHandlingEvent";
+        /**
+         * @generated from protobuf field: pulsebeam.v1.MediaHandlingEvent media_handling_event = 6;
+         */
+        mediaHandlingEvent: MediaHandlingEvent;
+    } | {
+        oneofKind: "iceConnectionType";
+        /**
+         * @generated from protobuf field: pulsebeam.v1.IceConnectionType ice_connection_type = 7;
+         */
+        iceConnectionType: IceConnectionType;
+    } | {
+        oneofKind: undefined;
+    };
 }
 /**
  * @generated from protobuf enum pulsebeam.v1.SdpKind
@@ -407,405 +454,346 @@ export enum SdpKind {
     ROLLBACK = 4
 }
 /**
- * @generated from protobuf enum pulsebeam.v1.EventType
+ * @generated from protobuf enum pulsebeam.v1.ErrorEvent
  */
-export enum EventType {
+export enum ErrorEvent {
     /**
-     * Default value, should always be the first
-     *
-     * @generated from protobuf enum value: UNKNOWN_EVENT = 0;
+     * @generated from protobuf enum value: ERROR_EVENT_UNSPECIFIED = 0;
      */
-    UNKNOWN_EVENT = 0,
+    ERROR_EVENT_UNSPECIFIED = 0,
     /**
-     * --- Error Reporting Events (Range: 1000 - 1099) ---
-     *
-     * Base for error reporting events
-     *
-     * @generated from protobuf enum value: EVENT_ERROR_REPORTING_BASE = 1000;
+     * @generated from protobuf enum value: ERROR_SIGNALING_CONNECTION_FAILED = 1;
      */
-    EVENT_ERROR_REPORTING_BASE = 1000,
+    ERROR_SIGNALING_CONNECTION_FAILED = 1,
     /**
-     * An error occurred with the signaling connection
-     *
-     * @generated from protobuf enum value: EVENT_ERROR_SIGNALING_CONNECTION_FAILED = 1001;
+     * @generated from protobuf enum value: ERROR_ICE_CONNECTION_FAILED = 2;
      */
-    EVENT_ERROR_SIGNALING_CONNECTION_FAILED = 1001,
+    ERROR_ICE_CONNECTION_FAILED = 2,
     /**
-     * An error occurred with the ICE connection
-     *
-     * @generated from protobuf enum value: EVENT_ERROR_ICE_CONNECTION_FAILED = 1002;
+     * @generated from protobuf enum value: ERROR_MEDIA_CAPTURE_AUDIO_FAILED = 3;
      */
-    EVENT_ERROR_ICE_CONNECTION_FAILED = 1002,
+    ERROR_MEDIA_CAPTURE_AUDIO_FAILED = 3,
     /**
-     * An error occurred while capturing audio
-     *
-     * @generated from protobuf enum value: EVENT_ERROR_MEDIA_CAPTURE_AUDIO_FAILED = 1003;
+     * @generated from protobuf enum value: ERROR_MEDIA_CAPTURE_VIDEO_FAILED = 4;
      */
-    EVENT_ERROR_MEDIA_CAPTURE_AUDIO_FAILED = 1003,
+    ERROR_MEDIA_CAPTURE_VIDEO_FAILED = 4,
     /**
-     * An error occurred while capturing video
-     *
-     * @generated from protobuf enum value: EVENT_ERROR_MEDIA_CAPTURE_VIDEO_FAILED = 1004;
+     * @generated from protobuf enum value: ERROR_MEDIA_CAPTURE_SCREEN_FAILED = 5;
      */
-    EVENT_ERROR_MEDIA_CAPTURE_VIDEO_FAILED = 1004,
+    ERROR_MEDIA_CAPTURE_SCREEN_FAILED = 5,
     /**
-     * An error occurred while capturing screen
-     *
-     * @generated from protobuf enum value: EVENT_ERROR_MEDIA_CAPTURE_SCREEN_FAILED = 1005;
+     * @generated from protobuf enum value: ERROR_SDP_NEGOTIATION_FAILED = 6;
      */
-    EVENT_ERROR_MEDIA_CAPTURE_SCREEN_FAILED = 1005,
+    ERROR_SDP_NEGOTIATION_FAILED = 6,
     /**
-     * An error occurred during SDP negotiation
-     *
-     * @generated from protobuf enum value: EVENT_ERROR_SDP_NEGOTIATION_FAILED = 1006;
+     * @generated from protobuf enum value: ERROR_OTHER = 99;
      */
-    EVENT_ERROR_SDP_NEGOTIATION_FAILED = 1006,
+    ERROR_OTHER = 99
+}
+/**
+ * @generated from protobuf enum pulsebeam.v1.IceCandidateEvent
+ */
+export enum IceCandidateEvent {
     /**
-     * A general or uncategorized error
-     *
-     * @generated from protobuf enum value: EVENT_ERROR_OTHER = 1099;
+     * @generated from protobuf enum value: ICE_CANDIDATE_EVENT_UNSPECIFIED = 0;
      */
-    EVENT_ERROR_OTHER = 1099,
+    ICE_CANDIDATE_EVENT_UNSPECIFIED = 0,
     /**
-     * --- ICE Candidate Events (Range: 2000 - 2099) ---
-     *
-     * Base for ICE candidate related events
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_BASE = 2000;
+     * @generated from protobuf enum value: ICE_CANDIDATE_GATHERING_STARTED = 1;
      */
-    EVENT_ICE_CANDIDATE_BASE = 2000,
+    ICE_CANDIDATE_GATHERING_STARTED = 1,
     /**
-     * ICE gathering process initiated
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_GATHERING_STARTED = 2001;
+     * @generated from protobuf enum value: ICE_CANDIDATE_LOCAL_REFLEXIVE_FOUND = 2;
      */
-    EVENT_ICE_CANDIDATE_GATHERING_STARTED = 2001,
+    ICE_CANDIDATE_LOCAL_REFLEXIVE_FOUND = 2,
     /**
-     * A reflexive ICE candidate was discovered
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_LOCAL_REFLEXIVE_FOUND = 2002;
+     * @generated from protobuf enum value: ICE_CANDIDATE_LOCAL_HOST_FOUND = 3;
      */
-    EVENT_ICE_CANDIDATE_LOCAL_REFLEXIVE_FOUND = 2002,
+    ICE_CANDIDATE_LOCAL_HOST_FOUND = 3,
     /**
-     * A host ICE candidate was discovered
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_LOCAL_HOST_FOUND = 2003;
+     * @generated from protobuf enum value: ICE_CANDIDATE_LOCAL_SRFLX_FOUND = 4;
      */
-    EVENT_ICE_CANDIDATE_LOCAL_HOST_FOUND = 2003,
+    ICE_CANDIDATE_LOCAL_SRFLX_FOUND = 4,
     /**
-     * A server-reflexive (STUN) ICE candidate was discovered
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_LOCAL_SRFLX_FOUND = 2004;
+     * @generated from protobuf enum value: ICE_CANDIDATE_LOCAL_PRFLX_FOUND = 5;
      */
-    EVENT_ICE_CANDIDATE_LOCAL_SRFLX_FOUND = 2004,
+    ICE_CANDIDATE_LOCAL_PRFLX_FOUND = 5,
     /**
-     * A peer-reflexive ICE candidate was discovered (less common)
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_LOCAL_PRFLX_FOUND = 2005;
+     * @generated from protobuf enum value: ICE_CANDIDATE_REMOTE_RECEIVED = 6;
      */
-    EVENT_ICE_CANDIDATE_LOCAL_PRFLX_FOUND = 2005,
+    ICE_CANDIDATE_REMOTE_RECEIVED = 6,
     /**
-     * An ICE candidate from the remote peer was received
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_REMOTE_RECEIVED = 2006;
+     * @generated from protobuf enum value: ICE_CANDIDATE_REMOTE_REFLEXIVE_FOUND = 7;
      */
-    EVENT_ICE_CANDIDATE_REMOTE_RECEIVED = 2006,
+    ICE_CANDIDATE_REMOTE_REFLEXIVE_FOUND = 7,
     /**
-     * A reflexive ICE candidate was discovered
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_REMOTE_REFLEXIVE_FOUND = 2007;
+     * @generated from protobuf enum value: ICE_CANDIDATE_REMOTE_HOST_FOUND = 8;
      */
-    EVENT_ICE_CANDIDATE_REMOTE_REFLEXIVE_FOUND = 2007,
+    ICE_CANDIDATE_REMOTE_HOST_FOUND = 8,
     /**
-     * A host ICE candidate was discovered
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_REMOTE_HOST_FOUND = 2008;
+     * @generated from protobuf enum value: ICE_CANDIDATE_REMOTE_SRFLX_FOUND = 9;
      */
-    EVENT_ICE_CANDIDATE_REMOTE_HOST_FOUND = 2008,
+    ICE_CANDIDATE_REMOTE_SRFLX_FOUND = 9,
     /**
-     * A server-reflexive (STUN) ICE candidate was discovered
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_REMOTE_SRFLX_FOUND = 2009;
+     * @generated from protobuf enum value: ICE_CANDIDATE_REMOTE_PRFLX_FOUND = 10;
      */
-    EVENT_ICE_CANDIDATE_REMOTE_SRFLX_FOUND = 2009,
+    ICE_CANDIDATE_REMOTE_PRFLX_FOUND = 10,
     /**
-     * A peer-reflexive ICE candidate was discovered (less common)
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_REMOTE_PRFLX_FOUND = 2010;
+     * @generated from protobuf enum value: ICE_CANDIDATE_PAIRING_SUCCESS = 11;
      */
-    EVENT_ICE_CANDIDATE_REMOTE_PRFLX_FOUND = 2010,
+    ICE_CANDIDATE_PAIRING_SUCCESS = 11,
     /**
-     * ICE candidate pair succeeded in establishing a connection
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_PAIRING_SUCCESS = 2011;
+     * @generated from protobuf enum value: ICE_CANDIDATE_PAIRING_FAILED = 12;
      */
-    EVENT_ICE_CANDIDATE_PAIRING_SUCCESS = 2011,
+    ICE_CANDIDATE_PAIRING_FAILED = 12,
     /**
-     * ICE candidate pair failed to establish a connection
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_PAIRING_FAILED = 2012;
+     * @generated from protobuf enum value: ICE_CANDIDATE_CONNECTION_STATE_CHANGED = 13;
      */
-    EVENT_ICE_CANDIDATE_PAIRING_FAILED = 2012,
+    ICE_CANDIDATE_CONNECTION_STATE_CHANGED = 13,
     /**
-     * The ICE connection state has changed (e.g., connecting, connected, failed)
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_CONNECTION_STATE_CHANGED = 2013;
+     * @generated from protobuf enum value: ICE_CANDIDATE_GATHERING_COMPLETED = 14;
      */
-    EVENT_ICE_CANDIDATE_CONNECTION_STATE_CHANGED = 2013,
+    ICE_CANDIDATE_GATHERING_COMPLETED = 14,
     /**
-     * ICE gathering process finished
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_GATHERING_COMPLETED = 2014;
+     * @generated from protobuf enum value: ICE_CANDIDATE_SELECTED_PAIR = 15;
      */
-    EVENT_ICE_CANDIDATE_GATHERING_COMPLETED = 2014,
+    ICE_CANDIDATE_SELECTED_PAIR = 15
+}
+/**
+ * @generated from protobuf enum pulsebeam.v1.SignalingEvent
+ */
+export enum SignalingEvent {
     /**
-     * The best ICE candidate pair was selected for communication
-     *
-     * @generated from protobuf enum value: EVENT_ICE_CANDIDATE_SELECTED_PAIR = 2015;
+     * @generated from protobuf enum value: SIGNALING_EVENT_UNSPECIFIED = 0;
      */
-    EVENT_ICE_CANDIDATE_SELECTED_PAIR = 2015,
+    SIGNALING_EVENT_UNSPECIFIED = 0,
     /**
-     * --- Signaling Events (Range: 3000 - 3099) ---
-     *
-     * Base for signaling related events
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_BASE = 3000;
+     * @generated from protobuf enum value: SIGNALING_OFFER_CREATED = 1;
      */
-    EVENT_SIGNALING_BASE = 3000,
+    SIGNALING_OFFER_CREATED = 1,
     /**
-     * A signaling offer (e.g., SDP) was created locally
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_OFFER_CREATED = 3001;
+     * @generated from protobuf enum value: SIGNALING_OFFER_SENT = 2;
      */
-    EVENT_SIGNALING_OFFER_CREATED = 3001,
+    SIGNALING_OFFER_SENT = 2,
     /**
-     * A signaling offer was sent to the remote peer
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_OFFER_SENT = 3002;
+     * @generated from protobuf enum value: SIGNALING_OFFER_RECEIVED = 3;
      */
-    EVENT_SIGNALING_OFFER_SENT = 3002,
+    SIGNALING_OFFER_RECEIVED = 3,
     /**
-     * A signaling offer was received from the remote peer
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_OFFER_RECEIVED = 3003;
+     * @generated from protobuf enum value: SIGNALING_ANSWER_CREATED = 4;
      */
-    EVENT_SIGNALING_OFFER_RECEIVED = 3003,
+    SIGNALING_ANSWER_CREATED = 4,
     /**
-     * A signaling answer (e.g., SDP) was created locally
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_ANSWER_CREATED = 3004;
+     * @generated from protobuf enum value: SIGNALING_ANSWER_SENT = 5;
      */
-    EVENT_SIGNALING_ANSWER_CREATED = 3004,
+    SIGNALING_ANSWER_SENT = 5,
     /**
-     * A signaling answer was sent to the remote peer
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_ANSWER_SENT = 3005;
+     * @generated from protobuf enum value: SIGNALING_ANSWER_RECEIVED = 6;
      */
-    EVENT_SIGNALING_ANSWER_SENT = 3005,
+    SIGNALING_ANSWER_RECEIVED = 6,
     /**
-     * A signaling answer was received from the remote peer
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_ANSWER_RECEIVED = 3006;
+     * @generated from protobuf enum value: SIGNALING_NEGOTIATION_NEEDED = 7;
      */
-    EVENT_SIGNALING_ANSWER_RECEIVED = 3006,
+    SIGNALING_NEGOTIATION_NEEDED = 7,
     /**
-     * A signal indicating that negotiation is required
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_NEGOTIATION_NEEDED = 3007;
+     * @generated from protobuf enum value: SIGNALING_ICE_RESTART_TRIGGERED = 8;
      */
-    EVENT_SIGNALING_NEGOTIATION_NEEDED = 3007,
+    SIGNALING_ICE_RESTART_TRIGGERED = 8,
     /**
-     * A request to restart ICE negotiation was initiated
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_ICE_RESTART_TRIGGERED = 3008;
+     * @generated from protobuf enum value: SIGNALING_CONNECTED = 9;
      */
-    EVENT_SIGNALING_ICE_RESTART_TRIGGERED = 3008,
+    SIGNALING_CONNECTED = 9,
     /**
-     * Signaling connection established
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_CONNECTED = 3009;
+     * @generated from protobuf enum value: SIGNALING_DISCONNECTED = 10;
      */
-    EVENT_SIGNALING_CONNECTED = 3009,
+    SIGNALING_DISCONNECTED = 10
+}
+/**
+ * @generated from protobuf enum pulsebeam.v1.UserInteractionEvent
+ */
+export enum UserInteractionEvent {
     /**
-     * Signaling connection lost
-     *
-     * @generated from protobuf enum value: EVENT_SIGNALING_DISCONNECTED = 3010;
+     * @generated from protobuf enum value: USER_INTERACTION_EVENT_UNSPECIFIED = 0;
      */
-    EVENT_SIGNALING_DISCONNECTED = 3010,
+    USER_INTERACTION_EVENT_UNSPECIFIED = 0,
     /**
-     * --- User Interaction Events (Range: 4000 - 4099) ---
-     *
-     * Base for user interaction events
-     *
-     * @generated from protobuf enum value: EVENT_USER_INTERACTION_BASE = 4000;
+     * @generated from protobuf enum value: USER_JOINED_SESSION = 1;
      */
-    EVENT_USER_INTERACTION_BASE = 4000,
+    USER_JOINED_SESSION = 1,
     /**
-     * A user joined the communication session
-     *
-     * @generated from protobuf enum value: EVENT_USER_JOINED_SESSION = 4001;
+     * @generated from protobuf enum value: USER_LEFT_SESSION = 2;
      */
-    EVENT_USER_JOINED_SESSION = 4001,
+    USER_LEFT_SESSION = 2,
     /**
-     * A user left the communication session
-     *
-     * @generated from protobuf enum value: EVENT_USER_LEFT_SESSION = 4002;
+     * @generated from protobuf enum value: USER_MUTED_AUDIO = 3;
      */
-    EVENT_USER_LEFT_SESSION = 4002,
+    USER_MUTED_AUDIO = 3,
     /**
-     * A user muted their audio
-     *
-     * @generated from protobuf enum value: EVENT_USER_MUTED_AUDIO = 4003;
+     * @generated from protobuf enum value: USER_UNMUTED_AUDIO = 4;
      */
-    EVENT_USER_MUTED_AUDIO = 4003,
+    USER_UNMUTED_AUDIO = 4,
     /**
-     * A user unmuted their audio
-     *
-     * @generated from protobuf enum value: EVENT_USER_UNMUTED_AUDIO = 4004;
+     * @generated from protobuf enum value: USER_MUTED_VIDEO = 5;
      */
-    EVENT_USER_UNMUTED_AUDIO = 4004,
+    USER_MUTED_VIDEO = 5,
     /**
-     * A user muted their video
-     *
-     * @generated from protobuf enum value: EVENT_USER_MUTED_VIDEO = 4005;
+     * @generated from protobuf enum value: USER_UNMUTED_VIDEO = 6;
      */
-    EVENT_USER_MUTED_VIDEO = 4005,
+    USER_UNMUTED_VIDEO = 6,
     /**
-     * A user unmuted their video
-     *
-     * @generated from protobuf enum value: EVENT_USER_UNMUTED_VIDEO = 4006;
+     * @generated from protobuf enum value: USER_SCREEN_SHARE_STARTED = 7;
      */
-    EVENT_USER_UNMUTED_VIDEO = 4006,
+    USER_SCREEN_SHARE_STARTED = 7,
     /**
-     * A user started sharing their screen
-     *
-     * @generated from protobuf enum value: EVENT_USER_SCREEN_SHARE_STARTED = 4007;
+     * @generated from protobuf enum value: USER_SCREEN_SHARE_STOPPED = 8;
      */
-    EVENT_USER_SCREEN_SHARE_STARTED = 4007,
+    USER_SCREEN_SHARE_STOPPED = 8,
     /**
-     * A user stopped sharing their screen
-     *
-     * @generated from protobuf enum value: EVENT_USER_SCREEN_SHARE_STOPPED = 4008;
+     * @generated from protobuf enum value: USER_INPUT_TEXT_MESSAGE_SENT = 9;
      */
-    EVENT_USER_SCREEN_SHARE_STOPPED = 4008,
+    USER_INPUT_TEXT_MESSAGE_SENT = 9,
     /**
-     * A user sent a text message
-     *
-     * @generated from protobuf enum value: EVENT_USER_INPUT_TEXT_MESSAGE_SENT = 4009;
+     * @generated from protobuf enum value: USER_INPUT_TEXT_MESSAGE_RECEIVED = 10;
      */
-    EVENT_USER_INPUT_TEXT_MESSAGE_SENT = 4009,
+    USER_INPUT_TEXT_MESSAGE_RECEIVED = 10
+}
+/**
+ * @generated from protobuf enum pulsebeam.v1.MediaHandlingEvent
+ */
+export enum MediaHandlingEvent {
     /**
-     * A user received a text message
-     *
-     * @generated from protobuf enum value: EVENT_USER_INPUT_TEXT_MESSAGE_RECEIVED = 4010;
+     * @generated from protobuf enum value: MEDIA_HANDLING_EVENT_UNSPECIFIED = 0;
      */
-    EVENT_USER_INPUT_TEXT_MESSAGE_RECEIVED = 4010,
+    MEDIA_HANDLING_EVENT_UNSPECIFIED = 0,
     /**
-     * --- Media Handling Events (Range: 5000 - 5099) ---
-     *
-     * Base for media handling events
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_HANDLING_BASE = 5000;
+     * @generated from protobuf enum value: MEDIA_LOCAL_AUDIO_TRACK_ADDED = 1;
      */
-    EVENT_MEDIA_HANDLING_BASE = 5000,
+    MEDIA_LOCAL_AUDIO_TRACK_ADDED = 1,
     /**
-     * A local audio track was added
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_LOCAL_AUDIO_TRACK_ADDED = 5001;
+     * @generated from protobuf enum value: MEDIA_LOCAL_VIDEO_TRACK_ADDED = 2;
      */
-    EVENT_MEDIA_LOCAL_AUDIO_TRACK_ADDED = 5001,
+    MEDIA_LOCAL_VIDEO_TRACK_ADDED = 2,
     /**
-     * A local video track was added
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_LOCAL_VIDEO_TRACK_ADDED = 5002;
+     * @generated from protobuf enum value: MEDIA_REMOTE_AUDIO_TRACK_ADDED = 3;
      */
-    EVENT_MEDIA_LOCAL_VIDEO_TRACK_ADDED = 5002,
+    MEDIA_REMOTE_AUDIO_TRACK_ADDED = 3,
     /**
-     * A remote audio track was added
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_REMOTE_AUDIO_TRACK_ADDED = 5003;
+     * @generated from protobuf enum value: MEDIA_REMOTE_VIDEO_TRACK_ADDED = 4;
      */
-    EVENT_MEDIA_REMOTE_AUDIO_TRACK_ADDED = 5003,
+    MEDIA_REMOTE_VIDEO_TRACK_ADDED = 4,
     /**
-     * A remote video track was added
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_REMOTE_VIDEO_TRACK_ADDED = 5004;
+     * @generated from protobuf enum value: MEDIA_LOCAL_AUDIO_TRACK_REMOVED = 5;
      */
-    EVENT_MEDIA_REMOTE_VIDEO_TRACK_ADDED = 5004,
+    MEDIA_LOCAL_AUDIO_TRACK_REMOVED = 5,
     /**
-     * A local audio track was removed
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_LOCAL_AUDIO_TRACK_REMOVED = 5005;
+     * @generated from protobuf enum value: MEDIA_LOCAL_VIDEO_TRACK_REMOVED = 6;
      */
-    EVENT_MEDIA_LOCAL_AUDIO_TRACK_REMOVED = 5005,
+    MEDIA_LOCAL_VIDEO_TRACK_REMOVED = 6,
     /**
-     * A local video track was removed
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_LOCAL_VIDEO_TRACK_REMOVED = 5006;
+     * @generated from protobuf enum value: MEDIA_REMOTE_AUDIO_TRACK_REMOVED = 7;
      */
-    EVENT_MEDIA_LOCAL_VIDEO_TRACK_REMOVED = 5006,
+    MEDIA_REMOTE_AUDIO_TRACK_REMOVED = 7,
     /**
-     * A remote audio track was removed
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_REMOTE_AUDIO_TRACK_REMOVED = 5007;
+     * @generated from protobuf enum value: MEDIA_REMOTE_VIDEO_TRACK_REMOVED = 8;
      */
-    EVENT_MEDIA_REMOTE_AUDIO_TRACK_REMOVED = 5007,
+    MEDIA_REMOTE_VIDEO_TRACK_REMOVED = 8,
     /**
-     * A remote video track was removed
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_REMOTE_VIDEO_TRACK_REMOVED = 5008;
+     * @generated from protobuf enum value: MEDIA_AUDIO_PLAYBACK_STARTED = 9;
      */
-    EVENT_MEDIA_REMOTE_VIDEO_TRACK_REMOVED = 5008,
+    MEDIA_AUDIO_PLAYBACK_STARTED = 9,
     /**
-     * Audio playback started
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_AUDIO_PLAYBACK_STARTED = 5009;
+     * @generated from protobuf enum value: MEDIA_VIDEO_PLAYBACK_STARTED = 10;
      */
-    EVENT_MEDIA_AUDIO_PLAYBACK_STARTED = 5009,
+    MEDIA_VIDEO_PLAYBACK_STARTED = 10,
     /**
-     * Video playback started
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_VIDEO_PLAYBACK_STARTED = 5010;
+     * @generated from protobuf enum value: MEDIA_AUDIO_PLAYBACK_STOPPED = 11;
      */
-    EVENT_MEDIA_VIDEO_PLAYBACK_STARTED = 5010,
+    MEDIA_AUDIO_PLAYBACK_STOPPED = 11,
     /**
-     * Audio playback stopped
-     *
-     * @generated from protobuf enum value: EVENT_MEDIA_AUDIO_PLAYBACK_STOPPED = 5011;
+     * @generated from protobuf enum value: MEDIA_VIDEO_PLAYBACK_STOPPED = 12;
      */
-    EVENT_MEDIA_AUDIO_PLAYBACK_STOPPED = 5011,
+    MEDIA_VIDEO_PLAYBACK_STOPPED = 12
+}
+/**
+ * @generated from protobuf enum pulsebeam.v1.IceConnectionType
+ */
+export enum IceConnectionType {
     /**
-     * Video playback stopped
+     * @generated from protobuf enum value: ICE_CONNECTION_TYPE_UNKNOWN = 0;
+     */
+    UNKNOWN = 0,
+    /**
+     * Direct candidates.
      *
-     * @generated from protobuf enum value: EVENT_MEDIA_VIDEO_PLAYBACK_STOPPED = 5012;
+     * @generated from protobuf enum value: ICE_CONNECTION_TYPE_DIRECT_UDP = 1;
+     */
+    DIRECT_UDP = 1,
+    /**
+     * @generated from protobuf enum value: ICE_CONNECTION_TYPE_DIRECT_TCP = 2;
+     */
+    DIRECT_TCP = 2,
+    /**
+     * @generated from protobuf enum value: ICE_CONNECTION_TYPE_DIRECT_DTLS = 3;
+     */
+    DIRECT_DTLS = 3,
+    /**
+     * @generated from protobuf enum value: ICE_CONNECTION_TYPE_DIRECT_TLS = 4;
      */
-    EVENT_MEDIA_VIDEO_PLAYBACK_STOPPED = 5012,
+    DIRECT_TLS = 4,
     /**
-     * --- ICE Connection Type (Range: 6000 - 6099) ---
+     * Relay candidates.
      *
-     * @generated from protobuf enum value: CONNECTION_TYPE_UNKNOWN = 6000;
+     * @generated from protobuf enum value: ICE_CONNECTION_TYPE_RELAY_UDP = 5;
      */
-    CONNECTION_TYPE_UNKNOWN = 6000,
+    RELAY_UDP = 5,
     /**
-     * @generated from protobuf enum value: CONNECTION_TYPE_DIRECT = 6001;
+     * @generated from protobuf enum value: ICE_CONNECTION_TYPE_RELAY_TCP = 6;
      */
-    CONNECTION_TYPE_DIRECT = 6001,
+    RELAY_TCP = 6,
     /**
-     * @generated from protobuf enum value: CONNECTION_TYPE_RELAY = 6002;
+     * @generated from protobuf enum value: ICE_CONNECTION_TYPE_RELAY_DTLS = 7;
      */
-    CONNECTION_TYPE_RELAY = 6002,
+    RELAY_DTLS = 7,
     /**
-     * Server Reflexive
+     * @generated from protobuf enum value: ICE_CONNECTION_TYPE_RELAY_TLS = 8;
+     */
+    RELAY_TLS = 8,
+    /**
+     * Server-reflexive (srflx) candidates.
      *
-     * @generated from protobuf enum value: CONNECTION_TYPE_SRFLX = 6003;
+     * @generated from protobuf enum value: ICE_CONNECTION_TYPE_SRFLX_UDP = 9;
+     */
+    SRFLX_UDP = 9,
+    /**
+     * @generated from protobuf enum value: ICE_CONNECTION_TYPE_SRFLX_TCP = 10;
+     */
+    SRFLX_TCP = 10,
+    /**
+     * @generated from protobuf enum value: ICE_CONNECTION_TYPE_SRFLX_DTLS = 11;
+     */
+    SRFLX_DTLS = 11,
+    /**
+     * @generated from protobuf enum value: ICE_CONNECTION_TYPE_SRFLX_TLS = 12;
      */
-    CONNECTION_TYPE_SRFLX = 6003,
+    SRFLX_TLS = 12,
     /**
-     * Peer Reflexive
+     * Peer-reflexive (prflx) candidates.
      *
-     * @generated from protobuf enum value: CONNECTION_TYPE_PRFLX = 6004;
+     * @generated from protobuf enum value: ICE_CONNECTION_TYPE_PRFLX_UDP = 13;
+     */
+    PRFLX_UDP = 13,
+    /**
+     * @generated from protobuf enum value: ICE_CONNECTION_TYPE_PRFLX_TCP = 14;
+     */
+    PRFLX_TCP = 14,
+    /**
+     * @generated from protobuf enum value: ICE_CONNECTION_TYPE_PRFLX_DTLS = 15;
+     */
+    PRFLX_DTLS = 15,
+    /**
+     * @generated from protobuf enum value: ICE_CONNECTION_TYPE_PRFLX_TLS = 16;
      */
-    CONNECTION_TYPE_PRFLX = 6004
+    PRFLX_TLS = 16
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class PrepareReq$Type extends MessageType<PrepareReq> {
@@ -1084,7 +1072,7 @@ export const DataChannelHeartbeat = new DataChannelHeartbeat$Type();
 class AnalyticsReportReq$Type extends MessageType<AnalyticsReportReq> {
     constructor() {
         super("pulsebeam.v1.AnalyticsReportReq", [
-            { no: 1, name: "events", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => AnalyticsEvent }
+            { no: 1, name: "reports", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => AnalyticsReport }
         ]);
     }
 }
@@ -1093,18 +1081,18 @@ class AnalyticsReportReq$Type extends MessageType<AnalyticsReportReq> {
  */
 export const AnalyticsReportReq = new AnalyticsReportReq$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class AnalyticsEvent$Type extends MessageType<AnalyticsEvent> {
+class AnalyticsReport$Type extends MessageType<AnalyticsReport> {
     constructor() {
-        super("pulsebeam.v1.AnalyticsEvent", [
+        super("pulsebeam.v1.AnalyticsReport", [
             { no: 1, name: "tags", kind: "message", T: () => AnalyticsTags },
             { no: 2, name: "metrics", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => AnalyticsMetrics }
         ]);
     }
 }
 /**
- * @generated MessageType for protobuf message pulsebeam.v1.AnalyticsEvent
+ * @generated MessageType for protobuf message pulsebeam.v1.AnalyticsReport
  */
-export const AnalyticsEvent = new AnalyticsEvent$Type();
+export const AnalyticsReport = new AnalyticsReport$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AnalyticsTags$Type extends MessageType<AnalyticsTags> {
     constructor() {
@@ -1123,7 +1111,7 @@ class AnalyticsMetrics$Type extends MessageType<AnalyticsMetrics> {
     constructor() {
         super("pulsebeam.v1.AnalyticsMetrics", [
             { no: 1, name: "timestamp_us", kind: "scalar", T: 18 /*ScalarType.SINT64*/, L: 0 /*LongType.BIGINT*/ },
-            { no: 2, name: "event_type", kind: "enum", opt: true, T: () => ["pulsebeam.v1.EventType", EventType] },
+            { no: 2, name: "event", kind: "message", T: () => AnalyticsEvent },
             { no: 3, name: "quality_score", kind: "scalar", opt: true, T: 18 /*ScalarType.SINT64*/, L: 0 /*LongType.BIGINT*/ },
             { no: 4, name: "rtt_us", kind: "scalar", opt: true, T: 18 /*ScalarType.SINT64*/, L: 0 /*LongType.BIGINT*/ }
         ]);
@@ -1143,6 +1131,23 @@ class AnalyticsReportResp$Type extends MessageType<AnalyticsReportResp> {
  * @generated MessageType for protobuf message pulsebeam.v1.AnalyticsReportResp
  */
 export const AnalyticsReportResp = new AnalyticsReportResp$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AnalyticsEvent$Type extends MessageType<AnalyticsEvent> {
+    constructor() {
+        super("pulsebeam.v1.AnalyticsEvent", [
+            { no: 2, name: "error_event", kind: "enum", oneof: "kind", T: () => ["pulsebeam.v1.ErrorEvent", ErrorEvent] },
+            { no: 3, name: "ice_candidate_event", kind: "enum", oneof: "kind", T: () => ["pulsebeam.v1.IceCandidateEvent", IceCandidateEvent] },
+            { no: 4, name: "signaling_event", kind: "enum", oneof: "kind", T: () => ["pulsebeam.v1.SignalingEvent", SignalingEvent] },
+            { no: 5, name: "user_interaction_event", kind: "enum", oneof: "kind", T: () => ["pulsebeam.v1.UserInteractionEvent", UserInteractionEvent] },
+            { no: 6, name: "media_handling_event", kind: "enum", oneof: "kind", T: () => ["pulsebeam.v1.MediaHandlingEvent", MediaHandlingEvent] },
+            { no: 7, name: "ice_connection_type", kind: "enum", oneof: "kind", T: () => ["pulsebeam.v1.IceConnectionType", IceConnectionType, "ICE_CONNECTION_TYPE_"] }
+        ]);
+    }
+}
+/**
+ * @generated MessageType for protobuf message pulsebeam.v1.AnalyticsEvent
+ */
+export const AnalyticsEvent = new AnalyticsEvent$Type();
 /**
  * @generated ServiceType for protobuf service pulsebeam.v1.Signaling
  */

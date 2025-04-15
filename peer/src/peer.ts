@@ -1,7 +1,7 @@
 import { type ISignalingClient, SignalingClient } from "./signaling.client.ts";
 import { Transport } from "./transport.ts";
 import type {
-  AnalyticsEvent,
+  AnalyticsReport,
   AnalyticsReportReq,
   PeerInfo,
 } from "./signaling.ts";
@@ -320,13 +320,13 @@ export class Peer {
 
   async analyticsLoop() {
     while (this.state != "closed") {
-      const events: AnalyticsEvent[] = [];
+      const reports: AnalyticsReport[] = [];
       for (const sess of this.sessions) {
         const metrics = await sess.collectMetrics();
-        events.push(metrics);
+        reports.push(metrics);
       }
 
-      const request: AnalyticsReportReq = { events };
+      const request: AnalyticsReportReq = { reports };
 
       const analyticsEnabled = this.opts.disableAnalytics == undefined ||
         this.opts.disableAnalytics === false;

@@ -179,5 +179,10 @@ export function calculateQualityScore(
 }
 
 export function now(): bigint {
-  return BigInt(Date.now() * 1000);
+  // https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/High_precision_timing#time_origins
+  // the following combination prevents clock skewing or clock going backward due to users
+  // changing their system clocks.
+  return BigInt(
+    Math.floor(performance.timeOrigin + performance.now()) * 1000,
+  );
 }

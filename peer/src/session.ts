@@ -1,11 +1,14 @@
 import {
-  AnalyticsEvent,
   AnalyticsMetrics,
-  EventType,
+  AnalyticsReport,
+  ErrorEvent,
   type ICECandidate,
-  PeerInfo,
+  IceCandidateEvent,
+  MediaHandlingEvent,
+  type PeerInfo,
   SdpKind,
   type Signal,
+  SignalingEvent,
 } from "./signaling.ts";
 import { Logger } from "./logger.ts";
 import type { Stream } from "./transport.ts";
@@ -101,11 +104,23 @@ export class Session {
   addTrack(track: MediaStreamTrack, ...streams: MediaStream[]): RTCRtpSender {
     if (track.kind === "audio") {
       this.recordEvent({
-        eventType: EventType.EVENT_MEDIA_LOCAL_AUDIO_TRACK_ADDED,
+        event: {
+          kind: {
+            oneofKind: "mediaHandlingEvent",
+            mediaHandlingEvent:
+              MediaHandlingEvent.MEDIA_LOCAL_AUDIO_TRACK_ADDED,
+          },
+        },
       });
     } else if (track.kind === "video") {
       this.recordEvent({
-        eventType: EventType.EVENT_MEDIA_LOCAL_VIDEO_TRACK_ADDED,
+        event: {
+          kind: {
+            oneofKind: "mediaHandlingEvent",
+            mediaHandlingEvent:
+              MediaHandlingEvent.MEDIA_LOCAL_VIDEO_TRACK_ADDED,
+          },
+        },
       });
     }
     return this.pc.addTrack(track, ...streams);
@@ -130,11 +145,23 @@ export class Session {
   removeTrack(sender: RTCRtpSender): void {
     if (sender.track?.kind === "audio") {
       this.recordEvent({
-        eventType: EventType.EVENT_MEDIA_LOCAL_AUDIO_TRACK_REMOVED,
+        event: {
+          kind: {
+            oneofKind: "mediaHandlingEvent",
+            mediaHandlingEvent:
+              MediaHandlingEvent.MEDIA_LOCAL_AUDIO_TRACK_REMOVED,
+          },
+        },
       });
     } else if (sender.track?.kind === "video") {
       this.recordEvent({
-        eventType: EventType.EVENT_MEDIA_LOCAL_VIDEO_TRACK_REMOVED,
+        event: {
+          kind: {
+            oneofKind: "mediaHandlingEvent",
+            mediaHandlingEvent:
+              MediaHandlingEvent.MEDIA_LOCAL_VIDEO_TRACK_REMOVED,
+          },
+        },
       });
     }
     return this.pc.removeTrack(sender);
@@ -303,7 +330,15 @@ export class Session {
           const elapsed = performance.now() - start;
           this.logger.debug(`it took ${elapsed}ms to connect`);
           this.recordEvent({
-            eventType: EventType.EVENT_ICE_CANDIDATE_PAIRING_SUCCESS,
+            event: {
+              kind: {
+                oneofKind: "iceCandidateEvent",
+                iceCandidateEvent:
+                  IceCandidateEvent.ICE_CANDIDATE_PAIRING_SUCCESS,
+              },
+            },
+            // Future: Could add selected pair type if available from stats
+            // metrics: { final_connection_type: ..., ice_candidate_pair_type: ... }
           });
           this.iceRestartCount = 0;
           break;
@@ -312,7 +347,12 @@ export class Session {
           break;
         case "failed":
           this.recordEvent({
-            eventType: EventType.EVENT_ERROR_ICE_CONNECTION_FAILED,
+            event: {
+              kind: {
+                oneofKind: "errorEvent",
+                errorEvent: ErrorEvent.ERROR_ICE_CONNECTION_FAILED,
+              },
+            },
           });
           this.triggerIceRestart();
           break;
@@ -322,6 +362,73 @@ export class Session {
     };
     this.pc.onnegotiationneeded = this.onnegotiationneeded.bind(this);
     this.pc.onicecandidate = ({ candidate }) => {
+      // Record specific candidate types found
+      if (candidate) {
+        // Use the specific local candidate found events based on type
+        switch (candidate.type) {
+          case "host":
+            this.recordEvent({
+              event: {
+                kind: {
+                  oneofKind: "iceCandidateEvent",
+                  iceCandidateEvent:
+                    IceCandidateEvent.ICE_CANDIDATE_LOCAL_HOST_FOUND,
+                },
+              },
+            });
+            break;
+          case "srflx":
+            this.recordEvent({
+              event: {
+                kind: {
+                  oneofKind: "iceCandidateEvent",
+                  iceCandidateEvent:
+                    IceCandidateEvent.ICE_CANDIDATE_LOCAL_SRFLX_FOUND,
+                },
+              },
+            });
+            break;
+          case "prflx":
+            // Note: Local prflx is less common, browser might report as host/srflx after STUN checks
+            this.recordEvent({
+              event: {
+                kind: {
+                  oneofKind: "iceCandidateEvent",
+                  iceCandidateEvent:
+                    IceCandidateEvent.ICE_CANDIDATE_LOCAL_PRFLX_FOUND,
+                },
+              },
+            });
+            break;
+          case "relay":
+            this.recordEvent({
+              event: {
+                kind: {
+                  oneofKind: "iceCandidateEvent",
+                  iceCandidateEvent:
+                    IceCandidateEvent.ICE_CANDIDATE_LOCAL_REFLEXIVE_FOUND,
+                },
+              },
+            }); // Assuming REFLEXIVE meant RELAY based on common usage
+            break;
+          default:
+            this.logger.warn("Unknown local ICE candidate type", {
+              type: candidate.type,
+            });
+            break;
+        }
+      } else {
+        // ICE Gathering Complete
+        this.recordEvent({
+          event: {
+            kind: {
+              oneofKind: "iceCandidateEvent",
+              iceCandidateEvent:
+                IceCandidateEvent.ICE_CANDIDATE_GATHERING_COMPLETED,
+            },
+          },
+        });
+      }
       this.iceBatcher.addCandidate(candidate);
     };
 
@@ -339,11 +446,23 @@ export class Session {
     this.pc.ontrack = (ev) => {
       if (ev.track.kind === "audio") {
         this.recordEvent({
-          eventType: EventType.EVENT_MEDIA_REMOTE_AUDIO_TRACK_ADDED,
+          event: {
+            kind: {
+              oneofKind: "mediaHandlingEvent",
+              mediaHandlingEvent:
+                MediaHandlingEvent.MEDIA_REMOTE_AUDIO_TRACK_ADDED,
+            },
+          },
         });
       } else if (ev.track.kind === "video") {
         this.recordEvent({
-          eventType: EventType.EVENT_MEDIA_REMOTE_VIDEO_TRACK_ADDED,
+          event: {
+            kind: {
+              oneofKind: "mediaHandlingEvent",
+              mediaHandlingEvent:
+                MediaHandlingEvent.MEDIA_REMOTE_VIDEO_TRACK_ADDED,
+            },
+          },
         });
       }
 
@@ -366,7 +485,7 @@ export class Session {
     });
   }
 
-  public async collectMetrics(): Promise<AnalyticsEvent> {
+  public async collectMetrics(): Promise<AnalyticsReport> {
     const rawStats = await this.getStats();
     const quality = analytics.calculateQualityScore(rawStats);
     if (!!quality) {
@@ -390,7 +509,12 @@ export class Session {
   private async onnegotiationneeded() {
     try {
       this.recordEvent({
-        eventType: EventType.EVENT_SIGNALING_NEGOTIATION_NEEDED,
+        event: {
+          kind: {
+            oneofKind: "signalingEvent",
+            signalingEvent: SignalingEvent.SIGNALING_NEGOTIATION_NEEDED,
+          },
+        },
       });
       this.makingOffer = true;
       this.logger.debug("creating an offer");
@@ -502,7 +626,12 @@ export class Session {
       await this.pc.setLocalDescription();
     } catch (e) {
       this.recordEvent({
-        eventType: EventType.EVENT_ERROR_SDP_NEGOTIATION_FAILED,
+        event: {
+          kind: {
+            oneofKind: "errorEvent",
+            errorEvent: ErrorEvent.ERROR_SDP_NEGOTIATION_FAILED,
+          },
+        },
       });
       throw e;
     }
@@ -531,8 +660,14 @@ export class Session {
     this.logger.debug("triggered ICE restart");
     this.pc.restartIce();
     this.recordEvent({
-      eventType: EventType.EVENT_SIGNALING_ICE_RESTART_TRIGGERED,
+      event: {
+        kind: {
+          oneofKind: "signalingEvent",
+          signalingEvent: SignalingEvent.SIGNALING_ICE_RESTART_TRIGGERED,
+        },
+      },
     });
+
     this.generationCounter++;
     this.iceRestartCount++;
     this.lastIceRestart = performance.now();
@@ -542,9 +677,23 @@ export class Session {
     if (signal.data.oneofKind === "sdp") {
       const sdpKind = signal.data.sdp.kind;
       if (sdpKind === SdpKind.OFFER) {
-        this.recordEvent({ eventType: EventType.EVENT_SIGNALING_OFFER_SENT });
+        this.recordEvent({
+          event: {
+            kind: {
+              oneofKind: "signalingEvent",
+              signalingEvent: SignalingEvent.SIGNALING_OFFER_SENT,
+            },
+          },
+        });
       } else if (sdpKind === SdpKind.ANSWER) {
-        this.recordEvent({ eventType: EventType.EVENT_SIGNALING_ANSWER_SENT });
+        this.recordEvent({
+          event: {
+            kind: {
+              oneofKind: "signalingEvent",
+              signalingEvent: SignalingEvent.SIGNALING_ANSWER_SENT,
+            },
+          },
+        });
       }
     }
 
@@ -591,10 +740,22 @@ export class Session {
     const sdp = msg.sdp;
     this.logger.debug("received a SDP signal", { sdpKind: sdp.kind });
     if (sdp.kind === SdpKind.OFFER) {
-      this.recordEvent({ eventType: EventType.EVENT_SIGNALING_OFFER_RECEIVED });
+      this.recordEvent({
+        event: {
+          kind: {
+            oneofKind: "signalingEvent",
+            signalingEvent: SignalingEvent.SIGNALING_OFFER_RECEIVED,
+          },
+        },
+      });
     } else if (sdp.kind === SdpKind.ANSWER) {
       this.recordEvent({
-        eventType: EventType.EVENT_SIGNALING_ANSWER_RECEIVED,
+        event: {
+          kind: {
+            oneofKind: "signalingEvent",
+            signalingEvent: SignalingEvent.SIGNALING_ANSWER_RECEIVED,
+          },
+        },
       });
     }
 
