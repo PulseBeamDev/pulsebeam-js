@@ -11,6 +11,8 @@ import {
   TrackUnpublishedPayload,
 } from "./sfu";
 
+const MAX_DOWNSTREAMS = 9;
+
 export type ClientStatus =
   | "new"
   | "connecting"
@@ -40,16 +42,15 @@ export interface AppDataChannelConfig {
 }
 
 export class PulsebeamClient {
-  #pc: RTCPeerConnection | null = null;
-  #sfuRpcCh: RTCDataChannel | null = null;
-  #appDataCh: RTCDataChannel | null = null;
-
   readonly #sfuUrl: string;
-  readonly #maxDownstreams: number;
-  readonly #appDataConfig?: AppDataChannelConfig;
 
-  #videoSender: RTCRtpSender | null = null;
-  #audioSender: RTCRtpSender | null = null;
+  #pc: RTCPeerConnection;
+  #sfuRpcCh: RTCDataChannel;
+  #appDataCh: RTCDataChannel;
+
+  #videoSender: RTCRtpSender;
+  #audioSender: RTCRtpSender;
+
   #videoRecvMids: string[] = [];
   #audioRecvMids: string[] = [];
   #usedMids = new Set<string>();
@@ -75,139 +76,13 @@ export class PulsebeamClient {
     appDataConfig?: AppDataChannelConfig,
   ) {
     this.#sfuUrl = sfuUrl;
-    this.#maxDownstreams = maxDownstreams;
-    this.#appDataConfig = appDataConfig;
-  }
-
-  #terminateInstance(
-    finalStatus: "disconnected" | "failed",
-    message?: string,
-  ): void {
-    if (this.#instanceTerminated) {
-      return;
-    }
-    this.#instanceTerminated = true;
-    console.debug(
-      `PulsebeamClient: Terminating instance with status: ${finalStatus}, message: ${message || "N/A"
-      }`,
+    maxDownstreams = Math.max(
+      Math.min(maxDownstreams, MAX_DOWNSTREAMS),
+      0,
     );
-
-    this.localVideo.get()?.stop();
-    this.localAudio.get()?.stop();
-    this.localVideo.set(null);
-    this.localAudio.set(null);
-
-    Object.values(this.remoteTracks.get()).forEach((remoteTrackInfo) => {
-      remoteTrackInfo?.track?.stop();
-    });
-    this.remoteTracks.set({});
-    this.availableTracks.set({});
-
-    const cleanupChannel = (channel: RTCDataChannel | null): void => {
-      if (channel) {
-        channel.onopen = null;
-        channel.onmessage = null;
-        channel.onclose = null;
-        channel.onerror = null;
-        if (
-          channel.readyState === "open" || channel.readyState === "connecting"
-        ) {
-          try {
-            channel.close();
-          } catch (e) {
-            console.warn("Error closing data channel:", e);
-          }
-        }
-      }
-    };
-
-    cleanupChannel(this.#sfuRpcCh);
-    this.#sfuRpcCh = null;
-    cleanupChannel(this.#appDataCh);
-    this.#appDataCh = null;
-
-    if (this.#pc) {
-      this.#pc.onconnectionstatechange = null;
-      this.#pc.ontrack = null;
-      this.#pc.onicecandidate = null;
-
-      this.#pc.getSenders().forEach((sender) => {
-        sender.track?.stop();
-      });
-      // No need to explicitly stop receiver tracks here, as they are managed by remoteTracks cleanup
-
-      if (this.#pc.signalingState !== "closed") {
-        try {
-          this.#pc.close();
-        } catch (e) {
-          console.warn("Error closing PeerConnection:", e);
-        }
-      }
-      this.#pc = null;
-    }
-
-    this.#activeSubscriptions.clear();
-    this.#usedMids.clear();
-    this.#videoRecvMids = [];
-    this.#audioRecvMids = [];
-    this.#videoSender = null;
-    this.#audioSender = null;
-
-    if (message) {
-      this.errorMsg.set(message);
-    }
-    this.status.set(finalStatus);
-    console.warn(
-      "PulsebeamClient instance has been terminated and is no longer usable.",
-    );
-  }
-
-  #updateConnectedStatus(): void {
-    if (this.#instanceTerminated || this.status.get() !== "connecting") {
-      return;
-    }
-
-    const pcConnected = this.#pc?.connectionState === "connected";
-    const rpcReady = this.#sfuRpcCh?.readyState === "open";
-    const appDcReady = !this.#appDataConfig ||
-      this.#appDataCh?.readyState === "open";
-
-    if (pcConnected && rpcReady && appDcReady) {
-      this.status.set("connected");
-      this.errorMsg.set(null); // Clear any transient errors from connecting phase
-    }
-  }
-
-  async connect(room: string, participantId: string): Promise<void> {
-    if (this.#instanceTerminated) {
-      const errorMessage =
-        "This client instance has been terminated and cannot be reused.";
-      this.errorMsg.set(errorMessage);
-      console.error(errorMessage);
-      throw new Error(errorMessage); // More direct feedback to developer
-    }
-
-    if (this.status.get() !== "new") {
-      const errorMessage =
-        `Client can only connect when in "new" state. Current status: ${this.status.get()}. Create a new instance to reconnect.`;
-      // Only set error if it's not already a terminal state from a previous attempt on this (now invalid) instance
-      if (
-        this.status.get() !== "failed" && this.status.get() !== "disconnected"
-      ) {
-        this.errorMsg.set(errorMessage);
-      }
-      console.warn(errorMessage);
-      return; // Do not proceed
-    }
-
-    this.status.set("connecting");
-    this.errorMsg.set(null);
 
     this.#pc = new RTCPeerConnection();
-    const peerConnection = this.#pc; // Use a more descriptive local variable
-    peerConnection.onicecandidate = null; // No ICE trickling
-
-    peerConnection.onconnectionstatechange = () => {
+    this.#pc.onconnectionstatechange = () => {
       if (this.#instanceTerminated || !this.#pc) return; // Guard
       const connectionState = this.#pc.connectionState;
       console.debug(`PeerConnection state changed: ${connectionState}`);
@@ -225,7 +100,7 @@ export class PulsebeamClient {
       }
     };
 
-    peerConnection.ontrack = (event: RTCTrackEvent) => {
+    this.#pc.ontrack = (event: RTCTrackEvent) => {
       if (this.#instanceTerminated) return;
       const mid = event.transceiver?.mid;
       const track = event.track;
@@ -269,7 +144,7 @@ export class PulsebeamClient {
     };
 
     // SFU RPC DataChannel
-    this.#sfuRpcCh = peerConnection.createDataChannel("pulsebeam::rpc");
+    this.#sfuRpcCh = this.#pc.createDataChannel("pulsebeam::rpc");
     this.#sfuRpcCh.binaryType = "arraybuffer";
     this.#sfuRpcCh.onopen = () => {
       if (!this.#instanceTerminated) this.#updateConnectedStatus();
@@ -349,62 +224,123 @@ export class PulsebeamClient {
     this.#sfuRpcCh.onclose = createFatalRpcHandler("closed");
     this.#sfuRpcCh.onerror = createFatalRpcHandler("error");
 
-    // Optional Application DataChannel
-    if (this.#appDataConfig) {
-      this.#appDataCh = peerConnection.createDataChannel(
-        "app-data",
-        this.#appDataConfig.options,
-      );
-      this.#appDataCh.onmessage = (event: MessageEvent) => {
-        if (this.#instanceTerminated || !this.#appDataConfig) return;
-        if (typeof event.data === "string") {
-          this.#appDataConfig.onMessage(event.data);
-        } else {
-          console.warn(
-            "Received non-string message on app data channel, ignoring.",
-          );
-        }
+    if (!appDataConfig) {
+      appDataConfig = {
+        onMessage: () => { },
       };
-      const appDcOpenHandler = (event: Event) => {
-        if (!this.#instanceTerminated) {
-          this.#appDataConfig?.onOpen?.(event);
-          this.#updateConnectedStatus();
-        }
-      };
-      this.#appDataCh.onopen = appDcOpenHandler;
-
-      const createFatalAppDcHandler = (type: string) => (event?: Event) => { // onerror might not pass event
-        if (!this.#instanceTerminated) {
-          if (type === "close" && this.#appDataConfig?.onClose && event) {
-            this.#appDataConfig.onClose(event);
-          }
-          this.#terminateInstance("failed", `Application DataChannel ${type}`);
-        }
-      };
-      this.#appDataCh.onclose = createFatalAppDcHandler("closed");
-      this.#appDataCh.onerror = createFatalAppDcHandler("error");
     }
+
+    this.#appDataCh = this.#pc.createDataChannel(
+      "app::data",
+      appDataConfig.options,
+    );
+    this.#appDataCh.onopen = appDataConfig.onOpen || null;
+    this.#appDataCh.onclose = appDataConfig.onClose || null;
 
     // Transceivers
     this.#videoSender =
-      peerConnection.addTransceiver("video", { direction: "sendonly" }).sender;
+      this.#pc.addTransceiver("video", { direction: "sendonly" }).sender;
     this.#audioSender =
-      peerConnection.addTransceiver("audio", { direction: "sendonly" }).sender;
-    for (let i = 0; i < this.#maxDownstreams; i++) {
-      const videoTransceiver = peerConnection.addTransceiver("video", {
+      this.#pc.addTransceiver("audio", { direction: "sendonly" }).sender;
+    for (let i = 0; i < maxDownstreams; i++) {
+      const videoTransceiver = this.#pc.addTransceiver("video", {
         direction: "recvonly",
       });
       if (videoTransceiver.mid) this.#videoRecvMids.push(videoTransceiver.mid);
-      const audioTransceiver = peerConnection.addTransceiver("audio", {
+      const audioTransceiver = this.#pc.addTransceiver("audio", {
         direction: "recvonly",
       });
       if (audioTransceiver.mid) this.#audioRecvMids.push(audioTransceiver.mid);
     }
+  }
+
+  #terminateInstance(
+    finalStatus: "disconnected" | "failed",
+    message?: string,
+  ): void {
+    if (this.#instanceTerminated) {
+      return;
+    }
+    this.#instanceTerminated = true;
+    console.debug(
+      `PulsebeamClient: Terminating instance with status: ${finalStatus}, message: ${message || "N/A"
+      }`,
+    );
+
+    this.localVideo.get()?.stop();
+    this.localAudio.get()?.stop();
+    this.localVideo.set(null);
+    this.localAudio.set(null);
+
+    Object.values(this.remoteTracks.get()).forEach((remoteTrackInfo) => {
+      remoteTrackInfo?.track?.stop();
+    });
+    this.remoteTracks.set({});
+    this.availableTracks.set({});
+
+    this.#pc.getSenders().forEach((sender) => {
+      sender.track?.stop();
+    });
+    // No need to explicitly stop receiver tracks here, as they are managed by remoteTracks cleanup
+    this.#pc.close();
+
+    this.#activeSubscriptions.clear();
+    this.#usedMids.clear();
+    this.#videoRecvMids = [];
+    this.#audioRecvMids = [];
+
+    if (message) {
+      this.errorMsg.set(message);
+    }
+    this.status.set(finalStatus);
+    console.warn(
+      "PulsebeamClient instance has been terminated and is no longer usable.",
+    );
+  }
+
+  #updateConnectedStatus(): void {
+    if (this.#instanceTerminated || this.status.get() !== "connecting") {
+      return;
+    }
+
+    const pcConnected = this.#pc?.connectionState === "connected";
+    const rpcReady = this.#sfuRpcCh?.readyState === "open";
+
+    if (pcConnected && rpcReady) {
+      this.status.set("connected");
+      this.errorMsg.set(null); // Clear any transient errors from connecting phase
+    }
+  }
+
+  async connect(room: string, participantId: string): Promise<void> {
+    if (this.#instanceTerminated) {
+      const errorMessage =
+        "This client instance has been terminated and cannot be reused.";
+      this.errorMsg.set(errorMessage);
+      console.error(errorMessage);
+      throw new Error(errorMessage); // More direct feedback to developer
+    }
+
+    if (this.status.get() !== "new") {
+      const errorMessage =
+        `Client can only connect when in "new" state. Current status: ${this.status.get()}. Create a new instance to reconnect.`;
+      // Only set error if it's not already a terminal state from a previous attempt on this (now invalid) instance
+      if (
+        this.status.get() !== "failed" && this.status.get() !== "disconnected"
+      ) {
+        this.errorMsg.set(errorMessage);
+      }
+      console.warn(errorMessage);
+      return; // Do not proceed
+    }
+
+    this.status.set("connecting");
+    this.errorMsg.set(null);
 
     // Signaling
     try {
-      const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
+      const offer = await this.#pc.createOffer();
+      await this.#pc.setLocalDescription(offer);
       const response = await fetch(
         `${this.#sfuUrl}?room=${room}&participant=${participantId}`,
         {
@@ -419,7 +355,7 @@ export class PulsebeamClient {
             .text()}`,
         );
       }
-      await peerConnection.setRemoteDescription({
+      await this.#pc.setRemoteDescription({
         type: "answer",
         sdp: await response.text(),
       });
