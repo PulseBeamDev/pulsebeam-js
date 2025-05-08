@@ -1,9 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
-  import {
-    PulsebeamClient,
-    type ClientStatus, // Only import what's strictly needed for this minimal UI
-  } from "./lib/lib";
+  import { PulsebeamClient, type ClientStatus } from "./lib";
 
   let client: PulsebeamClient;
   let clientStatus: ClientStatus = "new";
@@ -14,7 +11,7 @@
   let localVideoEl: HTMLVideoElement;
   let remoteVideoEl: HTMLVideoElement;
 
-  const sfuUrl = "ws://localhost:8080/sfu"; // Replace
+  const sfuUrl = "http://localhost:3000";
   const roomId = "tiny-room";
   const participantId = `user-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -109,6 +106,7 @@
     </div>
   {/if}
 
+  <h1>{participantId}</h1>
   <div style="display: flex; gap: 10px;">
     <div>
       <p>Local Video</p>
@@ -131,24 +129,9 @@
         width="160"
         height="120"
         style="border:1px solid #ccc; background:#333;"
-      ></video>
+      >
+        <track kind="captions" />
+      </video>
     </div>
   </div>
 </main>
-
-<style>
-  main {
-    font-family: Arial, sans-serif;
-    padding: 15px;
-    max-width: 500px;
-    margin: auto;
-  }
-  button {
-    margin-right: 5px;
-    padding: 5px 10px;
-  }
-  p {
-    margin-top: 0;
-    margin-bottom: 5px;
-  }
-</style>
