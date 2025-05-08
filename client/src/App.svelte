@@ -37,6 +37,7 @@
           (rt) => rt?.kind === "video" && rt.track,
         );
         remoteVidTrack = firstRemote?.track || null;
+        console.log(remoteVidTrack);
         if (remoteVideoEl)
           remoteVideoEl.srcObject = remoteVidTrack
             ? new MediaStream([remoteVidTrack])

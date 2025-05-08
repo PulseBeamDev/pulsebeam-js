@@ -140,6 +140,24 @@ export class PulsebeamClient {
           `Received track on MID ${mid} (kind: ${track.kind}) but no matching subscription found. Stopping track.`,
         );
         track.stop();
+        // TODO: this is a hack to get auto subscribed
+        // this.remoteTracks.setKey(track.id, {
+        //   slotId: mid,
+        //   remoteTrackId: track.id,
+        //   kind: track.kind as "video" | "audio",
+        //   track: track,
+        //   error: undefined,
+        // });
+        // track.onended = () => {
+        //   if (this.#instanceTerminated) return;
+        //   const currentTrackInfo = this.remoteTracks.get()[track.id];
+        //   if (currentTrackInfo) { // Ensure it hasn't been removed by unsubscribe
+        //     this.remoteTracks.setKey(track.id, {
+        //       ...currentTrackInfo,
+        //       track: null,
+        //     });
+        //   }
+        // };
       }
     };
 
