@@ -1,5 +1,6 @@
 {
   "workspaces": [
+    "client",
     "peer",
     "demo-react",
     "demo-cdn",
