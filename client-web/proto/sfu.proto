@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package sfu;
+
+// Represents the kind of media track.
+enum TrackKind {
+  TRACK_KIND_UNSPECIFIED = 0;
+  VIDEO = 1;
+  AUDIO = 2;
+}
+
+// --- Client to Server Messages ---
+
+message ClientSubscribePayload {
+  string mid = 1;                 // The client's MID (transceiver slot) to use for this track.
+  string remote_track_id = 2;     // The application-level ID of the remote track to subscribe to.
+}
+
+message ClientUnsubscribePayload {
+  string mid = 1;         // The client's MID (transceiver slot) to unsubscribe from.
+}
+
+// ClientMessage encapsulates all possible messages from client to SFU.
+message ClientMessage {
+  oneof payload {
+    ClientSubscribePayload subscribe = 1;
+    ClientUnsubscribePayload unsubscribe = 2;
+  }
+}
+
+
+// --- Server to Client Messages ---
+
+message TrackInfo {
+  string track_id = 1; // The ID of the newly available remote track.
+  TrackKind kind = 2;         // The kind of track.
+  string participant_id = 3;  // The ID of the participant who published this track.
+  // map<string, string> metadata = 4; // Optional: any other app-specific metadata about the track.
+}
+
+message TrackSwitchInfo {
+  string mid = 2;             // The client's MID that the SFU will use (confirming client's request).
+  optional TrackInfo remote_track = 3;
+}
+
+message TrackPublishedPayload {
+  TrackInfo remote_track = 1;
+}
+
+message TrackUnpublishedPayload {
+  string remote_track_id = 1; // The ID of the remote track that is no longer available.
+}
+
+message TrackSwitchedPayload {
+  repeated TrackSwitchInfo switches = 1;
+}
+
+message ErrorPayload {
+  string description = 1;         // General error message from the SFU.
+}
+
+// ServerMessage encapsulates all possible messages from SFU to client.
+message ServerMessage {
+  oneof payload {
+    ErrorPayload error = 1;                            // General error from SFU.
+    TrackPublishedPayload track_published = 2;         // SFU informs client a new remote track is available.
+    TrackUnpublishedPayload track_unpublished = 3;     // SFU informs client a remote track is no longer available.
+    TrackSwitchedPayload track_switched = 4;           // SFU confirms track switching for a mid
+  }
+}

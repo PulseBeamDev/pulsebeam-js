@@ -1,0 +1,37 @@
+{
+  "name": "client-web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/pulsebeam.umd.cjs",
+  "module": "./dist/pulsebeam.es.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/pulsebeam.es.js"
+      },
+      "default": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/pulsebeam.umd.js"
+      }
+    }
+  },
+  "scripts": {
+    "proto": "protoc --ts_out src/lib --proto_path proto proto/sfu.proto",
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@protobuf-ts/runtime": "^2.10.0",
+    "lit": "^3.3.0"
+  },
+  "devDependencies": {
+    "@protobuf-ts/plugin": "^2.10.0",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.5",
+    "vite-plugin-dts": "^4.5.4"
+  }
+}
