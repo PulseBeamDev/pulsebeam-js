@@ -1,13 +1,27 @@
-import { ClientMessage, ServerMessage } from "./sfu.ts";
+import { ClientMessage, ServerMessage, TrackInfo } from "./sfu.ts";
 
 const MAX_DOWNSTREAMS = 9;
 
 type MID = string;
 
+// Internal Ids
+type ParticipantId = string;
+type TrackId = string;
+
+interface Slot {
+  transceiver: RTCRtpTransceiver;
+  track: MediaStreamTrack;
+  info?: TrackInfo;
+}
+
+interface ParticipantSlot {
+  video?: MID;
+  audio?: MID;
+}
+
 export interface ClientCoreConfig {
   sfuUrl: string;
   maxDownstreams: number;
-  onStateChanged?: (state: RTCPeerConnectionState) => void;
 }
 
 export class ClientCore {
@@ -18,8 +32,12 @@ export class ClientCore {
   #audioSender: RTCRtpTransceiver;
   #closed: boolean;
 
-  #videoSlots: Record<MID, RTCRtpTransceiver>;
-  #audioSlots: Record<MID, RTCRtpTransceiver>;
+  #slots: Record<MID, Slot>;
+  #participantSlots: ParticipantSlot[];
+  #availableTracks: Record<ParticipantId, Record<TrackId, TrackInfo>>;
+
+  onStateChanged = (state: RTCPeerConnectionState) => { };
+  onTrack = (track: RTCPeerConnection) => { };
 
   constructor(cfg: ClientCoreConfig) {
     this.#sfuUrl = cfg.sfuUrl;
@@ -27,17 +45,17 @@ export class ClientCore {
       Math.min(cfg.maxDownstreams, MAX_DOWNSTREAMS),
       0,
     );
-    const onStateChanged = cfg.onStateChanged || (() => {});
     this.#closed = false;
-    this.#videoSlots = {};
-    this.#audioSlots = {};
+    this.#slots = {};
+    this.#availableTracks = {};
+    this.#participantSlots = [];
 
     this.#pc = new RTCPeerConnection();
     this.#pc.onconnectionstatechange = () => {
       const connectionState = this.#pc.connectionState;
       console.debug(`PeerConnection state changed: ${connectionState}`);
       if (connectionState === "connected") {
-        onStateChanged(connectionState);
+        this.onStateChanged(connectionState);
       } else if (
         connectionState === "failed" || connectionState === "closed" ||
         connectionState === "disconnected"
@@ -51,12 +69,43 @@ export class ClientCore {
     this.#pc.ontrack = (event: RTCTrackEvent) => {
       const mid = event.transceiver?.mid;
       const track = event.track;
+      const transceiver = event.transceiver;
       if (!mid || !track) {
-        console.warn("Received track event without MID or track object.");
+        this.#close("Received track event without MID or track object.");
         return;
       }
 
-      // TODO: implement this
+      console.log(event);
+      this.#slots[mid] = {
+        track,
+        transceiver,
+      };
+
+      if (track.kind === "video") {
+        for (const slot of this.#participantSlots) {
+          if (!slot.video) {
+            slot.video = mid;
+            return;
+          }
+        }
+
+        this.#participantSlots.push({
+          video: mid,
+        });
+      } else if (track.kind === "audio") {
+        for (const slot of this.#participantSlots) {
+          if (!slot.audio) {
+            slot.audio = mid;
+            return;
+          }
+        }
+
+        this.#participantSlots.push({
+          audio: mid,
+        });
+      } else {
+        console.warn("unknown track kind, ignoring:", track.kind);
+      }
     };
 
     // SFU RPC DataChannel
@@ -72,6 +121,15 @@ export class ClientCore {
         if (!payloadKind) {
           console.warn("Received SFU message with undefined payload kind.");
           return;
+        }
+
+        switch (payloadKind) {
+          case "trackPublished":
+            break;
+          case "trackUnpublished":
+            break;
+          case "trackSwitched":
+            break;
         }
 
         // TODO: implement this
@@ -93,25 +151,16 @@ export class ClientCore {
     this.#audioSender = this.#pc.addTransceiver("audio", {
       direction: "sendonly",
     });
+
     for (let i = 0; i < maxDownstreams; i++) {
-      const videoTransceiver = this.#pc.addTransceiver("video", {
-        direction: "recvonly",
-      });
-      if (!videoTransceiver.mid) {
-        this.#close("missing mid from video recvonly");
-        return;
-      }
-
-      this.#videoSlots[videoTransceiver.mid] = videoTransceiver;
-      const audioTransceiver = this.#pc.addTransceiver("audio", {
+      // ontrack will be fired with acknowledgement from the server
+      this.#pc.addTransceiver("video", {
         direction: "recvonly",
       });
 
-      if (!audioTransceiver.mid) {
-        this.#close("missing mid from audio recvonly");
-        return;
-      }
-      this.#audioSlots[audioTransceiver.mid] = audioTransceiver;
+      this.#pc.addTransceiver("audio", {
+        direction: "recvonly",
+      });
     }
   }
 
@@ -186,5 +235,10 @@ export class ClientCore {
 
     const newAudioTrack = audioTracks.at(0) || null;
     this.#audioSender.sender.replaceTrack(newAudioTrack);
+  }
+
+  unpublish() {
+    this.#videoSender.sender.replaceTrack(null);
+    this.#audioSender.sender.replaceTrack(null);
   }
 }

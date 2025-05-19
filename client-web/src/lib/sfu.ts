@@ -96,18 +96,18 @@ export interface TrackSwitchInfo {
  */
 export interface TrackPublishedPayload {
     /**
-     * @generated from protobuf field: sfu.TrackInfo remote_track = 1;
+     * @generated from protobuf field: repeated sfu.TrackInfo remote_tracks = 1;
      */
-    remoteTrack?: TrackInfo;
+    remoteTracks: TrackInfo[];
 }
 /**
  * @generated from protobuf message sfu.TrackUnpublishedPayload
  */
 export interface TrackUnpublishedPayload {
     /**
-     * @generated from protobuf field: string remote_track_id = 1;
+     * @generated from protobuf field: repeated string remote_track_ids = 1;
      */
-    remoteTrackId: string; // The ID of the remote track that is no longer available.
+    remoteTrackIds: string[]; // The ID of the remote track that is no longer available.
 }
 /**
  * @generated from protobuf message sfu.TrackSwitchedPayload
@@ -466,11 +466,12 @@ export const TrackSwitchInfo = new TrackSwitchInfo$Type();
 class TrackPublishedPayload$Type extends MessageType<TrackPublishedPayload> {
     constructor() {
         super("sfu.TrackPublishedPayload", [
-            { no: 1, name: "remote_track", kind: "message", T: () => TrackInfo }
+            { no: 1, name: "remote_tracks", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TrackInfo }
         ]);
     }
     create(value?: PartialMessage<TrackPublishedPayload>): TrackPublishedPayload {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.remoteTracks = [];
         if (value !== undefined)
             reflectionMergePartial<TrackPublishedPayload>(this, message, value);
         return message;
@@ -480,8 +481,8 @@ class TrackPublishedPayload$Type extends MessageType<TrackPublishedPayload> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* sfu.TrackInfo remote_track */ 1:
-                    message.remoteTrack = TrackInfo.internalBinaryRead(reader, reader.uint32(), options, message.remoteTrack);
+                case /* repeated sfu.TrackInfo remote_tracks */ 1:
+                    message.remoteTracks.push(TrackInfo.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -495,9 +496,9 @@ class TrackPublishedPayload$Type extends MessageType<TrackPublishedPayload> {
         return message;
     }
     internalBinaryWrite(message: TrackPublishedPayload, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* sfu.TrackInfo remote_track = 1; */
-        if (message.remoteTrack)
-            TrackInfo.internalBinaryWrite(message.remoteTrack, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* repeated sfu.TrackInfo remote_tracks = 1; */
+        for (let i = 0; i < message.remoteTracks.length; i++)
+            TrackInfo.internalBinaryWrite(message.remoteTracks[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -512,12 +513,12 @@ export const TrackPublishedPayload = new TrackPublishedPayload$Type();
 class TrackUnpublishedPayload$Type extends MessageType<TrackUnpublishedPayload> {
     constructor() {
         super("sfu.TrackUnpublishedPayload", [
-            { no: 1, name: "remote_track_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "remote_track_ids", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<TrackUnpublishedPayload>): TrackUnpublishedPayload {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.remoteTrackId = "";
+        message.remoteTrackIds = [];
         if (value !== undefined)
             reflectionMergePartial<TrackUnpublishedPayload>(this, message, value);
         return message;
@@ -527,8 +528,8 @@ class TrackUnpublishedPayload$Type extends MessageType<TrackUnpublishedPayload> 
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string remote_track_id */ 1:
-                    message.remoteTrackId = reader.string();
+                case /* repeated string remote_track_ids */ 1:
+                    message.remoteTrackIds.push(reader.string());
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -542,9 +543,9 @@ class TrackUnpublishedPayload$Type extends MessageType<TrackUnpublishedPayload> 
         return message;
     }
     internalBinaryWrite(message: TrackUnpublishedPayload, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string remote_track_id = 1; */
-        if (message.remoteTrackId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.remoteTrackId);
+        /* repeated string remote_track_ids = 1; */
+        for (let i = 0; i < message.remoteTrackIds.length; i++)
+            writer.tag(1, WireType.LengthDelimited).string(message.remoteTrackIds[i]);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
