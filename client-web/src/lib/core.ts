@@ -1,4 +1,11 @@
-import { ClientMessage, MediaConfig, ServerMessage } from "./sfu.ts";
+import {
+  ClientMessage,
+  MediaConfig,
+  ParticipantStream,
+  ParticipantSubscription,
+  ServerMessage,
+  VideoSubscription,
+} from "./sfu.ts";
 
 const MAX_DOWNSTREAMS = 16;
 const LAST_N_AUDIO = 3;
@@ -13,7 +20,8 @@ interface VideoSlot {
 
 interface ParticipantMeta {
   externalParticipantId: string;
-  media?: MediaConfig;
+  participantId: string;
+  media: MediaConfig;
 }
 
 export interface ClientCoreConfig {
@@ -28,6 +36,7 @@ export class ClientCore {
   #videoSender: RTCRtpTransceiver;
   #audioSender: RTCRtpTransceiver;
   #closed: boolean;
+  #sequence: number;
 
   #videoSlots: VideoSlot[];
   #audioSlots: RTCRtpTransceiver[];
@@ -47,6 +56,7 @@ export class ClientCore {
     this.#videoSlots = [];
     this.#audioSlots = [];
     this.#participants = {};
+    this.#sequence = 0;
 
     this.#pc = new RTCPeerConnection();
     this.#pc.onconnectionstatechange = () => {
@@ -81,27 +91,13 @@ export class ClientCore {
 
         switch (msgKind) {
           case "roomSnapshot":
-            for (const participant of msg.roomSnapshot.participants) {
-              this.#participants[participant.participantId] = {
-                externalParticipantId: participant.externalParticipantId,
-                media: participant.media,
-              };
-            }
+            this.#handleParticipantUpdates(msg.roomSnapshot.participants);
             break;
           case "streamUpdate":
             if (msg.streamUpdate.participantStream) {
-              const stream = msg.streamUpdate.participantStream;
-              if (stream.participantId in this.#participants) {
-                const participant = this.#participants[stream.participantId];
-                participant.media = stream.media;
-                participant.externalParticipantId =
-                  stream.externalParticipantId;
-              } else {
-                this.#participants[stream.participantId] = {
-                  externalParticipantId: stream.externalParticipantId,
-                  media: stream.media,
-                };
-              }
+              this.#handleParticipantUpdates([
+                msg.streamUpdate.participantStream,
+              ]);
             }
             break;
         }
@@ -135,6 +131,59 @@ export class ClientCore {
       this.#pc.addTransceiver("video", {
         direction: "recvonly",
       });
+    }
+  }
+
+  #sendRpc(msg: ClientMessage["msg"]) {
+    this.#rpc.send(ClientMessage.toBinary({
+      sequence: this.#sequence,
+      msg,
+    }));
+    this.#sequence += 1;
+  }
+
+  #handleParticipantUpdates(streams: ParticipantStream[]) {
+    const newParticipants: ParticipantMeta[] = [];
+
+    for (const stream of streams) {
+      if (!stream.media) {
+        // participant has left
+        delete this.#participants[stream.participantId];
+        continue;
+      }
+
+      if (stream.participantId in this.#participants) {
+        const participant = this.#participants[stream.participantId];
+        participant.media = stream.media;
+        participant.externalParticipantId = stream.externalParticipantId;
+        participant.participantId = stream.participantId;
+      } else {
+        const meta: ParticipantMeta = {
+          externalParticipantId: stream.externalParticipantId,
+          participantId: stream.participantId,
+          media: stream.media,
+        };
+        this.#participants[stream.participantId] = meta;
+        newParticipants.push(meta);
+      }
+    }
+
+    // TODO: should we bin pack the old participants first?
+    for (const slot of this.#videoSlots) {
+      if (slot.participantId) {
+        if (slot.participantId in this.#participants) {
+          continue;
+        }
+
+        slot.participantId = undefined;
+      }
+
+      const participant = newParticipants.pop();
+      if (!participant) {
+        continue;
+      }
+
+      slot.participantId = participant.participantId;
     }
   }
 
