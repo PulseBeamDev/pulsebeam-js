@@ -1,22 +1,19 @@
-import { ClientMessage, ServerMessage, TrackInfo } from "./sfu.ts";
+import { ClientMessage, MediaConfig, ServerMessage } from "./sfu.ts";
 
-const MAX_DOWNSTREAMS = 9;
-
-type MID = string;
+const MAX_DOWNSTREAMS = 16;
+const LAST_N_AUDIO = 3;
 
 // Internal Ids
 type ParticipantId = string;
-type TrackId = string;
 
-interface Slot {
-  transceiver: RTCRtpTransceiver;
-  track: MediaStreamTrack;
-  info?: TrackInfo;
+interface VideoSlot {
+  trans: RTCRtpTransceiver;
+  participantId?: ParticipantId;
 }
 
-interface ParticipantSlot {
-  video?: MID;
-  audio?: MID;
+interface ParticipantMeta {
+  externalParticipantId: string;
+  media?: MediaConfig;
 }
 
 export interface ClientCoreConfig {
@@ -32,12 +29,13 @@ export class ClientCore {
   #audioSender: RTCRtpTransceiver;
   #closed: boolean;
 
-  #slots: Record<MID, Slot>;
-  #participantSlots: ParticipantSlot[];
-  #availableTracks: Record<ParticipantId, Record<TrackId, TrackInfo>>;
+  #videoSlots: VideoSlot[];
+  #audioSlots: RTCRtpTransceiver[];
 
-  onStateChanged = (state: RTCPeerConnectionState) => { };
-  onTrack = (track: RTCPeerConnection) => { };
+  #participants: Record<ParticipantId, ParticipantMeta>;
+
+  onStateChanged = (state: RTCPeerConnectionState) => {};
+  onTrack = (track: RTCPeerConnection) => {};
 
   constructor(cfg: ClientCoreConfig) {
     this.#sfuUrl = cfg.sfuUrl;
@@ -46,9 +44,9 @@ export class ClientCore {
       0,
     );
     this.#closed = false;
-    this.#slots = {};
-    this.#availableTracks = {};
-    this.#participantSlots = [];
+    this.#videoSlots = [];
+    this.#audioSlots = [];
+    this.#participants = {};
 
     this.#pc = new RTCPeerConnection();
     this.#pc.onconnectionstatechange = () => {
@@ -66,48 +64,6 @@ export class ClientCore {
       }
     };
 
-    this.#pc.ontrack = (event: RTCTrackEvent) => {
-      const mid = event.transceiver?.mid;
-      const track = event.track;
-      const transceiver = event.transceiver;
-      if (!mid || !track) {
-        this.#close("Received track event without MID or track object.");
-        return;
-      }
-
-      console.log(event);
-      this.#slots[mid] = {
-        track,
-        transceiver,
-      };
-
-      if (track.kind === "video") {
-        for (const slot of this.#participantSlots) {
-          if (!slot.video) {
-            slot.video = mid;
-            return;
-          }
-        }
-
-        this.#participantSlots.push({
-          video: mid,
-        });
-      } else if (track.kind === "audio") {
-        for (const slot of this.#participantSlots) {
-          if (!slot.audio) {
-            slot.audio = mid;
-            return;
-          }
-        }
-
-        this.#participantSlots.push({
-          audio: mid,
-        });
-      } else {
-        console.warn("unknown track kind, ignoring:", track.kind);
-      }
-    };
-
     // SFU RPC DataChannel
     this.#rpc = this.#pc.createDataChannel("pulsebeam::rpc");
     this.#rpc.binaryType = "arraybuffer";
@@ -116,22 +72,39 @@ export class ClientCore {
         const serverMessage = ServerMessage.fromBinary(
           new Uint8Array(event.data as ArrayBuffer),
         );
-        const payload = serverMessage.payload;
-        const payloadKind = payload.oneofKind;
-        if (!payloadKind) {
+        const msg = serverMessage.msg;
+        const msgKind = msg.oneofKind;
+        if (!msgKind) {
           console.warn("Received SFU message with undefined payload kind.");
           return;
         }
 
-        switch (payloadKind) {
-          case "trackPublished":
+        switch (msgKind) {
+          case "roomSnapshot":
+            for (const participant of msg.roomSnapshot.participants) {
+              this.#participants[participant.participantId] = {
+                externalParticipantId: participant.externalParticipantId,
+                media: participant.media,
+              };
+            }
             break;
-          case "trackUnpublished":
-            break;
-          case "trackSwitched":
+          case "streamUpdate":
+            if (msg.streamUpdate.participantStream) {
+              const stream = msg.streamUpdate.participantStream;
+              if (stream.participantId in this.#participants) {
+                const participant = this.#participants[stream.participantId];
+                participant.media = stream.media;
+                participant.externalParticipantId =
+                  stream.externalParticipantId;
+              } else {
+                this.#participants[stream.participantId] = {
+                  externalParticipantId: stream.externalParticipantId,
+                  media: stream.media,
+                };
+              }
+            }
             break;
         }
-
         // TODO: implement this
       } catch (e: any) {
         this.#close(`Error processing SFU RPC message: ${e}`);
@@ -152,13 +125,14 @@ export class ClientCore {
       direction: "sendonly",
     });
 
-    for (let i = 0; i < maxDownstreams; i++) {
-      // ontrack will be fired with acknowledgement from the server
-      this.#pc.addTransceiver("video", {
+    for (let i = 0; i < LAST_N_AUDIO; i++) {
+      this.#pc.addTransceiver("audio", {
         direction: "recvonly",
       });
+    }
 
-      this.#pc.addTransceiver("audio", {
+    for (let i = 0; i < maxDownstreams; i++) {
+      this.#pc.addTransceiver("video", {
         direction: "recvonly",
       });
     }
@@ -178,6 +152,13 @@ export class ClientCore {
     if (this.#closed) {
       const errorMessage =
         "This client instance has been terminated and cannot be reused.";
+      console.error(errorMessage);
+      throw new Error(errorMessage); // More direct feedback to developer
+    }
+
+    if (this.#pc.connectionState != "new") {
+      const errorMessage =
+        "This client instance has been initiated and cannot be reused.";
       console.error(errorMessage);
       throw new Error(errorMessage); // More direct feedback to developer
     }
@@ -203,7 +184,25 @@ export class ClientCore {
         type: "answer",
         sdp: await response.text(),
       });
-      // Status transitions to "connected" will be handled by onconnectionstatechange and data channel onopen events.
+
+      // https://blog.mozilla.org/webrtc/rtcrtptransceiver-explored/
+      // transceivers order is stable, and mid is only defined after setLocalDescription
+      const transceivers = this.#pc.getTransceivers();
+      for (const trans of transceivers) {
+        if (trans.direction === "sendonly") {
+          continue;
+        }
+
+        if (trans.receiver.track.kind === "audio") {
+          this.#audioSlots.push(trans);
+        } else if (trans.receiver.track.kind === "video") {
+          this.#videoSlots.push({
+            trans,
+          });
+        }
+      }
+
+      // Status transitions to "connected" will be handled by onconnectionstatechange
     } catch (error: any) {
       this.#close(
         error.message || "Signaling process failed unexpectedly.",

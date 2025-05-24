@@ -1,70 +1,129 @@
 syntax = "proto3";
-
 package sfu;
 
-// Represents the kind of media track.
-enum TrackKind {
-  TRACK_KIND_UNSPECIFIED = 0;
-  VIDEO = 1;
-  AUDIO = 2;
+// -------------------------------------
+// Common Types
+// -------------------------------------
+
+// Media configuration for a participant's stream
+message MediaConfig {
+  bool audio = 1; // True if audio is active
+  bool video = 2; // True if video is active
 }
 
-// --- Client to Server Messages ---
-
-message ClientSubscribePayload {
-  string mid = 1;                 // The client's MID (transceiver slot) to use for this track.
-  string remote_track_id = 2;     // The application-level ID of the remote track to subscribe to.
+// Video quality preferences
+message VideoSettings {
+  int32 max_height = 1; // Maximum height for the video stream
 }
 
-message ClientUnsubscribePayload {
-  string mid = 1;         // The client's MID (transceiver slot) to unsubscribe from.
+// State of a participant's stream
+message ParticipantStream {
+  string participant_id = 1;          // Unique SFU-internal ID
+  string external_participant_id = 2; // Developer-provided user ID
+  optional MediaConfig media = 3;     // Media state (if unset, participant has left)
 }
 
-// ClientMessage encapsulates all possible messages from client to SFU.
+// -------------------------------------
+// Client → Server
+// -------------------------------------
+
+// Client message wrapper with sequence number for reliability
 message ClientMessage {
-  oneof payload {
-    ClientSubscribePayload subscribe = 1;
-    ClientUnsubscribePayload unsubscribe = 2;
+  uint32 sequence = 1; // Sequence number for message ordering/acknowledgment
+  oneof msg {
+    PublishIntent publish_intent = 2;
+    VideoSubscription video_subscription = 3;
   }
 }
 
-
-// --- Server to Client Messages ---
-
-message TrackInfo {
-  string track_id = 1; // The ID of the newly available remote track.
-  TrackKind kind = 2;         // The kind of track.
-  string participant_id = 3;  // The ID of the participant who published this track.
-  // map<string, string> metadata = 4; // Optional: any other app-specific metadata about the track.
+// Intent to publish media
+message PublishIntent {
+  MediaConfig media = 1; // Media to publish (audio/video)
 }
 
-message TrackSwitchInfo {
-  string mid = 2;             // The client's MID that the SFU will use (confirming client's request).
-  optional TrackInfo remote_track = 3;
+// Subscriptions for receiving media from specific participants
+message VideoSubscription {
+  repeated ParticipantSubscription subscriptions = 1;
 }
 
-message TrackPublishedPayload {
-  repeated TrackInfo remote_tracks = 1;
+// Subscription for a specific participant's video
+message ParticipantSubscription {
+  string participant_id = 1;
+  VideoSettings video_settings = 2;
 }
 
-message TrackUnpublishedPayload {
-  repeated string remote_track_ids = 1; // The ID of the remote track that is no longer available.
-}
+// -------------------------------------
+// Server → Client
+// -------------------------------------
 
-message TrackSwitchedPayload {
-  repeated TrackSwitchInfo switches = 1;
-}
-
-message ErrorPayload {
-  string description = 1;         // General error message from the SFU.
-}
-
-// ServerMessage encapsulates all possible messages from SFU to client.
+// Server message wrapper
 message ServerMessage {
-  oneof payload {
-    ErrorPayload error = 1;                            // General error from SFU.
-    TrackPublishedPayload track_published = 2;         // SFU informs client a new remote track is available.
-    TrackUnpublishedPayload track_unpublished = 3;     // SFU informs client a remote track is no longer available.
-    TrackSwitchedPayload track_switched = 4;           // SFU confirms track switching for a mid
+  oneof msg {
+    RoomSnapshot room_snapshot = 1;
+    StreamStateUpdate stream_update = 2;
+    ActiveSpeakersUpdate active_speakers = 3;
+    MessageAck message_ack = 4;
+    ConnectionQuality connection_quality = 5;
+    ErrorNotification error = 6;
   }
 }
+
+// Full snapshot of the room state
+message RoomSnapshot {
+  repeated ParticipantStream participants = 1;
+  string room_id = 2; // Room identifier for verification
+}
+
+// Incremental update of a participant's stream
+message StreamStateUpdate {
+  ParticipantStream participant_stream = 1;
+}
+
+// Current active speakers in the room
+message ActiveSpeakersUpdate {
+  repeated string participant_ids = 1; // Ordered by speaking activity (most active first)
+  uint64 timestamp = 2; // Server timestamp for this update
+}
+
+// Connection quality metrics for adaptive streaming
+message ConnectionQuality {
+  string participant_id = 1; // Which participant this applies to (empty = self)
+  Quality quality = 2;       // Connection quality level
+  optional uint32 rtt_ms = 3; // Round-trip time in milliseconds
+}
+
+// Message acknowledgment (only for client message processing)
+message MessageAck {
+  uint32 sequence = 1;        // Sequence number being acknowledged
+  bool success = 2;           // Whether the message was processed successfully
+  optional string message = 3; // Error details if success is false
+}
+
+// Server-initiated error notification
+message ErrorNotification {
+  ErrorType type = 1;         // Type of error
+  string message = 2;         // Human-readable error message
+  bool fatal = 3;             // Whether client should disconnect
+}
+
+// Connection quality levels
+enum Quality {
+  EXCELLENT = 0;
+  GOOD = 1;
+  FAIR = 2;
+  POOR = 3;
+  DISCONNECTED = 4;
+}
+
+// Server-initiated error types
+enum ErrorType {
+  ROOM_CLOSED = 0;           // Room was closed by moderator/system
+  PARTICIPANT_KICKED = 1;    // Participant was removed from room
+  SERVER_SHUTDOWN = 2;       // Server is shutting down
+  ROOM_CAPACITY_CHANGED = 3; // Room capacity reduced, participant removed
+  AUTHENTICATION_EXPIRED = 4; // Auth token expired
+  DUPLICATE_CONNECTION = 5;   // Same participant connected elsewhere
+  PROTOCOL_VIOLATION = 6;    // Client sent malformed/invalid messages
+  UNKNOWN_ERROR = 7;
+}
+

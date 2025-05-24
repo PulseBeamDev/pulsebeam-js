@@ -1,4 +1,3 @@
-export { MyElement } from "./my-element.ts";
 import { ClientCore } from "./lib";
 
 (async () => {
