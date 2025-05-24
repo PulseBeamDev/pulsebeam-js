@@ -6,9 +6,11 @@ import {
   ServerMessage,
   VideoSubscription,
 } from "./sfu.ts";
+import { atom, type PreinitializedWritableAtom } from "nanostores";
 
 const MAX_DOWNSTREAMS = 16;
 const LAST_N_AUDIO = 3;
+const DEBOUNCE_DELAY_MS = 500;
 
 // Internal Ids
 type ParticipantId = string;
@@ -18,10 +20,12 @@ interface VideoSlot {
   participantId?: ParticipantId;
 }
 
-interface ParticipantMeta {
+export interface ParticipantMeta {
   externalParticipantId: string;
   participantId: string;
   media: MediaConfig;
+  stream: MediaStream;
+  maxHeight: number;
 }
 
 export interface ClientCoreConfig {
@@ -42,9 +46,10 @@ export class ClientCore {
   #audioSlots: RTCRtpTransceiver[];
 
   #participants: Record<ParticipantId, ParticipantMeta>;
+  #timeoutId: ReturnType<typeof setTimeout> | null;
 
   onStateChanged = (state: RTCPeerConnectionState) => {};
-  onTrack = (track: RTCPeerConnection) => {};
+  onNewParticipant = (participant: ParticipantMeta) => {};
 
   constructor(cfg: ClientCoreConfig) {
     this.#sfuUrl = cfg.sfuUrl;
@@ -57,6 +62,7 @@ export class ClientCore {
     this.#audioSlots = [];
     this.#participants = {};
     this.#sequence = 0;
+    this.#timeoutId = null;
 
     this.#pc = new RTCPeerConnection();
     this.#pc.onconnectionstatechange = () => {
@@ -162,6 +168,8 @@ export class ClientCore {
           externalParticipantId: stream.externalParticipantId,
           participantId: stream.participantId,
           media: stream.media,
+          stream: new MediaStream(),
+          maxHeight: 0, // default invisible until the UI tells us to render
         };
         this.#participants[stream.participantId] = meta;
         newParticipants.push(meta);
@@ -185,6 +193,8 @@ export class ClientCore {
 
       slot.participantId = participant.participantId;
     }
+
+    this.#triggerSubscriptionFeedback();
   }
 
   #close(error?: string) {
@@ -195,6 +205,37 @@ export class ClientCore {
     }
 
     this.#closed = true;
+  }
+
+  updateSubscription(participantId: string, maxHeight: number) {
+    if (participantId in this.#participants) {
+      this.#participants[participantId].maxHeight = maxHeight;
+    }
+
+    this.#triggerSubscriptionFeedback();
+  }
+
+  #triggerSubscriptionFeedback() {
+    if (this.#timeoutId) {
+      return;
+    }
+
+    this.#timeoutId = setTimeout(() => {
+      const subscriptions: ParticipantSubscription[] = Object.values(
+        this.#participants,
+      ).map((p) => ({
+        participantId: p.participantId,
+        videoSettings: {
+          maxHeight: p.maxHeight,
+        },
+      }));
+      this.#sendRpc({
+        oneofKind: "videoSubscription",
+        videoSubscription: {
+          subscriptions,
+        },
+      });
+    }, DEBOUNCE_DELAY_MS);
   }
 
   async connect(room: string, participant: string) {
@@ -260,6 +301,9 @@ export class ClientCore {
   }
 
   disconnect() {
+    if (this.#timeoutId) {
+      clearTimeout(this.#timeoutId);
+    }
     this.#pc.close();
   }
 

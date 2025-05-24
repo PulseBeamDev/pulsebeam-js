@@ -26,7 +26,8 @@
   },
   "dependencies": {
     "@protobuf-ts/runtime": "^2.10.0",
-    "lit": "^3.3.0"
+    "lit": "^3.3.0",
+    "nanostores": "^1.0.1"
   },
   "devDependencies": {
     "@protobuf-ts/plugin": "^2.10.0",
