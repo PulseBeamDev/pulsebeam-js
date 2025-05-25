@@ -4,9 +4,13 @@ import {
   ParticipantStream,
   ParticipantSubscription,
   ServerMessage,
-  VideoSubscription,
 } from "./sfu.ts";
-import { atom, type PreinitializedWritableAtom } from "nanostores";
+import {
+  atom,
+  map,
+  type PreinitializedMapStore,
+  type PreinitializedWritableAtom,
+} from "nanostores";
 
 const MAX_DOWNSTREAMS = 16;
 const LAST_N_AUDIO = 3;
@@ -44,12 +48,12 @@ export class ClientCore {
 
   #videoSlots: VideoSlot[];
   #audioSlots: RTCRtpTransceiver[];
-
-  #participants: Record<ParticipantId, ParticipantMeta>;
   #timeoutId: ReturnType<typeof setTimeout> | null;
 
-  onStateChanged = (state: RTCPeerConnectionState) => {};
-  onNewParticipant = (participant: ParticipantMeta) => {};
+  $participants: PreinitializedMapStore<
+    Record<ParticipantId, PreinitializedMapStore<ParticipantMeta>>
+  >;
+  $state: PreinitializedWritableAtom<RTCPeerConnectionState>;
 
   constructor(cfg: ClientCoreConfig) {
     this.#sfuUrl = cfg.sfuUrl;
@@ -60,17 +64,17 @@ export class ClientCore {
     this.#closed = false;
     this.#videoSlots = [];
     this.#audioSlots = [];
-    this.#participants = {};
     this.#sequence = 0;
     this.#timeoutId = null;
+    this.$participants = map({});
+    this.$state = atom("new");
 
     this.#pc = new RTCPeerConnection();
     this.#pc.onconnectionstatechange = () => {
       const connectionState = this.#pc.connectionState;
       console.debug(`PeerConnection state changed: ${connectionState}`);
-      if (connectionState === "connected") {
-        this.onStateChanged(connectionState);
-      } else if (
+      this.$state.set(connectionState);
+      if (
         connectionState === "failed" || connectionState === "closed" ||
         connectionState === "disconnected"
       ) {
@@ -154,15 +158,18 @@ export class ClientCore {
     for (const stream of streams) {
       if (!stream.media) {
         // participant has left
-        delete this.#participants[stream.participantId];
+        this.$participants.setKey(stream.participantId, undefined);
         continue;
       }
 
-      if (stream.participantId in this.#participants) {
-        const participant = this.#participants[stream.participantId];
-        participant.media = stream.media;
-        participant.externalParticipantId = stream.externalParticipantId;
-        participant.participantId = stream.participantId;
+      if (stream.participantId in this.$participants.get()) {
+        const participant = this.$participants.get()[stream.participantId];
+        participant.setKey("media", stream.media);
+        participant.setKey(
+          "externalParticipantId",
+          stream.externalParticipantId,
+        );
+        participant.setKey("participantId", stream.participantId);
       } else {
         const meta: ParticipantMeta = {
           externalParticipantId: stream.externalParticipantId,
@@ -171,7 +178,12 @@ export class ClientCore {
           stream: new MediaStream(),
           maxHeight: 0, // default invisible until the UI tells us to render
         };
-        this.#participants[stream.participantId] = meta;
+
+        const reactiveMeta = atom(meta);
+        reactiveMeta.listen((_) => {
+          this.#triggerSubscriptionFeedback();
+        });
+        this.$participants.setKey(stream.participantId, atom(meta));
         newParticipants.push(meta);
       }
     }
@@ -179,7 +191,7 @@ export class ClientCore {
     // TODO: should we bin pack the old participants first?
     for (const slot of this.#videoSlots) {
       if (slot.participantId) {
-        if (slot.participantId in this.#participants) {
+        if (slot.participantId in this.$participants) {
           continue;
         }
 
@@ -207,14 +219,6 @@ export class ClientCore {
     this.#closed = true;
   }
 
-  updateSubscription(participantId: string, maxHeight: number) {
-    if (participantId in this.#participants) {
-      this.#participants[participantId].maxHeight = maxHeight;
-    }
-
-    this.#triggerSubscriptionFeedback();
-  }
-
   #triggerSubscriptionFeedback() {
     if (this.#timeoutId) {
       return;
@@ -222,7 +226,7 @@ export class ClientCore {
 
     this.#timeoutId = setTimeout(() => {
       const subscriptions: ParticipantSubscription[] = Object.values(
-        this.#participants,
+        this.$participants,
       ).map((p) => ({
         participantId: p.participantId,
         videoSettings: {
