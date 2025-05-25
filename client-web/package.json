@@ -25,6 +25,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@lit/context": "^1.1.5",
     "@protobuf-ts/runtime": "^2.10.0",
     "lit": "^3.3.0",
     "nanostores": "^1.0.1"
