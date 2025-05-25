@@ -337,4 +337,10 @@ export class ClientCore {
     this.#videoSender.sender.replaceTrack(null);
     this.#audioSender.sender.replaceTrack(null);
   }
+
+  // TODO: remove browser specific
+  subscribe(video: HTMLVideoElement, participant: ParticipantMeta) {
+    video.srcObject = participant.stream;
+    video.autoplay = true;
+  }
 }

@@ -6,10 +6,13 @@ import { ClientCore } from "./lib";
     maxDownstreams: 1,
   });
 
+  const videos: Record<string, HTMLVideoElement> = {};
   client.$state.listen((v) => console.log(v));
   client.$participants.listen((newValue, _, changed) => {
-    // assign this to a video element
-    console.log(changed);
+    const video = videos[changed] || document.createElement("video");
+    const participant = newValue[changed].get();
+    client.subscribe(video, participant);
+    videos[changed] = video;
   });
   await client.connect("default", `alice-${Math.round(Math.random() * 100)}`);
 
