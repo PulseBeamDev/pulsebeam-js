@@ -1,42 +1,43 @@
-# @pulsebeam/client
+# pulsebeam-js
 
-Simplifies real-time application development. Defines signaling protocol for connection establishment, handling media and data transmission, and provides infrastructure.
+**Thin JavaScript client for PulseBeam SFU.**  
+A lightweight, optional SDK for connecting to the PulseBeam WebRTC SFU server. Simplifies real-time video, audio, and data streaming using native WebRTC APIs.
 
-## Status
+[Report a Bug](https://github.com/pulsebeamdev/pulsebeam-js/issues) · [Request a Feature](https://github.com/pulsebeamdev/pulsebeam-js/issues) · [Discord](https://discord.gg/Bhd3t9afuB)
 
-> [!WARNING]
-> This SDK is currently in active development. We're currently brewing a homegrown WebRTC SFU implementation in Rust, https://github.com/pulseBeamDev/pulsebeam.
->
-> • [Create GitHub Issues](https://github.com/PulseBeamDev/pulsebeam-js/issues)  
-> • [Join PulseBeam Developer Discord](https://discord.gg/Bhd3t9afuB)  
+---
 
-## Roadmap
+## What is pulsebeam-js?
 
-The project is in active development, please refer to the [roadmap](https://github.com/PulseBeamDev/pulsebeam-js/issues/6) to track our major milestones. 
+`pulsebeam-js` is a minimal JavaScript client for the [PulseBeam SFU server](https://github.com/pulsebeamdev/pulsebeam). It’s an optional convenience layer to streamline connecting browsers or Node.js apps to PulseBeam for real-time media (video/audio/data). 
 
-## Semantic Versioning
+- **Thin and optional**: Wraps native WebRTC APIs, no dependencies, no bloat.
+- **Purpose**: Simplifies setup for publishing and subscribing to streams.
+- **No lock-in**: You can use raw WebRTC with PulseBeam’s HTTP signaling (WHIP/WHEP-compatible) without this SDK.
 
-This project adheres to [Semantic Versioning 2.0.0](https://semver.org/).
+The SDK is not implemented yet—our focus is on stabilizing the [PulseBeam SFU server](https://github.com/pulsebeamdev/pulsebeam). Check the server repo for setup, demos, and raw WebRTC examples.
 
-* **MAJOR version (X.y.z):** Incompatible API changes.
-* **MINOR version (x.Y.z):** Functionality added in a backwards compatible manner.
-* **PATCH version (x.y.Z):** Backwards compatible bug fixes.
+---
 
-## WebRTC Resources
+## Get Started
 
-For a deeper understanding of WebRTC concepts, consult the official WebRTC documentation:
+The PulseBeam SFU is the core. See the [PulseBeam README](https://github.com/pulsebeamdev/pulsebeam) for how to run the server and use browser-native WebRTC APIs for publishing and viewing streams.
 
-* https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API
+This client will provide a simpler API for the same functionality when ready. For now, use the server’s raw HTTP signaling as shown in the [PulseBeam demos](https://github.com/pulsebeamdev/pulsebeam#demo-broadcast).
 
-## Related Links
+---
 
-|Name|Link|
-|-|-|
-|PulseBeam Server|github.com/pulseBeamDev/pulsebeam|
-|Client SDK|https://github.com/PulseBeamDev/pulsebeam-js|
-|Server SDK|https://github.com/PulseBeamDev/pulsebeam-core|
-|FOSS Server|https://github.com/PulseBeamDev/pulsebeam-server-foss|
-|Signaling Protocol|https://github.com/PulseBeamDev/pulsebeam-proto|
-|Documentation|https://github.com/PulseBeamDev/docs|
-|PulseBeam Cloud|https://cloud.pulsebeam.dev|
+## License
 
+Apache-2.0
+
+Need a different license? → [lukas@pulsebeam.dev](mailto:lukas@pulsebeam.dev)
+
+---
+
+## Community
+
+* 💬 [Discord](https://discord.gg/Bhd3t9afuB)
+* 🐛 [Issues](https://github.com/pulsebeamdev/pulsebeam-js/issues)
+
+PRs welcome.

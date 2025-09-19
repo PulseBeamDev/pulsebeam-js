@@ -1,8 +1,0 @@
-node_modules
-.parcel-cache
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
-.DS_Store
-.vscode

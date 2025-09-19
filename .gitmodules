@@ -1,3 +1,0 @@
-[submodule "peer/proto"]
-	path = peer/proto
-	url = git@github.com:PulseBeamDev/pulsebeam-proto.git
