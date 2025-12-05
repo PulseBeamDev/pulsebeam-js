@@ -1,5 +1,4 @@
 export interface SessionConfig {
-  readonly localStream?: MediaStream | undefined,
   readonly videoSlots: HTMLVideoElement[],
   readonly audioSlots: HTMLVideoElement[],
 }
@@ -11,11 +10,14 @@ export type SessionEvent =
   | { type: "closed"; error: Error | null };
 
 export class Session {
+  public onEvent: ((event: SessionEvent) => void) = (_) => { };
+
   private pc: RTCPeerConnection;
   private deleteUri: string | null;
-  public onEvent: ((event: SessionEvent) => void) = (_) => { };
   private lastEventType: SessionEvent["type"] = "new";
   private lastError: Error | null = null;
+  private videoTrans: RTCRtpTransceiver;
+  private audioTrans: RTCRtpTransceiver;
 
   constructor(config: SessionConfig) {
     const pc = new RTCPeerConnection();
@@ -29,21 +31,17 @@ export class Session {
     }
 
     // Add sendonly transceivers
-    const localStream = config.localStream;
-    if (!!localStream) {
-      const videoTracks = localStream.getVideoTracks();
-      const audioTracks = localStream.getAudioTracks();
-
-      videoTracks.forEach((track) => pc.addTransceiver(track, {
-        direction: "sendonly",
-        sendEncodings: [
-          { rid: "q", scaleResolutionDownBy: 4, maxBitrate: 150_000 },
-          { rid: "h", scaleResolutionDownBy: 2, maxBitrate: 400_000 },
-          { rid: "f", scaleResolutionDownBy: 1, maxBitrate: 1_250_000 },
-        ],
-      }));
-      audioTracks.forEach((track) => pc.addTrack(track, localStream));
-    }
+    const videoTrans = pc.addTransceiver("video", {
+      direction: "sendonly",
+      sendEncodings: [
+        { rid: "q", scaleResolutionDownBy: 4, maxBitrate: 150_000 },
+        { rid: "h", scaleResolutionDownBy: 2, maxBitrate: 400_000 },
+        { rid: "f", scaleResolutionDownBy: 1, maxBitrate: 1_250_000 },
+      ],
+    });
+    const audioTrans = pc.addTransceiver("audio", {
+      direction: "sendonly",
+    });
 
     let videoCounter = 0;
     let audioCounter = 0;
@@ -81,6 +79,20 @@ export class Session {
 
     this.pc = pc;
     this.deleteUri = null;
+    this.videoTrans = videoTrans;
+    this.audioTrans = audioTrans;
+  }
+
+  publish(stream: MediaStream) {
+    const videoTrack = stream.getVideoTracks().at(0);
+    if (videoTrack) {
+      this.videoTrans.sender.replaceTrack(videoTrack);
+    }
+
+    const audioTrack = stream.getAudioTracks().at(0);
+    if (audioTrack) {
+      this.audioTrans.sender.replaceTrack(audioTrack);
+    }
   }
 
   connect(endpoint: string, room: string) {

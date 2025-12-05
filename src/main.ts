@@ -1,7 +1,5 @@
 import './style.css'
+import { createApp } from 'vue';
+import App from './App.vue';
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div>
-  </div>
-`
-
+createApp(App).mount('#app');
