@@ -77,8 +77,6 @@ function close() {
   }
 
   if (localVideo.value) localVideo.value.srcObject = null;
-  remoteVideos.value.forEach((v) => (v.srcObject = null));
-  remoteAudios.value.forEach((a) => (a.srcObject = null));
 
   session.value = null;
   connected.value = false;

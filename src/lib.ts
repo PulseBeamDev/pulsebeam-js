@@ -18,6 +18,8 @@ export class Session {
   private lastError: Error | null = null;
   private videoTrans: RTCRtpTransceiver;
   private audioTrans: RTCRtpTransceiver;
+  private videoSlots: HTMLVideoElement[];
+  private audioSlots: HTMLAudioElement[];
 
   constructor(config: SessionConfig) {
     const pc = new RTCPeerConnection();
@@ -81,6 +83,8 @@ export class Session {
     this.deleteUri = null;
     this.videoTrans = videoTrans;
     this.audioTrans = audioTrans;
+    this.videoSlots = [...config.videoSlots];
+    this.audioSlots = [...config.audioSlots];
   }
 
   publish(stream: MediaStream) {
@@ -114,6 +118,8 @@ export class Session {
     }
 
     this.pc.close();
+    this.audioSlots.forEach((v) => (v.srcObject = null));
+    this.videoSlots.forEach((a) => (a.srcObject = null));
   }
 
   private async connectInternal(endpoint: string, room: string) {
