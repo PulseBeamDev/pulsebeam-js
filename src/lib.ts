@@ -1,6 +1,6 @@
 export interface SessionConfig {
-  readonly videoSlots: HTMLVideoElement[],
-  readonly audioSlots: HTMLVideoElement[],
+  readonly videoSlots: number,
+  readonly audioSlots: number,
 }
 
 export type SessionEvent =
@@ -18,17 +18,21 @@ export class Session {
   private lastError: Error | null = null;
   private videoTrans: RTCRtpTransceiver;
   private audioTrans: RTCRtpTransceiver;
-  private videoSlots: HTMLVideoElement[];
-  private audioSlots: HTMLAudioElement[];
+
+  private videoSlots: RTCRtpTransceiver[];
+  private audioSlots: RTCRtpTransceiver[];
+
+
+  private virtualVideoSlots: VirtualSlot[];
+  private virtualAudioSlots: VirtualSlot[];
 
   constructor(config: SessionConfig) {
     const pc = new RTCPeerConnection();
-
     // Add recvonly transceivers
-    for (let i = 0; i < config.videoSlots.length; i++) {
+    for (let i = 0; i < config.videoSlots; i++) {
       pc.addTransceiver("video", { direction: "recvonly" });
     }
-    for (let i = 0; i < config.audioSlots.length; i++) {
+    for (let i = 0; i < config.audioSlots; i++) {
       pc.addTransceiver("audio", { direction: "recvonly" });
     }
 
@@ -45,17 +49,15 @@ export class Session {
       direction: "sendonly",
     });
 
-    let videoCounter = 0;
-    let audioCounter = 0;
+    this.videoSlots = [];
+    this.audioSlots = [];
     pc.ontrack = (e: RTCTrackEvent) => {
       switch (e.track.kind) {
         case "video":
-          config.videoSlots[videoCounter].srcObject = new MediaStream([e.track]);
-          videoCounter++;
+          this.videoSlots.push(e.transceiver);
           break;
         case "audio":
-          config.audioSlots[audioCounter].srcObject = new MediaStream([e.track]);
-          audioCounter++;
+          this.audioSlots.push(e.transceiver);
           break;
       }
     };
@@ -83,8 +85,21 @@ export class Session {
     this.deleteUri = null;
     this.videoTrans = videoTrans;
     this.audioTrans = audioTrans;
-    this.videoSlots = [...config.videoSlots];
-    this.audioSlots = [...config.audioSlots];
+    this.virtualVideoSlots = [];
+    this.virtualAudioSlots = [];
+  }
+
+  createVideoSlot(): VirtualSlot {
+    const vSlot = new VirtualSlot();
+    vSlot.onLayoutChange = (height) => {
+      this.handleVirtualSlotUpdate(vSlot, height);
+    };
+
+    this.virtualVideoSlots.push(vSlot);
+    return vSlot;
+  }
+
+  private handleVirtualSlotUpdate(vSlot: VirtualSlot, height: number) {
   }
 
   publish(stream: MediaStream) {
@@ -118,8 +133,6 @@ export class Session {
     }
 
     this.pc.close();
-    this.audioSlots.forEach((v) => (v.srcObject = null));
-    this.videoSlots.forEach((a) => (a.srcObject = null));
   }
 
   private async connectInternal(endpoint: string, room: string) {
@@ -159,6 +172,21 @@ export class Session {
 
     if (this.onEvent) {
       this.onEvent(event);
+    }
+  }
+}
+
+export class VirtualSlot {
+  public readonly stream: MediaStream;
+  public onLayoutChange?: (height: number) => void;
+
+  constructor() {
+    this.stream = new MediaStream([]);
+  }
+
+  setHeight(height: number) {
+    if (this.onLayoutChange) {
+      this.onLayoutChange(height);
     }
   }
 }
