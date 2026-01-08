@@ -1,3 +1,5 @@
+const DEBOUNCER_TIMEOUT_MS = 50;
+
 export interface SessionConfig {
   readonly videoSlots: number,
   readonly audioSlots: number,
@@ -19,12 +21,13 @@ export class Session {
   private videoTrans: RTCRtpTransceiver;
   private audioTrans: RTCRtpTransceiver;
 
-  private videoSlots: RTCRtpTransceiver[];
-  private audioSlots: RTCRtpTransceiver[];
-
+  private videoSlots: Slot[];
+  private audioSlots: Slot[];
 
   private virtualVideoSlots: VirtualSlot[];
   private virtualAudioSlots: VirtualSlot[];
+
+  private debouncerTimer: number | null;
 
   constructor(config: SessionConfig) {
     const pc = new RTCPeerConnection();
@@ -54,10 +57,12 @@ export class Session {
     pc.ontrack = (e: RTCTrackEvent) => {
       switch (e.track.kind) {
         case "video":
-          this.videoSlots.push(e.transceiver);
+          const video = new Slot(this.videoSlots.length, e.transceiver);
+          this.videoSlots.push(video);
           break;
         case "audio":
-          this.audioSlots.push(e.transceiver);
+          const audio = new Slot(this.audioSlots.length, e.transceiver);
+          this.audioSlots.push(audio);
           break;
       }
     };
@@ -87,19 +92,48 @@ export class Session {
     this.audioTrans = audioTrans;
     this.virtualVideoSlots = [];
     this.virtualAudioSlots = [];
+    this.debouncerTimer = null;
   }
 
   createVideoSlot(): VirtualSlot {
     const vSlot = new VirtualSlot();
-    vSlot.onLayoutChange = (height) => {
-      this.handleVirtualSlotUpdate(vSlot, height);
+    vSlot.onLayoutChange = () => {
+      this.handleVirtualSlotUpdate(vSlot);
     };
 
     this.virtualVideoSlots.push(vSlot);
     return vSlot;
   }
 
-  private handleVirtualSlotUpdate(vSlot: VirtualSlot, height: number) {
+  private handleVirtualSlotUpdate(vSlot: VirtualSlot) {
+    if (this.debouncerTimer) {
+      clearTimeout(this.debouncerTimer);
+    }
+
+    this.debouncerTimer = setTimeout(this.reconcile, DEBOUNCER_TIMEOUT_MS);
+  }
+
+  private reconcile() {
+    this.virtualVideoSlots.sort((a, b) => a.height - b.height);
+    const diff: Record<number, string> = {};
+
+    for (const vSlot of this.virtualVideoSlots) {
+      if (vSlot._reconciled) {
+        continue;
+      }
+
+      vSlot._reconciled = true;
+      if (vSlot.height <= 0) {
+        if (!vSlot.slotId) {
+          // This shouldn't happen, but just in case..
+          continue;
+        }
+
+        const slot = this.videoSlots[vSlot.slotId];
+        slot.vSlot = null;
+        vSlot.slotId = null;
+      }
+    }
   }
 
   publish(stream: MediaStream) {
@@ -176,17 +210,40 @@ export class Session {
   }
 }
 
+class Slot {
+  public readonly id: number;
+  public readonly transceiver: RTCRtpTransceiver;
+  public vSlot: VirtualSlot | null;
+
+  constructor(id: number, transceiver: RTCRtpTransceiver) {
+    this.id = id;
+    this.transceiver = transceiver;
+    this.vSlot = null;
+  }
+}
+
 export class VirtualSlot {
+  public slotId: number | null;
   public readonly stream: MediaStream;
-  public onLayoutChange?: (height: number) => void;
+  public height: number;
+  public _reconciled: boolean;
+  public onLayoutChange?: () => void;
 
   constructor() {
+    this.slotId = null;
     this.stream = new MediaStream([]);
+    this.height = 0;
+    this._reconciled = false;
   }
 
   setHeight(height: number) {
+    if (this.height == height) {
+      return;
+    }
+
+    this.height = height;
     if (this.onLayoutChange) {
-      this.onLayoutChange(height);
+      this.onLayoutChange();
     }
   }
 }
