@@ -1,0 +1,85 @@
+syntax = "proto3";
+package signaling;
+
+// ========================================================================
+// 1. Enums & Core Entities
+// ========================================================================
+
+enum TrackKind {
+  TRACK_KIND_UNSPECIFIED = 0;
+  VIDEO = 1;
+  AUDIO = 2;
+}
+
+message Track {
+  string id = 1;
+  TrackKind kind = 2;
+  string participant_id = 3;
+  // Extensible metadata (e.g. "display_name", "is_muted", "avatar_url").
+  map<string, string> meta = 4;
+}
+
+message VideoAssignment {
+  string mid = 1;
+  string track_id = 2;
+  // Feedback indicating if the stream is actively flowing or halted by the SFU.
+  bool paused = 3;
+}
+
+// ========================================================================
+// 2. Server -> Client (Unified State Synchronization)
+// ========================================================================
+
+message StateUpdate {
+  // Monotonically strictly incrementing sequence number.
+  // Used for gap detection and ordering validation.
+  uint64 seq = 1;
+
+  // If true, the client must clear local state before applying this update.
+  // If false, the client applies changes incrementally.
+  bool is_snapshot = 2;
+
+  // Room Topology (Available Tracks)
+  repeated Track tracks_upsert = 3;
+  repeated string tracks_remove = 4;
+
+  // User State (Active Assignments)
+  repeated VideoAssignment assignments_upsert = 5;
+  repeated string assignments_remove = 6;
+}
+
+// ========================================================================
+// 3. Client -> Server (Declarative Intent)
+// ========================================================================
+
+message VideoRequest {
+  string mid = 1;
+  string track_id = 2;
+  
+  // Render height in physical pixels. 
+  // 0 = Off-screen/Hidden (Server pauses stream).
+  // >0 = Visible (Server optimizes simulcast layer).
+  uint32 height = 3;
+}
+
+message ClientIntent {
+  repeated VideoRequest requests = 1;
+}
+
+// ========================================================================
+// 4. Root Transport Messages
+// ========================================================================
+
+message ClientMessage {
+  oneof payload {
+    ClientIntent intent = 1;
+    bool request_sync = 2;
+  }
+}
+
+message ServerMessage {
+  oneof payload {
+    StateUpdate update = 1;
+    string error = 2;
+  }
+}
