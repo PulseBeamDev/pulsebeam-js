@@ -21,6 +21,8 @@
   },
   "dependencies": {
     "@bufbuild/protobuf": "^2.10.2",
+    "@tailwindcss/vite": "^4.1.18",
+    "tailwindcss": "^4.1.18",
     "vue": "^3.5.25"
   }
 }
