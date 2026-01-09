@@ -293,7 +293,6 @@ export class VirtualSlot {
   public readonly stream = new MediaStream();
   public height: number = 0;
   public onLayoutChange?: () => void;
-  private currentTrackId: string | null = null;
 
   constructor(public readonly trackId: string) { }
 
@@ -306,14 +305,11 @@ export class VirtualSlot {
   }
 
   setStream(track: MediaStreamTrack) {
-    if (this.currentTrackId === track.id) return;
     this.stream.getTracks().forEach(t => this.stream.removeTrack(t));
     this.stream.addTrack(track);
-    this.currentTrackId = track.id;
   }
 
   clearStream() {
     this.stream.getTracks().forEach(t => this.stream.removeTrack(t));
-    this.currentTrackId = null;
   }
 }

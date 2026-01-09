@@ -164,7 +164,7 @@ onBeforeUnmount(leaveRoom);
         <!-- Remote Users -->
         <div v-for="slot in remoteSlots" :key="(slot as any).trackId" class="video-tile">
           <video :ref="el => bindRemote(el, slot)" autoplay playsinline></video>
-          <div class="tile-label">User {{ (slot as any).trackId.substring(0,4) }}</div>
+          <div class="tile-label">User {{ (slot as any).trackId }}</div>
         </div>
       </div>
 
