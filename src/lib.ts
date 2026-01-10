@@ -23,8 +23,8 @@ export type SessionEvent =
   | { type: "connecting" }
   | { type: "connected" }
   | { type: "closed"; error: Error | null }
-  | { type: "track_added"; trackId: string; meta: { [key: string]: string } }
-  | { type: "track_removed"; trackId: string };
+  | { type: "slot_added"; slot: VirtualSlot }
+  | { type: "slot_removed"; slotId: string };
 
 class StateStore {
   seq: bigint = 0n;
@@ -86,7 +86,7 @@ export class Session {
     });
   }
 
-  getVirtualSlot(trackId: string): VirtualSlot {
+  private getOrCreateVirtualSlot(trackId: string): VirtualSlot {
     let vSlot = this.virtualSlots.get(trackId);
     if (!vSlot) {
       vSlot = new VirtualSlot(trackId);
@@ -141,7 +141,7 @@ export class Session {
 
     u.tracksRemove.forEach((id) => {
       this.state.tracks.delete(id);
-      this.dispatch({ type: "track_removed", trackId: id });
+      this.dispatch({ type: "slot_removed", slotId: id });
 
       const vSlot = this.virtualSlots.get(id);
       if (vSlot) {
@@ -152,7 +152,8 @@ export class Session {
 
     u.tracksUpsert.forEach((t) => {
       if (!this.state.tracks.has(t.id)) {
-        this.dispatch({ type: "track_added", trackId: t.id, meta: t.meta });
+        const vSlot = this.getOrCreateVirtualSlot(t.id);
+        this.dispatch({ type: "slot_added", slot: vSlot });
       }
       this.state.tracks.set(t.id, t);
     });
@@ -261,8 +262,6 @@ export class Session {
   }
 
   private dispatch(event: SessionEvent) {
-    if (this.lastEventType === event.type && event.type !== "track_added" && event.type !== "track_removed") return;
-    if (event.type !== "track_added" && event.type !== "track_removed") this.lastEventType = event.type;
     this.onEvent(event);
   }
 
@@ -295,6 +294,10 @@ export class VirtualSlot {
   public onLayoutChange?: () => void;
 
   constructor(public readonly trackId: string) { }
+
+  get id() {
+    return this.trackId;
+  }
 
   setHeight(h: number) {
     const safeHeight = Math.floor(h);
