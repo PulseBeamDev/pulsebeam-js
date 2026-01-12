@@ -1,20 +1,30 @@
 {
-  "name": "web",
+  "name": "@pulsebeam/web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "license": "Apache-2.0",
+  "file": [
+    "dist"
+  ],
+  "exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"svelte": "./dist/index.js"
+		}
+	},
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "svelte-package",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json"
   },
   "devDependencies": {
+    "@sveltejs/package": "^2.5.7",
     "@sveltejs/vite-plugin-svelte": "^6.2.1",
     "@tailwindcss/vite": "^4.1.17",
     "@tsconfig/svelte": "^5.0.6",
     "@types/node": "^24.10.1",
-    "svelte": "^5.43.8",
     "svelte-check": "^4.3.4",
     "tailwindcss": "^4.1.17",
     "typescript": "~5.9.3",
@@ -23,6 +33,7 @@
   "dependencies": {
     "@lucide/svelte": "^0.562.0",
     "@pulsebeam/core": "workspace:*",
+    "svelte": "^5.43.8",
     "bits-ui": "^2.15.4",
     "clsx": "^2.1.1",
     "tailwind-merge": "^3.4.0",

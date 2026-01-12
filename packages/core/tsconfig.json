@@ -9,7 +9,7 @@
     // See also https://aka.ms/tsconfig/module
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "target": "ESNext",
+    "target": "ES2022",
     // This provides 'fetch', 'RequestInit', 'Response', 'console', 'setTimeout'.
     // It DOES NOT provide 'document', 'window', 'alert', or HTML elements.
     "lib": ["esnext", "webworker"],
@@ -26,7 +26,7 @@
     "strict": true,
 
     // Best practices for modern bundlers
-    "verbatimModuleSyntax": false,
+    "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",

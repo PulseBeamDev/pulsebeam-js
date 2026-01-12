@@ -19,5 +19,5 @@ onMount(async () => {
 
 <h1>Welcome to SvelteKit</h1>
 <p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
-<video width=480 style="aspect-ratio: 16/9" srcobject={stream}>
+<video autoplay width=640 style="aspect-ratio: 16/9" srcobject={stream}>
 </video>

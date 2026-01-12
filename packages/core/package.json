@@ -4,8 +4,9 @@
   "description": "",
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "packageManager": "pnpm@10.27.0",
+  "type": "module",
   "files": [
     "dist",
     "src"
@@ -24,10 +25,11 @@
     "@bufbuild/buf": "^1.63.0",
     "@bufbuild/protoc-gen-es": "^2.10.2",
     "@types/webrtc": "^0.0.47",
+    "tsup": "^8.5.1",
     "typescript": "~5.9.3"
   },
   "scripts": {
     "gen": "buf generate",
-    "build": "tsc"
+    "build": "tsup src/index.ts --format esm --dts --clean"
   }
 }
