@@ -5,3 +5,6 @@ packages:
 ignoredBuiltDependencies:
   - '@bufbuild/buf'
   - esbuild
+onlyBuiltDependencies:
+  - esbuild
+  - '@tailwindcss/oxide'
