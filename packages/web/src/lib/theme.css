@@ -120,8 +120,8 @@
   }
 }
 
-/* 
-Centralized source scanning for all UI packages in the monorepo
-This tells Tailwind where to look for classes to generate across all packages
-*/
-@source './**/*.{svelte,js,ts}';
+/*
+ Centralized source scanning for all UI packages in the monorepo 
+ This tells Tailwind where to look for classes to generate across all packages 
+ */ 
+ @source './**/*.{svelte,js,ts}'; 

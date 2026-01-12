@@ -6,8 +6,20 @@
     Settings,
     Shield,
     Copy,
-  } from "lucide-svelte";
-  import { Card, Table, Tabs, Avatar, Button, Input, Label, Switch, Slider, Badge} from "$lib/index.ts";
+  } from "@lucide/svelte";
+
+  import {
+    Card,
+    Table,
+    Tabs,
+    Avatar,
+    Button,
+    Input,
+    Label,
+    Switch,
+    Slider,
+    Badge,
+  } from "$lib/index.ts";
 
   // Made this an export so Storybook can control it
   export let sessions = [
@@ -19,6 +31,7 @@
       bitrate: "2.4 Mbps",
       status: "Active",
     },
+
     {
       id: "sess_02",
       user: "Bob Ops",
@@ -27,6 +40,7 @@
       bitrate: "1.1 Mbps",
       status: "Active",
     },
+
     {
       id: "sess_03",
       user: "Charlie QA",
@@ -43,25 +57,31 @@
   <header class="bg-background border-b border-border sticky top-0 z-10">
     <div class="container mx-auto px-6 h-16 flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <img src="https://pulsebeam.dev/favicon.svg" class="h-10 w-10" alt="pulsebeam logo"/>
-        <span class="font-bold text-lg tracking-tight"
-          >PulseBeam <span class="text-muted-foreground font-normal"
-            >Console</span
-          ></span
-        >
+        <img
+          src="https://pulsebeam.dev/favicon.svg"
+          class="h-10 w-10"
+          alt="pulsebeam logo"
+        />
+        <span class="font-bold text-lg tracking-tight">
+          PulseBeam
+          <span class="text-muted-foreground font-normal">Console</span>
+        </span>
       </div>
-
       <nav
         class="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground"
       >
-        <a href="##" class="text-foreground hover:text-primary transition-colors"
-          >Overview</a
+        <a
+          href="##"
+          class="text-foreground hover:text-primary transition-colors"
         >
-        <a href="##" class="hover:text-foreground transition-colors">Nodes</a>
-        <a href="##" class="hover:text-foreground transition-colors">Usage</a>
-        <a href="##" class="hover:text-foreground transition-colors">Settings</a>
+          Overview
+        </a>
+        <a href="##" class="hover:text-foreground transition-colors"> Nodes </a>
+        <a href="##" class="hover:text-foreground transition-colors"> Usage </a>
+        <a href="##" class="hover:text-foreground transition-colors">
+          Settings
+        </a>
       </nav>
-
       <div class="flex items-center gap-4">
         <Button variant="outline" size="sm">Documentation</Button>
         <Avatar.Root class="h-8 w-8">
@@ -74,7 +94,6 @@
       </div>
     </div>
   </header>
-
   <main class="container mx-auto px-6 py-8 space-y-8">
     <!-- Hero / Actions -->
     <div
@@ -87,15 +106,12 @@
         </p>
       </div>
       <div class="flex items-center gap-2">
-        <Button variant="outline">
-          <Settings class="mr-2 size-4" /> Configure
-        </Button>
-        <Button>
-          <Server class="mr-2 size-4" /> Deploy Node
-        </Button>
+        <Button variant="outline"
+          ><Settings class="mr-2 size-4" />Configure</Button
+        >
+        <Button><Server class="mr-2 size-4" />Deploy Node</Button>
       </div>
     </div>
-
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <Card.Root>
@@ -111,7 +127,6 @@
           <p class="text-xs text-muted-foreground mt-1">+12% from last hour</p>
         </Card.Content>
       </Card.Root>
-
       <Card.Root>
         <Card.Header
           class="flex flex-row items-center justify-between space-y-0 pb-2"
@@ -126,7 +141,6 @@
           </p>
         </Card.Content>
       </Card.Root>
-
       <Card.Root>
         <Card.Header
           class="flex flex-row items-center justify-between space-y-0 pb-2"
@@ -152,16 +166,15 @@
         </Card.Content>
       </Card.Root>
     </div>
-
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <!-- Main Content: Sessions Table -->
       <div class="lg:col-span-2 space-y-6">
         <Card.Root class="h-full">
           <Card.Header>
             <Card.Title>Live Sessions</Card.Title>
-            <Card.Description
-              >Real-time view of publishers and subscribers on Node-01.</Card.Description
-            >
+            <Card.Description>
+              Real-time view of publishers and subscribers on Node-01.
+            </Card.Description>
           </Card.Header>
           <Card.Content>
             <Table.Root>
@@ -179,9 +192,9 @@
               <Table.Body>
                 {#each sessions as session}
                   <Table.Row>
-                    <Table.Cell class="font-medium font-mono text-xs"
-                      >{session.id}</Table.Cell
-                    >
+                    <Table.Cell class="font-medium font-mono text-xs">
+                      {session.id}
+                    </Table.Cell>
                     <Table.Cell class="flex items-center gap-2">
                       <Avatar.Root class="h-6 w-6">
                         <Avatar.Fallback class="text-[10px]"
@@ -194,9 +207,9 @@
                     </Table.Cell>
                     <Table.Cell>{session.role}</Table.Cell>
                     <Table.Cell>
-                      <Badge variant="secondary" class="font-mono font-normal"
-                        >{session.codec}</Badge
-                      >
+                      <Badge variant="secondary" class="font-mono font-normal">
+                        {session.codec}
+                      </Badge>
                     </Table.Cell>
                     <Table.Cell class="text-right">{session.bitrate}</Table.Cell
                     >
@@ -206,9 +219,9 @@
                           >Active</Badge
                         >
                       {:else}
-                        <Badge variant="outline" class="text-muted-foreground"
-                          >Pending</Badge
-                        >
+                        <Badge variant="outline" class="text-muted-foreground">
+                          Pending
+                        </Badge>
                       {/if}
                     </Table.Cell>
                   </Table.Row>
@@ -220,13 +233,12 @@
             <span class="text-xs text-muted-foreground"
               >Updated 3 seconds ago</span
             >
-            <Button variant="ghost" size="sm" class="text-xs"
-              >View All Logs</Button
-            >
+            <Button variant="ghost" size="sm" class="text-xs">
+              View All Logs
+            </Button>
           </Card.Footer>
         </Card.Root>
       </div>
-
       <!-- Right Column: Configuration -->
       <div class="space-y-6">
         <!-- API Keys -->
@@ -244,9 +256,9 @@
                   readonly
                   class="font-mono text-xs"
                 />
-                <Button variant="outline" size="icon">
-                  <Copy class="h-4 w-4" />
-                </Button>
+                <Button variant="outline" size="icon"
+                  ><Copy class="h-4 w-4" /></Button
+                >
               </div>
             </div>
             <div class="space-y-2">
@@ -255,7 +267,6 @@
             </div>
           </Card.Content>
         </Card.Root>
-
         <!-- Media Config -->
         <Card.Root>
           <Card.Header>
@@ -268,7 +279,6 @@
                 <Tabs.Trigger value="video">Video</Tabs.Trigger>
                 <Tabs.Trigger value="audio">Audio</Tabs.Trigger>
               </Tabs.List>
-
               <Tabs.Content value="video" class="space-y-4">
                 <div
                   class="flex items-center justify-between rounded-lg border p-3 shadow-sm"
@@ -281,7 +291,6 @@
                   </div>
                   <Switch checked />
                 </div>
-
                 <div class="space-y-3 pt-2">
                   <div class="flex justify-between">
                     <Label>Max Ingest Bitrate</Label>
@@ -290,7 +299,6 @@
                   <Slider value={[75]} max={100} step={1} />
                 </div>
               </Tabs.Content>
-
               <Tabs.Content value="audio">
                 <div class="p-4 text-center text-sm text-muted-foreground">
                   Audio settings panel placeholder.
@@ -298,9 +306,8 @@
               </Tabs.Content>
             </Tabs.Root>
           </Card.Content>
-          <Card.Footer>
-            <Button class="w-full">Save Changes</Button>
-          </Card.Footer>
+          <Card.Footer><Button class="w-full">Save Changes</Button></Card.Footer
+          >
         </Card.Root>
       </div>
     </div>

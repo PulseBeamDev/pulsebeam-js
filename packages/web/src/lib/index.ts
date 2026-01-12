@@ -1,17 +1,18 @@
 // Reexport your entry components here
 
+import "./theme.css";
 import type { PlatformAdapter } from "@pulsebeam/core";
 export * from "@pulsebeam/core";
-export * as Card from "./components/ui/card/index.ts";
-export * as Table from "./components/ui/table/index.ts";
-export * as Tabs from "./components/ui/tabs/index.ts";
-export * as Avatar from "./components/ui/avatar/index.ts";
-export { Button } from "./components/ui/button/index.ts";
-export { Input } from "./components/ui/input/index.ts";
-export { Label } from "./components/ui/label/index.ts";
-export { Switch } from "./components/ui/switch/index.ts";
-export { Slider } from "./components/ui/slider/index.ts";
-export { Badge } from "./components/ui/badge/index.ts";
+export * as Card from "./components/ui/card";
+export * as Table from "./components/ui/table";
+export * as Tabs from "./components/ui/tabs";
+export * as Avatar from "./components/ui/avatar";
+export { Button } from "./components/ui/button";
+export { Input } from "./components/ui/input";
+export { Label } from "./components/ui/label";
+export { Switch } from "./components/ui/switch";
+export { Slider } from "./components/ui/slider";
+export { Badge } from "./components/ui/badge";
 
 
 export const WebAdapter: PlatformAdapter = {
