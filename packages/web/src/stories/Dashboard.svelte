@@ -1,4 +1,5 @@
 <script lang="ts">
+  import "$lib/theme.css";
   import {
     Activity,
     Server,
@@ -19,8 +20,8 @@
   import { Slider } from "$lib/components/ui/slider";
   import { Badge } from "$lib/components/ui/badge";
 
-  // Mock Data for the table
-  const sessions = [
+  // Made this an export so Storybook can control it
+  export let sessions = [
     {
       id: "sess_01",
       user: "Alice Dev",
@@ -53,12 +54,7 @@
   <header class="bg-background border-b border-border sticky top-0 z-10">
     <div class="container mx-auto px-6 h-16 flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <!-- Logo Icon Simulation -->
-        <img
-          src="https://pulsebeam.dev/favicon.svg"
-          alt="pulsebeam logo"
-          class="h-10"
-        />
+        <img src="https://pulsebeam.dev/favicon.svg" class="h-10 w-10" alt="pulsebeam logo"/>
         <span class="font-bold text-lg tracking-tight"
           >PulseBeam <span class="text-muted-foreground font-normal"
             >Console</span
@@ -69,12 +65,12 @@
       <nav
         class="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground"
       >
-        <a href="#" class="text-foreground hover:text-primary transition-colors"
+        <a href="##" class="text-foreground hover:text-primary transition-colors"
           >Overview</a
         >
-        <a href="#" class="hover:text-foreground transition-colors">Nodes</a>
-        <a href="#" class="hover:text-foreground transition-colors">Usage</a>
-        <a href="#" class="hover:text-foreground transition-colors">Settings</a>
+        <a href="##" class="hover:text-foreground transition-colors">Nodes</a>
+        <a href="##" class="hover:text-foreground transition-colors">Usage</a>
+        <a href="##" class="hover:text-foreground transition-colors">Settings</a>
       </nav>
 
       <div class="flex items-center gap-4">
@@ -244,7 +240,7 @@
 
       <!-- Right Column: Configuration -->
       <div class="space-y-6">
-        <!-- API Keys (Input Branding Check) -->
+        <!-- API Keys -->
         <Card.Root>
           <Card.Header>
             <Card.Title class="text-lg">API Configuration</Card.Title>
@@ -271,7 +267,7 @@
           </Card.Content>
         </Card.Root>
 
-        <!-- Media Config (Tabs/Slider/Switch Check) -->
+        <!-- Media Config -->
         <Card.Root>
           <Card.Header>
             <Card.Title class="text-lg">Media Settings</Card.Title>
