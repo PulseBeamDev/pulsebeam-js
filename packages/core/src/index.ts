@@ -268,6 +268,9 @@ export class Session {
   private async connectInternal(endpoint: string, room: string) {
     try {
       const offer = await this.pc.createOffer();
+      if (!offer.sdp) {
+        throw new Error("unexpected missing sdp");
+      }
       await this.pc.setLocalDescription(offer);
       const res = await fetch(`${endpoint}/api/v1/rooms/${room}`, {
         method: 'POST',

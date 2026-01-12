@@ -1,28 +1,13 @@
 {
   "name": "pulsebeam-js",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
   "scripts": {
-    "gen": "buf generate",
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "devDependencies": {
-    "@bufbuild/buf": "^1.63.0",
-    "@bufbuild/protoc-gen-es": "^2.10.2",
-    "@sveltejs/vite-plugin-svelte": "^6.2.1",
-    "@tailwindcss/vite": "^4.1.18",
-    "@tsconfig/svelte": "^5.0.6",
-    "@types/node": "^24.10.1",
-    "svelte": "^5.43.8",
-    "svelte-check": "^4.3.4",
-    "tailwindcss": "^4.1.18",
-    "typescript": "~5.9.3",
-    "vite": "^7.3.1"
-  },
-  "dependencies": {
-    "@bufbuild/protobuf": "^2.10.2"
-  }
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.27.0"
 }

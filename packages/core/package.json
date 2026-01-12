@@ -1,0 +1,32 @@
+{
+  "name": "@pulsebeam/core",
+  "version": "0.0.1",
+  "description": "",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.27.0",
+  "files": [
+    "dist",
+    "src" 
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "source": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.10.2"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "@bufbuild/buf": "^1.63.0",
+    "@bufbuild/protoc-gen-es": "^2.10.2"
+  },
+  "scripts": {
+    "gen": "buf generate",
+    "build": "tsc"
+  }
+}
