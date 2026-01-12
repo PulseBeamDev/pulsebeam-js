@@ -84,6 +84,7 @@
 		"svelte"
 	],
 	"dependencies": {
+		"@pulsebeam/core": "workspace:*",
 		"lucide-svelte": "^0.562.0"
 	}
 }

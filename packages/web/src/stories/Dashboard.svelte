@@ -1,5 +1,4 @@
 <script lang="ts">
-  import "$lib/theme.css";
   import {
     Activity,
     Server,
@@ -8,17 +7,7 @@
     Shield,
     Copy,
   } from "lucide-svelte";
-
-  import * as Card from "$lib/components/ui/card";
-  import * as Table from "$lib/components/ui/table";
-  import * as Tabs from "$lib/components/ui/tabs";
-  import * as Avatar from "$lib/components/ui/avatar";
-  import { Button } from "$lib/components/ui/button";
-  import { Input } from "$lib/components/ui/input";
-  import { Label } from "$lib/components/ui/label";
-  import { Switch } from "$lib/components/ui/switch";
-  import { Slider } from "$lib/components/ui/slider";
-  import { Badge } from "$lib/components/ui/badge";
+  import { Card, Table, Tabs, Avatar, Button, Input, Label, Switch, Slider, Badge} from "$lib/index.ts";
 
   // Made this an export so Storybook can control it
   export let sessions = [

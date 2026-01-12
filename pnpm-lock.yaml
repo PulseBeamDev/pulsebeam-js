@@ -9,6 +9,10 @@ importers:
   .: {}
 
   apps/meet:
+    dependencies:
+      '@pulsebeam/web':
+        specifier: workspace:*
+        version: link:../../packages/web
     devDependencies:
       '@eslint/compat':
         specifier: ^1.4.0
@@ -92,6 +96,9 @@ importers:
 
   packages/web:
     dependencies:
+      '@pulsebeam/core':
+        specifier: workspace:*
+        version: link:../core
       lucide-svelte:
         specifier: ^0.562.0
         version: 0.562.0(svelte@5.46.1)
