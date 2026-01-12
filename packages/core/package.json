@@ -8,7 +8,7 @@
   "packageManager": "pnpm@10.27.0",
   "files": [
     "dist",
-    "src" 
+    "src"
   ],
   "exports": {
     ".": {
@@ -21,9 +21,10 @@
     "@bufbuild/protobuf": "^2.10.2"
   },
   "devDependencies": {
-    "typescript": "~5.9.3",
     "@bufbuild/buf": "^1.63.0",
-    "@bufbuild/protoc-gen-es": "^2.10.2"
+    "@bufbuild/protoc-gen-es": "^2.10.2",
+    "@types/webrtc": "^0.0.47",
+    "typescript": "~5.9.3"
   },
   "scripts": {
     "gen": "buf generate",

@@ -13,9 +13,26 @@ import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 const SIGNALING_LABEL = "__internal/v1/signaling";
 const DEBOUNCE_MS = 50;
 
+/**
+ * Interface defining all platform-specific dependencies.
+ * This allows the Session to run in Node (wrtc), React Native, or the Browser.
+ */
+export interface PlatformAdapter {
+  /** The RTCPeerConnection constructor class */
+  RTCPeerConnection: new (config?: RTCConfiguration) => RTCPeerConnection;
+  /** The MediaStream constructor class */
+  MediaStream: new (tracks?: MediaStreamTrack[]) => MediaStream;
+  /** Fetch implementation (e.g. globalThis.fetch, node-fetch, or undici) */
+  fetch: (input: string, init?: RequestInit) => Promise<Response>;
+  /** Timer functions (abstracted because Node returns objects, Browser returns numbers) */
+  setTimeout: (fn: () => void, ms: number) => any;
+  clearTimeout: (id: any) => void;
+}
+
 export interface SessionConfig {
   readonly videoSlots: number;
   readonly audioSlots: number;
+  readonly adapter: PlatformAdapter;
 }
 
 export type SessionEvent =
@@ -35,6 +52,7 @@ class StateStore {
 export class Session {
   public onEvent: ((event: SessionEvent) => void) = (_) => { };
 
+  private adapter: PlatformAdapter;
   private pc: RTCPeerConnection;
   private dc: RTCDataChannel;
   private deleteUri: string | null = null;
@@ -48,10 +66,14 @@ export class Session {
   private virtualSlots: Map<string, VirtualSlot> = new Map();
 
   private state = new StateStore();
-  private debounceTimer: number | null = null;
+
+  // Type as 'any' to handle difference between Node Timeout object and Browser number
+  private debounceTimer: any | null = null;
 
   constructor(config: SessionConfig) {
-    this.pc = new RTCPeerConnection();
+    this.adapter = config.adapter; // Store adapter
+    this.pc = new this.adapter.RTCPeerConnection();
+
     this.dc = this.pc.createDataChannel(SIGNALING_LABEL, { ordered: true });
     this.dc.binaryType = "arraybuffer";
     this.dc.onmessage = (ev) => this.handleSignal(ev.data);
@@ -89,7 +111,8 @@ export class Session {
   private getOrCreateVirtualSlot(trackId: string): VirtualSlot {
     let vSlot = this.virtualSlots.get(trackId);
     if (!vSlot) {
-      vSlot = new VirtualSlot(trackId);
+      const stream = new this.adapter.MediaStream();
+      vSlot = new VirtualSlot(trackId, stream);
       vSlot.onLayoutChange = () => this.scheduleReconcile();
       this.virtualSlots.set(trackId, vSlot);
     }
@@ -109,7 +132,9 @@ export class Session {
   }
 
   close() {
-    if (this.deleteUri) fetch(this.deleteUri, { method: 'DELETE' }).catch(() => { });
+    if (this.deleteUri) {
+      this.adapter.fetch(this.deleteUri, { method: 'DELETE' }).catch(() => { });
+    }
     this.pc.close();
   }
 
@@ -183,8 +208,8 @@ export class Session {
   }
 
   private scheduleReconcile() {
-    if (this.debounceTimer) clearTimeout(this.debounceTimer);
-    this.debounceTimer = window.setTimeout(() => this.reconcile(), DEBOUNCE_MS);
+    if (this.debounceTimer) this.adapter.clearTimeout(this.debounceTimer);
+    this.debounceTimer = this.adapter.setTimeout(() => this.reconcile(), DEBOUNCE_MS);
   }
 
   private reconcile() {
@@ -210,7 +235,7 @@ export class Session {
           requests.push(create(VideoRequestSchema, {
             mid,
             trackId: vSlot.trackId,
-            height: vSlot.height // This is now guaranteed integer
+            height: vSlot.height
           }));
           usedMids.add(mid);
           const idx = desiredTracks.indexOf(vSlot);
@@ -272,7 +297,8 @@ export class Session {
         throw new Error("unexpected missing sdp");
       }
       await this.pc.setLocalDescription(offer);
-      const res = await fetch(`${endpoint}/api/v1/rooms/${room}`, {
+
+      const res = await this.adapter.fetch(`${endpoint}/api/v1/rooms/${room}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/sdp' },
         body: offer.sdp
@@ -292,11 +318,14 @@ class PhysicalSlot {
 }
 
 export class VirtualSlot {
-  public readonly stream = new MediaStream();
   public height: number = 0;
   public onLayoutChange?: () => void;
 
-  constructor(public readonly trackId: string) { }
+  constructor(
+    public readonly trackId: string,
+    public readonly stream: MediaStream,
+  ) {
+  }
 
   get id() {
     return this.trackId;
