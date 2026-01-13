@@ -84,10 +84,7 @@ export class Dashboard extends LitElement {
       <pb-layout>
         <pb-sidebar slot="sidebar">
            <div slot="brand" style="display:flex;align-items:center;gap:10px;">
-             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-               <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="var(--pb-blue)"/>
-               <path d="M2 17L12 22L22 17" stroke="var(--pb-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-             </svg>
+            <img src="https://pulsebeam.dev/favicon.svg" width=24 heigh=24 />
              PulseBeam
            </div>
 
