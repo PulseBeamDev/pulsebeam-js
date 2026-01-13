@@ -5,6 +5,10 @@ import { pulseBeamStyles } from '../theme';
 import '@material/web/select/outlined-select.js';
 import '@material/web/select/select-option.js';
 
+/**
+ * @tag pb-select
+ * @slot - The select options (pb-option elements)
+ */
 @customElement('pb-select')
 export class Select extends LitElement {
   static styles = [
@@ -22,7 +26,9 @@ export class Select extends LitElement {
     `
   ];
 
+  /** @attribute */
   @property({ type: String }) label = '';
+  /** @attribute */
   @property({ type: String }) value = '';
 
   render() {
@@ -34,11 +40,16 @@ export class Select extends LitElement {
   }
 }
 
+/**
+ * @tag pb-option
+ */
 @customElement('pb-option')
 export class Option extends LitElement {
   static styles = [pulseBeamStyles];
 
+  /** @attribute */
   @property({ type: String }) value = '';
+  /** @attribute */
   @property({ type: Boolean }) selected = false;
 
   render() {

@@ -4,6 +4,9 @@ import { pulseBeamStyles } from '../theme';
 
 import '@material/web/textfield/outlined-text-field.js';
 
+/**
+ * @tag pb-textarea
+ */
 @customElement('pb-textarea')
 export class Textarea extends LitElement {
   static styles = [
@@ -21,10 +24,15 @@ export class Textarea extends LitElement {
     `
   ];
 
+  /** @attribute */
   @property({ type: String }) label = '';
+  /** @attribute */
   @property({ type: String }) value = '';
+  /** @attribute */
   @property({ type: String }) placeholder = '';
+  /** @attribute */
   @property({ type: Boolean }) readonly = false;
+  /** @attribute */
   @property({ type: Number }) rows = 3;
 
   render() {

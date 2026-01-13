@@ -2,6 +2,12 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { pulseBeamStyles } from '../theme';
 
+/**
+ * @tag pb-card
+ * @slot header-actions - Actions shown in the card header
+ * @slot header-full - Custom full header replacement
+ * @slot - Main content of the card
+ */
 @customElement('pb-card')
 export class Card extends LitElement {
   static styles = [
@@ -46,6 +52,7 @@ export class Card extends LitElement {
     `
   ];
 
+  /** @attribute */
   @property({ type: String }) header = '';
 
   render() {

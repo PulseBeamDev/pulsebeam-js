@@ -4,6 +4,10 @@ import { pulseBeamStyles } from '../theme';
 
 import '@material/web/radio/radio.js';
 
+/**
+ * @tag pb-radio
+ * @event change - Dispatched when the checked state changes
+ */
 @customElement('pb-radio')
 export class Radio extends LitElement {
   static styles = [
@@ -20,9 +24,13 @@ export class Radio extends LitElement {
     `
   ];
 
+  /** @attribute */
   @property({ type: Boolean }) checked = false;
+  /** @attribute */
   @property({ type: Boolean }) disabled = false;
+  /** @attribute */
   @property({ type: String }) name = '';
+  /** @attribute */
   @property({ type: String }) value = '';
 
   render() {

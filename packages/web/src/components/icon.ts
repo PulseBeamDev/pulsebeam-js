@@ -4,6 +4,9 @@ import { pulseBeamStyles } from '../theme';
 
 import '@material/web/icon/icon.js';
 
+/**
+ * @tag pb-icon
+ */
 @customElement('pb-icon')
 export class Icon extends LitElement {
   static styles = [
@@ -17,6 +20,7 @@ export class Icon extends LitElement {
     `
   ];
 
+  /** @attribute */
   @property({ type: String }) icon = '';
 
   render() {

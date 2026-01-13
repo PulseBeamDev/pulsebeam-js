@@ -11,6 +11,9 @@ export interface TableColumn<T = any> {
   align?: 'left' | 'center' | 'right';
 }
 
+/**
+ * @tag pb-table
+ */
 @customElement('pb-table')
 export class Table extends LitElement {
   static styles = [
@@ -48,7 +51,9 @@ export class Table extends LitElement {
     `
   ];
 
+  /** @attribute */
   @property({ type: Array }) columns: TableColumn[] = [];
+  /** @attribute */
   @property({ type: Array }) data: any[] = [];
 
   render() {

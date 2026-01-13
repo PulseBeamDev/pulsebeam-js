@@ -2,6 +2,11 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { pulseBeamStyles } from '../theme';
 
+/**
+ * @tag pb-sidebar
+ * @slot brand - The brand/logo area
+ * @slot - Main navigation items
+ */
 @customElement('pb-sidebar')
 export class Sidebar extends LitElement {
   static styles = [
@@ -37,6 +42,10 @@ export class Sidebar extends LitElement {
   }
 }
 
+/**
+ * @tag pb-sidebar-group
+ * @slot - The group items
+ */
 @customElement('pb-sidebar-group')
 export class SidebarGroup extends LitElement {
   static styles = [
@@ -56,6 +65,7 @@ export class SidebarGroup extends LitElement {
     `
   ];
 
+  /** @attribute */
   @property({ type: String }) title = '';
 
   render() {
@@ -66,6 +76,10 @@ export class SidebarGroup extends LitElement {
   }
 }
 
+/**
+ * @tag pb-sidebar-item
+ * @slot - The label text
+ */
 @customElement('pb-sidebar-item')
 export class SidebarItem extends LitElement {
   static styles = [
@@ -87,8 +101,11 @@ export class SidebarItem extends LitElement {
     `
   ];
 
+  /** @attribute */
   @property({ type: Boolean }) active = false;
+  /** @attribute */
   @property({ type: String }) href = '#';
+  /** @attribute */
   @property({ type: String }) icon = '';
 
   render() {

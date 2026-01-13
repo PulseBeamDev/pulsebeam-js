@@ -4,6 +4,10 @@ import { pulseBeamStyles } from '../theme';
 
 import '@material/web/switch/switch.js';
 
+/**
+ * @tag pb-switch
+ * @event change - Dispatched when the selected state changes
+ */
 @customElement('pb-switch')
 export class Switch extends LitElement {
   static styles = [
@@ -16,8 +20,11 @@ export class Switch extends LitElement {
     `
   ];
 
+  /** @attribute */
   @property({ type: Boolean }) selected = false;
+  /** @attribute */
   @property({ type: Boolean }) disabled = false;
+  /** @attribute */
   @property({ type: Boolean }) icons = false;
 
   render() {

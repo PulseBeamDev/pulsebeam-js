@@ -6,6 +6,10 @@ import '@material/web/textfield/outlined-text-field.js';
 import '@material/web/icon/icon.js';
 import '@material/web/iconbutton/icon-button.js';
 
+/**
+ * @tag pb-text-field
+ * @slot trailing-action - Action shown in the trailing area
+ */
 @customElement('pb-text-field')
 export class TextField extends LitElement {
   static styles = [
@@ -27,12 +31,19 @@ export class TextField extends LitElement {
     `
   ];
 
+  /** @attribute */
   @property({ type: String }) label = '';
+  /** @attribute */
   @property({ type: String }) value = '';
+  /** @attribute */
   @property({ type: String }) placeholder = '';
+  /** @attribute */
   @property({ type: String }) type = 'text';
+  /** @attribute */
   @property({ type: Boolean }) readonly = false;
+  /** @attribute */
   @property({ type: String }) leadingIcon = '';
+  /** @attribute */
   @property({ type: String }) trailingIcon = '';
 
   render() {

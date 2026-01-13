@@ -4,6 +4,9 @@ import { pulseBeamStyles } from '../theme';
 
 import './icon';
 
+/**
+ * @tag pb-stat-card
+ */
 @customElement('pb-stat-card')
 export class StatCard extends LitElement {
   static styles = [
@@ -56,9 +59,13 @@ export class StatCard extends LitElement {
     `
   ];
 
+  /** @attribute */
   @property({ type: String }) label = '';
+  /** @attribute */
   @property({ type: String }) value = '';
+  /** @attribute */
   @property({ type: String }) trend = ''; // e.g. "+12%"
+  /** @attribute */
   @property({ type: String }) trendDirection: 'up' | 'down' | 'neutral' = 'neutral';
 
   render() {

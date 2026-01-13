@@ -1,11 +1,13 @@
 <script lang="ts">
 import { WebAdapter, Session } from "@pulsebeam/web";
-import "@pulsebeam/web/components";
+import "@pulsebeam/web/custom-elements.json";
 import { onMount } from "svelte";
 
 let stream = $state<MediaStream>();
 
 onMount(async () => {
+  await import('@pulsebeam/web/components/button');
+
   const session = new Session({
     videoSlots: 16,
     audioSlots: 3,

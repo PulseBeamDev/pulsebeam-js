@@ -5,12 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "manifest": "cem analyze --outdir dist",
+    "build": "tsc && vite build && npm run manifest",
     "preview": "vite preview"
   },
   "files": [
     "dist"
   ],
+  "customElements": "dist/custom-elements.json",
+  "custom-elements": "dist/custom-elements.json",
   "sideEffects": [
     "**/*.css",
     "src/components/*.ts"
@@ -20,6 +23,7 @@
       "types": "./dist/engine.d.ts",
       "default": "./dist/engine.js"
     },
+    "./custom-elements.json": "./dist/custom-elements.json",
     "./components": {
       "types": "./dist/components/index.d.ts",
       "default": "./dist/components/index.js"
@@ -41,8 +45,9 @@
     "material-symbols": "^0.40.2"
   },
   "devDependencies": {
+    "@custom-elements-manifest/analyzer": "^0.11.0",
     "fast-glob": "^3.3.3",
-    "typescript": "~5.9.3",
+    "typescript": "~5.8.2",
     "vite": "^7.2.4",
     "vite-plugin-dts": "^4.5.4"
   }

@@ -4,6 +4,9 @@ import { pulseBeamStyles } from '../theme';
 
 import '@material/web/chips/assist-chip.js';
 
+/**
+ * @tag pb-tag
+ */
 @customElement('pb-tag')
 export class Tag extends LitElement {
   static styles = [
@@ -21,6 +24,7 @@ export class Tag extends LitElement {
     `
   ];
 
+  /** @attribute */
   @property({ type: String }) label = '';
 
   render() {

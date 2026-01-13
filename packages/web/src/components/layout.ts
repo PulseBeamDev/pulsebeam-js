@@ -1,7 +1,12 @@
 import { LitElement, html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { pulseBeamStyles } from '../theme';
-
+/**
+ * @tag pb-layout
+ * @slot sidebar - The sidebar area
+ * @slot header - The header area
+ * @slot - Main content area
+ */
 @customElement('pb-layout')
 export class Layout extends LitElement {
   static styles = [

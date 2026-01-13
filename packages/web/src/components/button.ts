@@ -9,6 +9,9 @@ import '@material/web/iconbutton/icon-button.js';
 
 export type ButtonVariant = 'filled' | 'outlined' | 'icon';
 
+/**
+ * @tag pb-button
+ */
 @customElement('pb-button')
 export class Button extends LitElement {
   static styles = [
@@ -20,9 +23,13 @@ export class Button extends LitElement {
     `
   ];
 
+  /** @attribute */
   @property({ type: String }) variant: ButtonVariant = 'filled';
+  /** @attribute */
   @property({ type: Boolean }) disabled = false;
+  /** @attribute */
   @property({ type: String }) icon = '';
+  /** @attribute */
   @property({ type: String }) type = 'button';
 
   render() {
