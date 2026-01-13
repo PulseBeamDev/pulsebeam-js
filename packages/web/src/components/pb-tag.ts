@@ -1,14 +1,14 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { pulseBeamStyles } from '../design-system';
+import { pulseBeamStyles } from '../theme';
 
 import '@material/web/chips/assist-chip.js';
 
 @customElement('pb-tag')
 export class PbTag extends LitElement {
-    static styles = [
-        pulseBeamStyles,
-        css`
+  static styles = [
+    pulseBeamStyles,
+    css`
       :host {
         display: inline-flex;
       }
@@ -19,19 +19,19 @@ export class PbTag extends LitElement {
         --md-assist-chip-outline-color: var(--pb-border-dk);
       }
     `
-    ];
+  ];
 
-    @property({ type: String }) label = '';
+  @property({ type: String }) label = '';
 
-    render() {
-        return html`
+  render() {
+    return html`
       <md-assist-chip label="${this.label}"></md-assist-chip>
     `;
-    }
+  }
 }
 
 declare global {
-    interface HTMLElementTagNameMap {
-        'pb-tag': PbTag;
-    }
+  interface HTMLElementTagNameMap {
+    'pb-tag': PbTag;
+  }
 }

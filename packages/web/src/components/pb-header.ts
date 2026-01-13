@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
-import { pulseBeamStyles } from '../design-system';
+import { pulseBeamStyles } from '../theme';
 
 @customElement('pb-header')
 export class PbHeader extends LitElement {

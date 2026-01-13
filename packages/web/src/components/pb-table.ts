@@ -1,7 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import type { TemplateResult } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { pulseBeamStyles } from '../design-system';
+import { pulseBeamStyles } from '../theme';
 
 export interface PbTableColumn<T = any> {
   header: string;

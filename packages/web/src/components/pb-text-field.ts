@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { pulseBeamStyles } from '../design-system';
+import { pulseBeamStyles } from '../theme';
 
 import '@material/web/textfield/outlined-text-field.js';
 import '@material/web/icon/icon.js';
@@ -8,9 +8,9 @@ import '@material/web/iconbutton/icon-button.js';
 
 @customElement('pb-text-field')
 export class PbTextField extends LitElement {
-    static styles = [
-        pulseBeamStyles,
-        css`
+  static styles = [
+    pulseBeamStyles,
+    css`
       :host {
         display: block;
       }
@@ -25,18 +25,18 @@ export class PbTextField extends LitElement {
         --md-outlined-text-field-focus-outline-color: var(--pb-blue);
       }
     `
-    ];
+  ];
 
-    @property({ type: String }) label = '';
-    @property({ type: String }) value = '';
-    @property({ type: String }) placeholder = '';
-    @property({ type: String }) type = 'text';
-    @property({ type: Boolean }) readonly = false;
-    @property({ type: String }) leadingIcon = '';
-    @property({ type: String }) trailingIcon = '';
+  @property({ type: String }) label = '';
+  @property({ type: String }) value = '';
+  @property({ type: String }) placeholder = '';
+  @property({ type: String }) type = 'text';
+  @property({ type: Boolean }) readonly = false;
+  @property({ type: String }) leadingIcon = '';
+  @property({ type: String }) trailingIcon = '';
 
-    render() {
-        return html`
+  render() {
+    return html`
       <md-outlined-text-field
         label="${this.label}"
         value="${this.value}"
@@ -49,11 +49,11 @@ export class PbTextField extends LitElement {
         <slot name="trailing-action" slot="trailing-icon"></slot>
       </md-outlined-text-field>
     `;
-    }
+  }
 }
 
 declare global {
-    interface HTMLElementTagNameMap {
-        'pb-text-field': PbTextField;
-    }
+  interface HTMLElementTagNameMap {
+    'pb-text-field': PbTextField;
+  }
 }

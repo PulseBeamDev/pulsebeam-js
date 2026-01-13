@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { pulseBeamStyles } from '../design-system';
+import { pulseBeamStyles } from '../theme';
 
 import '@material/web/button/filled-button.js';
 import '@material/web/button/outlined-button.js';

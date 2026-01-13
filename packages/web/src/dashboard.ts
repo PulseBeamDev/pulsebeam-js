@@ -1,7 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 
-import { pulseBeamStyles } from './design-system';
+import { pulseBeamStyles } from './theme';
 
 // Import all PB components
 import './components/pb-layout';
