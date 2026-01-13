@@ -5,8 +5,9 @@ import { pulseBeamStyles } from '../design-system';
 import '@material/web/button/filled-button.js';
 import '@material/web/button/outlined-button.js';
 import '@material/web/icon/icon.js';
+import '@material/web/iconbutton/icon-button.js';
 
-export type ButtonVariant = 'filled' | 'outlined';
+export type ButtonVariant = 'filled' | 'outlined' | 'icon';
 
 @customElement('pb-button')
 export class PbButton extends LitElement {
@@ -21,6 +22,9 @@ export class PbButton extends LitElement {
         --md-outlined-button-container-shape: var(--pb-radius);
         width: 100%;
       }
+      md-icon-button {
+        --md-icon-button-state-layer-color: var(--pb-blue);
+      }
     `
   ];
 
@@ -30,6 +34,14 @@ export class PbButton extends LitElement {
   @property({ type: String }) type = 'button';
 
   render() {
+    if (this.variant === 'icon') {
+      return html`
+        <md-icon-button ?disabled=${this.disabled} type=${this.type}>
+          <md-icon>${this.icon}</md-icon>
+        </md-icon-button>
+      `;
+    }
+
     if (this.variant === 'outlined') {
       return html`
         <md-outlined-button ?disabled=${this.disabled} type=${this.type}>

@@ -4,9 +4,9 @@ import { pulseBeamStyles } from '../design-system';
 
 @customElement('pb-card')
 export class PbCard extends LitElement {
-    static styles = [
-        pulseBeamStyles,
-        css`
+  static styles = [
+    pulseBeamStyles,
+    css`
       :host {
         display: block;
         background: var(--pb-paper);
@@ -21,7 +21,7 @@ export class PbCard extends LitElement {
         height: 44px; 
         padding: 0 20px;
         border-bottom: 1px solid var(--pb-border);
-        background: #fafbfc;
+        background: var(--pb-canvas);
         display: flex; align-items: center; justify-content: space-between;
       }
 
@@ -44,29 +44,29 @@ export class PbCard extends LitElement {
       /* If no header, we might want to adjust padding or styling, 
          but adhering to the dashboard look, usually cards have headers or just content. */
     `
-    ];
+  ];
 
-    @property({ type: String }) header = '';
+  @property({ type: String }) header = '';
 
-    render() {
-        return html`
+  render() {
+    return html`
       ${this.header
-                ? html`
+        ? html`
             <header>
               <h3>${this.header}</h3>
               <slot name="header-actions"></slot>
             </header>`
-                : html`<slot name="header-full"></slot>`
-            }
+        : html`<slot name="header-full"></slot>`
+      }
       <div class="content">
         <slot></slot>
       </div>
     `;
-    }
+  }
 }
 
 declare global {
-    interface HTMLElementTagNameMap {
-        'pb-card': PbCard;
-    }
+  interface HTMLElementTagNameMap {
+    'pb-card': PbCard;
+  }
 }

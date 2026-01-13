@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 
 import { pulseBeamStyles } from './design-system';
 
@@ -20,8 +20,15 @@ import type { PbTableColumn } from './components/pb-table';
 // For icons
 import 'material-symbols/outlined.css';
 
+import { ThemeManager, type Theme } from './utils/theme-manager';
+
+// Initialize theme on load (could be done in main.ts, but dashboard is entry for now)
+ThemeManager.init();
+
 @customElement('pb-dashboard')
 export class Dashboard extends LitElement {
+
+  @state() theme: Theme = ThemeManager.getTheme();
 
   static styles = [pulseBeamStyles, css`
     :host {
@@ -73,6 +80,10 @@ export class Dashboard extends LitElement {
     ` }
   ];
 
+  toggleTheme() {
+    this.theme = ThemeManager.toggle();
+  }
+
   render() {
     return html`
       <pb-layout>
@@ -102,7 +113,8 @@ export class Dashboard extends LitElement {
             <pb-icon icon="home" style="font-size:18px; color:var(--pb-text-dim)"></pb-icon> / us-east-1 / 
             <span class="tag">prod-sfu-04</span>
           </div>
-          <div slot="end">
+          <div slot="end" style="display:flex; gap:8px;">
+            <pb-button variant="icon" icon="${ThemeManager.getIcon(this.theme)}" @click=${this.toggleTheme}></pb-button>
             <pb-button icon="add">Deploy</pb-button>
           </div>
         </pb-header>

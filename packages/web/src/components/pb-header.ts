@@ -4,14 +4,15 @@ import { pulseBeamStyles } from '../design-system';
 
 @customElement('pb-header')
 export class PbHeader extends LitElement {
-    static styles = [
-        pulseBeamStyles,
-        css`
+  static styles = [
+    pulseBeamStyles,
+    css`
       :host {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        background: rgba(255,255,255,0.9);
+        background: var(--pb-paper);
+        opacity: 0.95;
         backdrop-filter: blur(8px);
         border-bottom: 1px solid var(--pb-border);
         padding: 0 32px;
@@ -19,10 +20,10 @@ export class PbHeader extends LitElement {
         width: 100%;
       }
     `
-    ];
+  ];
 
-    render() {
-        return html`
+  render() {
+    return html`
       <div class="start">
         <slot name="start"></slot>
       </div>
@@ -30,11 +31,11 @@ export class PbHeader extends LitElement {
         <slot name="end"></slot>
       </div>
     `;
-    }
+  }
 }
 
 declare global {
-    interface HTMLElementTagNameMap {
-        'pb-header': PbHeader;
-    }
+  interface HTMLElementTagNameMap {
+    'pb-header': PbHeader;
+  }
 }
