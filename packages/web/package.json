@@ -1,5 +1,5 @@
 {
-  "name": "web",
+  "name": "@pulsebeam/web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,7 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/ibm-plex-mono": "^5.2.7",
+    "@fontsource/ibm-plex-sans": "^5.2.8",
     "@fontsource/inter": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@fontsource/manrope": "^5.2.8",
     "@material/web": "^2.4.1",
     "lit": "^3.3.1",
     "material-symbols": "^0.40.2"
