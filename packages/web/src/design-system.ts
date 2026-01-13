@@ -71,17 +71,36 @@ export const pulseBeamStyles = css`
     --md-sys-typescale-body-large-font: var(--pb-font-ui);
     --md-sys-typescale-label-large-font: var(--pb-font-ui);
 
-    /* SWITCH OVERRIDES (Rectangular Brand Style) */
-    --md-switch-track-shape: var(--pb-radius);
-    --md-switch-handle-shape: var(--pb-radius);
-    --md-switch-track-width: 40px;
-    --md-switch-track-height: 24px;
+    /* GLOBAL SHAPE SYSTEM */
+    --md-sys-shape-corner-extra-small: var(--pb-radius);
+    --md-sys-shape-corner-small: var(--pb-radius);
+    --md-sys-shape-corner-medium: var(--pb-radius);
+    --md-sys-shape-corner-large: var(--pb-radius);
+    --md-sys-shape-corner-full: 9999px;
+
+    /* SWITCH OVERRIDES (Strict Rectangular & Small) */
+    --md-switch-track-shape: 4px;  /* Slightly rounded rectangle */
+    --md-switch-handle-shape: 2px; /* Matching slight roundness */
+    
+    --md-switch-track-width: 32px;
+    --md-switch-track-height: 18px;
+    
+    --md-switch-handle-width: 14px;
+    --md-switch-handle-height: 14px;
+
     /* Light Mode Switch Colors */
-    --md-switch-selected-track-color: var(--pb-ink);
+    --md-switch-selected-track-color: var(--pb-blue);
     --md-switch-selected-handle-color: #ffffff;
-    --md-switch-unselected-track-color: var(--pb-border);
+    --md-switch-selected-icon-color: #ffffff;
+    
+    --md-switch-unselected-track-color: var(--pb-border-dk);
     --md-switch-unselected-handle-color: var(--pb-text-sub);
-    --md-switch-selected-icon-color: var(--pb-ink);
+    --md-switch-unselected-icon-color: var(--pb-paper);
+
+    --md-switch-selected-pressed-track-color: var(--pb-blue);
+    --md-switch-selected-hover-track-color: var(--pb-blue);
+    --md-switch-selected-focus-track-color: var(--pb-blue);
+
     
     /* Strict Reset */
     box-sizing: border-box;

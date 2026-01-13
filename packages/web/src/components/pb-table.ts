@@ -4,18 +4,18 @@ import { customElement, property } from 'lit/decorators.js';
 import { pulseBeamStyles } from '../design-system';
 
 export interface PbTableColumn<T = any> {
-    header: string;
-    accessor?: keyof T;
-    render?: (item: T) => TemplateResult | string | number;
-    width?: string;
-    align?: 'left' | 'center' | 'right';
+  header: string;
+  accessor?: keyof T;
+  render?: (item: T) => TemplateResult | string | number;
+  width?: string;
+  align?: 'left' | 'center' | 'right';
 }
 
 @customElement('pb-table')
 export class PbTable extends LitElement {
-    static styles = [
-        pulseBeamStyles,
-        css`
+  static styles = [
+    pulseBeamStyles,
+    css`
       :host {
         display: block;
         width: 100%;
@@ -29,13 +29,13 @@ export class PbTable extends LitElement {
       th { 
         text-align: left; 
         padding: 12px 20px; 
-        background: #fff; 
         border-bottom: 1px solid var(--pb-border); 
-        color: var(--pb-text-sec); 
+        color: var(--pb-text-sub); 
         font-weight: 700; 
         font-size: 0.75rem; 
         text-transform: uppercase; 
         letter-spacing: 0.05em; 
+        background: transparent;
       }
       td { 
         padding: 12px 20px; 
@@ -44,15 +44,15 @@ export class PbTable extends LitElement {
         vertical-align: middle;
       }
       tr:last-child td { border-bottom: none; }
-      tr:hover td { background: #f8fafc; }
+      tr:hover td { background: var(--pb-canvas); }
     `
-    ];
+  ];
 
-    @property({ type: Array }) columns: PbTableColumn[] = [];
-    @property({ type: Array }) data: any[] = [];
+  @property({ type: Array }) columns: PbTableColumn[] = [];
+  @property({ type: Array }) data: any[] = [];
 
-    render() {
-        return html`
+  render() {
+    return html`
       <table>
         <thead>
           <tr>
@@ -76,21 +76,21 @@ export class PbTable extends LitElement {
         </tbody>
       </table>
     `;
-    }
+  }
 
-    private _renderCell(row: any, col: PbTableColumn) {
-        if (col.render) {
-            return col.render(row);
-        }
-        if (col.accessor) {
-            return row[col.accessor];
-        }
-        return '';
+  private _renderCell(row: any, col: PbTableColumn) {
+    if (col.render) {
+      return col.render(row);
     }
+    if (col.accessor) {
+      return row[col.accessor];
+    }
+    return '';
+  }
 }
 
 declare global {
-    interface HTMLElementTagNameMap {
-        'pb-table': PbTable;
-    }
+  interface HTMLElementTagNameMap {
+    'pb-table': PbTable;
+  }
 }

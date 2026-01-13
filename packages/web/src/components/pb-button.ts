@@ -17,14 +17,6 @@ export class PbButton extends LitElement {
       :host {
         display: inline-flex;
       }
-      md-filled-button, md-outlined-button {
-        --md-filled-button-container-shape: var(--pb-radius);
-        --md-outlined-button-container-shape: var(--pb-radius);
-        width: 100%;
-      }
-      md-icon-button {
-        --md-icon-button-state-layer-color: var(--pb-blue);
-      }
     `
   ];
 
