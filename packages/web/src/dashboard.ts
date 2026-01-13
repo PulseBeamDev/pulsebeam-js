@@ -1,23 +1,50 @@
-import { LitElement, html } from 'lit';
+import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { map } from 'lit/directives/map.js';
 
 import { pulseBeamStyles } from './design-system';
 
+// Import all PB components
+import './components/pb-layout';
+import './components/pb-sidebar';
+import './components/pb-header';
+import './components/pb-icon';
+import './components/pb-button';
+import './components/pb-stat-card';
+import './components/pb-card';
+import './components/pb-text-field';
+import './components/pb-switch';
+import './components/pb-tag';
+import './components/pb-table';
+import type { PbTableColumn } from './components/pb-table';
+
+// For icons
 import 'material-symbols/outlined.css';
-import '@material/web/button/filled-button.js';
-import '@material/web/button/outlined-button.js';
-import '@material/web/icon/icon.js';
-import '@material/web/iconbutton/icon-button.js';
-import '@material/web/textfield/outlined-text-field.js';
-import '@material/web/switch/switch.js';
-import '@material/web/chips/assist-chip.js';
-import '@material/web/divider/divider.js';
 
 @customElement('pb-dashboard')
 export class Dashboard extends LitElement {
 
-  static styles = [pulseBeamStyles];
+  static styles = [pulseBeamStyles, css`
+    :host {
+      display: block; /* Ensure it doesn't default to grid or inline */
+      height: 100vh;
+      width: 100%;
+    }
+    
+    .crumbs { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: var(--pb-text-sec); font-weight: 500; }
+    .tag { 
+       font-family: var(--pb-font-mono); font-size: 0.75rem; 
+       background: #fff; padding: 3px 8px; 
+       border: 1px solid var(--pb-border-dk); border-radius: var(--pb-radius);
+    }
+    
+    /* Utility for flex spacing */
+    .flex-row { display: flex; gap: 8px; align-items: center; }
+    .w-full { width: 100%; }
+    
+    .col-3 { grid-column: span 3; }
+    .col-9 { grid-column: span 9; }
+    @media (max-width: 1200px) { .col-3, .col-9 { grid-column: span 12; } }
+  `];
 
   @property({ type: Array }) sessions = [
     { id: "s_8829", user: "Alice_Dev", transport: "UDP", rate: "2.4 Mbps", status: "Active" },
@@ -26,129 +53,91 @@ export class Dashboard extends LitElement {
     { id: "s_3391", user: "Load_Test", transport: "UDP", rate: "4.2 Mbps", status: "Active" },
   ];
 
+  // Define columns for pb-table
+  columns: PbTableColumn[] = [
+    { header: 'Session ID', accessor: 'id', width: '120px', render: (r) => html`<span style="font-family:var(--pb-font-mono); font-size:12px">${r.id}</span>` },
+    { header: 'User', accessor: 'user', render: (r) => html`<span style="font-weight:600">${r.user}</span>` },
+    { header: 'Transport', accessor: 'transport', render: (r) => html`<pb-tag label="${r.transport}"></pb-tag>` },
+    { header: 'Bitrate', accessor: 'rate', render: (r) => html`<span style="font-family:var(--pb-font-mono)">${r.rate}</span>` },
+    {
+      header: 'Status', accessor: 'status', render: (r) => html`
+      <span style="font-size:12px; font-weight:600; color:${r.status === 'Active' ? '#16a34a' : '#b45309'}">
+        ● ${r.status}
+      </span>
+    ` }
+  ];
+
   render() {
     return html`
-      <aside>
-        <div class="brand">
-           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-             <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="var(--pb-blue)"/>
-             <path d="M2 17L12 22L22 17" stroke="var(--pb-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-           </svg>
-           PulseBeam
-        </div>
+      <pb-layout>
+        <pb-sidebar slot="sidebar">
+           <div slot="brand" style="display:flex;align-items:center;gap:10px;">
+             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+               <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="var(--pb-blue)"/>
+               <path d="M2 17L12 22L22 17" stroke="var(--pb-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+             </svg>
+             PulseBeam
+           </div>
 
-        <nav>
-          <h6>Platform</h6>
-          <a class="active"><md-icon>grid_view</md-icon> Overview</a>
-          <a><md-icon>dns</md-icon> Nodes</a>
-          <a><md-icon>hub</md-icon> Topologies</a>
-        </nav>
+           <pb-sidebar-group title="Platform">
+             <pb-sidebar-item icon="grid_view" active>Overview</pb-sidebar-item>
+             <pb-sidebar-item icon="dns">Nodes</pb-sidebar-item>
+             <pb-sidebar-item icon="hub">Topologies</pb-sidebar-item>
+           </pb-sidebar-group>
 
-        <nav>
-          <h6>Observability</h6>
-          <a><md-icon>bar_chart</md-icon> Metrics</a>
-          <a><md-icon>terminal</md-icon> Logs</a>
-        </nav>
-      </aside>
+           <pb-sidebar-group title="Observability">
+             <pb-sidebar-item icon="bar_chart">Metrics</pb-sidebar-item>
+             <pb-sidebar-item icon="terminal">Logs</pb-sidebar-item>
+           </pb-sidebar-group>
+        </pb-sidebar>
 
-      <main>
-        <header>
-          <div class="crumbs">
-            <md-icon style="font-size:18px; color:var(--pb-text-dim)">home</md-icon> / us-east-1 / 
+        <pb-header slot="header">
+          <div slot="start" class="crumbs">
+            <pb-icon icon="home" style="font-size:18px; color:var(--pb-text-dim)"></pb-icon> / us-east-1 / 
             <span class="tag">prod-sfu-04</span>
           </div>
-          <md-filled-button>
-            <md-icon slot="icon">add</md-icon> Deploy
-          </md-filled-button>
-        </header>
+          <div slot="end">
+            <pb-button icon="add">Deploy</pb-button>
+          </div>
+        </pb-header>
 
-        <div class="grid">
-          
-          <!-- Stats Cards -->
-          ${this.renderStat("Active Connections", "4,812", "+12%", true)}
-          ${this.renderStat("Egress Bandwidth", "8.2 GB/s", "Stable", false)}
-          ${this.renderStat("Cluster Health", "99.9%", "Optimal", true)}
-          ${this.renderStat("Latency P95", "24ms", "Global", true)}
+        <!-- Main Content Grid is handled by pb-layout default slot styling, but we need col spans -->
+        
+        <pb-stat-card class="col-3" label="Active Connections" value="4,812" trend="+12%" trendDirection="up"></pb-stat-card>
+        <pb-stat-card class="col-3" label="Egress Bandwidth" value="8.2 GB/s" trend="Stable"></pb-stat-card>
+        <pb-stat-card class="col-3" label="Cluster Health" value="99.9%" trend="Optimal" trendDirection="up"></pb-stat-card>
+        <pb-stat-card class="col-3" label="Latency P95" value="24ms" trend="Global" trendDirection="up"></pb-stat-card>
 
-          <!-- Table -->
-          <section class="col-9">
-            <header>
-               <h3>Live Sessions</h3>
-               <div style="display:flex; gap:8px">
-                  <md-outlined-button>Filter</md-outlined-button>
-                  <md-icon-button style="width:28px; height:28px; padding:4px;"><md-icon>refresh</md-icon></md-icon-button>
-               </div>
-            </header>
-            
-            <table>
-              <thead>
-                <tr><th>Session ID</th><th>User</th><th>Transport</th><th>Bitrate</th><th>Status</th></tr>
-              </thead>
-              <tbody>
-                ${map(this.sessions, s => html`
-                  <tr>
-                    <td class="mono" style="font-size:12px;">${s.id}</td>
-                    <td style="font-weight:600">${s.user}</td>
-                    <td>
-                      <md-assist-chip label="${s.transport}" style="width: fit-content;"></md-assist-chip>
-                    </td>
-                    <td class="mono">${s.rate}</td>
-                    <td>
-                      <span style="font-size:12px; font-weight:600; color:${s.status === 'Active' ? '#16a34a' : '#b45309'}">
-                         ● ${s.status}
-                      </span>
-                    </td>
-                  </tr>
-                `)}
-              </tbody>
-            </table>
-          </section>
+        <pb-card class="col-9" header="Live Sessions">
+           <div slot="header-actions" class="flex-row">
+              <pb-button variant="outlined">Filter</pb-button>
+              <pb-icon icon="refresh" style="cursor:pointer"></pb-icon> 
+              <!-- button icon fallback, ideally pb-icon-button if we made one, or pb-button with only icon -->
+           </div>
+           
+           <pb-table .columns=${this.columns} .data=${this.sessions}></pb-table>
+        </pb-card>
 
-          <!-- Node Config -->
-          <section class="col-3">
-             <header><h3>Node Config</h3></header>
-             <div>
-                <div>
-                   <div style="font-size:12px; font-weight:600; color:var(--pb-text-sec); margin-bottom:8px;">Public Key</div>
-                   <md-outlined-text-field value="pk_live_..." readonly style="width:100%; height: 36px;">
-                      <md-icon-button slot="trailing-icon"><md-icon>content_copy</md-icon></md-icon-button>
-                   </md-outlined-text-field>
-                </div>
-                
-                <md-divider style="margin-top: 8px;"></md-divider>
+        <pb-card class="col-3" header="Node Config">
+           <div style="font-size:12px; font-weight:600; color:var(--pb-text-sec); margin-bottom:8px;">Public Key</div>
+           <pb-text-field value="pk_live_..." readonly trailingIcon="content_copy"></pb-text-field>
+           
+           <div style="height:1px; background:var(--pb-border); margin:16px 0;"></div>
 
-                <!-- SWITCHES FIXED: No extra scaling, handled by tokens -->
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                   <span style="font-size:14px; font-weight:500">Maintenance</span>
-                   <md-switch ?icons=${false}></md-switch>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                   <span style="font-size:14px; font-weight:500">Simulcast</span>
-                   <md-switch selected ?icons=${false}></md-switch>
-                </div>
-                
-                <div style="margin-top:16px">
-                   <md-outlined-button style="width:100%">View Raw Config</md-outlined-button>
-                </div>
-             </div>
-          </section>
-
-        </div>
-      </main>
-    `;
-  }
-
-  renderStat(label: string, value: string, sub: string, good: boolean) {
-    return html`
-      <section class="col-3">
-         <div style="padding: 24px;">
-            <div style="font-size:0.75rem; font-weight:700; color:var(--pb-text-dim); text-transform:uppercase; letter-spacing:0.05em">${label}</div>
-            <div class="stat-val">${value}</div>
-            <div class="stat-meta ${good ? 'trend-up' : ''}">
-               <md-icon style="font-size:16px">${good ? 'trending_up' : 'remove'}</md-icon> ${sub}
-            </div>
-         </div>
-      </section>
+           <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:14px; font-weight:500">Maintenance</span>
+              <pb-switch></pb-switch>
+           </div>
+           <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:14px; font-weight:500">Simulcast</span>
+              <pb-switch selected></pb-switch>
+           </div>
+           
+           <div style="margin-top:16px">
+              <pb-button variant="outlined" style="width:100%; display:flex;">View Raw Config</pb-button>
+           </div>
+        </pb-card>
+      </pb-layout>
     `;
   }
 }

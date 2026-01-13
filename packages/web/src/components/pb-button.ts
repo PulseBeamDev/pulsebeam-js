@@ -1,0 +1,55 @@
+import { LitElement, html, css } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+import { pulseBeamStyles } from '../design-system';
+
+import '@material/web/button/filled-button.js';
+import '@material/web/button/outlined-button.js';
+import '@material/web/icon/icon.js';
+
+export type ButtonVariant = 'filled' | 'outlined';
+
+@customElement('pb-button')
+export class PbButton extends LitElement {
+  static styles = [
+    pulseBeamStyles,
+    css`
+      :host {
+        display: inline-flex;
+      }
+      md-filled-button, md-outlined-button {
+        --md-filled-button-container-shape: var(--pb-radius);
+        --md-outlined-button-container-shape: var(--pb-radius);
+        width: 100%;
+      }
+    `
+  ];
+
+  @property({ type: String }) variant: ButtonVariant = 'filled';
+  @property({ type: Boolean }) disabled = false;
+  @property({ type: String }) icon = '';
+  @property({ type: String }) type = 'button';
+
+  render() {
+    if (this.variant === 'outlined') {
+      return html`
+        <md-outlined-button ?disabled=${this.disabled} type=${this.type}>
+          ${this.icon ? html`<md-icon slot="icon">${this.icon}</md-icon>` : ''}
+          <slot></slot>
+        </md-outlined-button>
+      `;
+    }
+
+    return html`
+      <md-filled-button ?disabled=${this.disabled} type=${this.type}>
+        ${this.icon ? html`<md-icon slot="icon">${this.icon}</md-icon>` : ''}
+        <slot></slot>
+      </md-filled-button>
+    `;
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'pb-button': PbButton;
+  }
+}

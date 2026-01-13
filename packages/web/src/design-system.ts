@@ -1,7 +1,7 @@
 import { css } from 'lit';
 
 // Font Imports
-import '@fontsource/manrope';
+import '@fontsource/manrope/index.css';
 import '@fontsource/jetbrains-mono/400.css';
 import '@fontsource/jetbrains-mono/500.css';
 import '@fontsource/jetbrains-mono/600.css';
@@ -66,37 +66,27 @@ export const pulseBeamStyles = css`
     /* -----------------------------------------------------------------
        THE SWITCH FIX: Stable Mechanical Block
        ----------------------------------------------------------------- */
-    
-    /* 1. Geometry: Strict Rectangles */
     --md-switch-track-shape: 2px;
     --md-switch-handle-shape: 2px;
-    
-    /* 2. Sizing: Fixed Dense Dimensions */
     --md-switch-track-width: 32px;
     --md-switch-track-height: 16px;
-    
-    /* CRITICAL FIX: Explicitly set handle size for BOTH states to prevent morphing */
     --md-switch-handle-width: 10px;
     --md-switch-handle-height: 10px;
     --md-switch-selected-handle-width: 10px;
     --md-switch-selected-handle-height: 10px;
 
-    /* 3. OFF STATE: High Contrast Wireframe */
     --md-switch-track-color: #ffffff;         
-    --md-switch-track-outline-color: #64748b; /* Dark Grey Border */
-    --md-switch-handle-color: #64748b;        /* Matching Dark Handle */
+    --md-switch-track-outline-color: #64748b; 
+    --md-switch-handle-color: #64748b;        
     
-    /* 4. ON STATE: Solid Blue Block */
     --md-switch-selected-track-color: var(--pb-blue);
     --md-switch-selected-track-outline-color: var(--pb-blue);
-    --md-switch-selected-handle-color: #ffffff; /* Bright White Handle */
+    --md-switch-selected-handle-color: #ffffff; 
 
-    /* 5. INTERACTION: Remove Icons & Ripple Artifacts */
     --md-switch-icon-size: 0px;
     --md-switch-selected-icon-size: 0px;
     --md-switch-state-layer-color: transparent;
     --md-switch-selected-pressed-state-layer-color: transparent;
-    /* ----------------------------------------------------------------- */
 
     /* Global Colors */
     --md-sys-color-primary: var(--pb-ink);
@@ -104,15 +94,8 @@ export const pulseBeamStyles = css`
     --md-sys-color-outline: var(--pb-border-dk);
     --md-sys-color-surface: var(--pb-paper);
 
-    /* ========================================================================
-       3. GLOBAL LAYOUT
-       ======================================================================== */
-    display: grid;
-    grid-template-columns: 240px 1fr;
-    height: 100vh;
     font-family: var(--pb-font-ui);
     color: var(--pb-text);
-    background: var(--pb-canvas);
     font-size: 13px;
     line-height: 1.5;
   }
@@ -121,6 +104,18 @@ export const pulseBeamStyles = css`
   * { box-sizing: border-box; }
   a { text-decoration: none; color: inherit; cursor: pointer; }
   button, input { font-family: inherit; }
+`;
+
+export const legacyLayoutStyles = css`
+  :host {
+    /* ========================================================================
+       3. GLOBAL LAYOUT (LEGACY)
+       ======================================================================== */
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    height: 100vh;
+    background: var(--pb-canvas);
+  }
 
   /* --- SIDEBAR --- */
   aside {
