@@ -1,5 +1,6 @@
 <script lang="ts">
 import { WebAdapter, Session } from "@pulsebeam/web";
+import { PbButton } from "@pulsebeam/web/components";
 import { onMount } from "svelte";
 
 let stream = $state<MediaStream>();
@@ -21,3 +22,4 @@ onMount(async () => {
 <p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
 <video autoplay width=640 style="aspect-ratio: 16/9" srcobject={stream}>
 </video>
+<pb-button>Hello</pb-button>

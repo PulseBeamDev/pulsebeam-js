@@ -117,6 +117,9 @@ importers:
       '@material/web':
         specifier: ^2.4.1
         version: 2.4.1
+      '@pulsebeam/core':
+        specifier: workspace:*
+        version: link:../core
       lit:
         specifier: ^3.3.1
         version: 3.3.2
