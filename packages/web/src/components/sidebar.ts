@@ -3,7 +3,7 @@ import { customElement, property } from 'lit/decorators.js';
 import { pulseBeamStyles } from '../theme';
 
 @customElement('pb-sidebar')
-export class PbSidebar extends LitElement {
+export class Sidebar extends LitElement {
   static styles = [
     pulseBeamStyles,
     css`
@@ -38,7 +38,7 @@ export class PbSidebar extends LitElement {
 }
 
 @customElement('pb-sidebar-group')
-export class PbSidebarGroup extends LitElement {
+export class SidebarGroup extends LitElement {
   static styles = [
     pulseBeamStyles,
     css`
@@ -67,7 +67,7 @@ export class PbSidebarGroup extends LitElement {
 }
 
 @customElement('pb-sidebar-item')
-export class PbSidebarItem extends LitElement {
+export class SidebarItem extends LitElement {
   static styles = [
     pulseBeamStyles,
     css`
@@ -104,8 +104,8 @@ export class PbSidebarItem extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'pb-sidebar': PbSidebar;
-    'pb-sidebar-group': PbSidebarGroup;
-    'pb-sidebar-item': PbSidebarItem;
+    'pb-sidebar': Sidebar;
+    'pb-sidebar-group': SidebarGroup;
+    'pb-sidebar-item': SidebarItem;
   }
 }

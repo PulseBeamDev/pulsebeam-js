@@ -5,7 +5,7 @@ import { pulseBeamStyles } from '../theme';
 import '@material/web/radio/radio.js';
 
 @customElement('pb-radio')
-export class PbRadio extends LitElement {
+export class Radio extends LitElement {
   static styles = [
     pulseBeamStyles,
     css`
@@ -45,6 +45,6 @@ export class PbRadio extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'pb-radio': PbRadio;
+    'pb-radio': Radio;
   }
 }

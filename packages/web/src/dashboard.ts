@@ -4,18 +4,18 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { pulseBeamStyles } from './theme';
 
 // Import all PB components
-import './components/pb-layout';
-import './components/pb-sidebar';
-import './components/pb-header';
-import './components/pb-icon';
-import './components/pb-button';
-import './components/pb-stat-card';
-import './components/pb-card';
-import './components/pb-text-field';
-import './components/pb-switch';
-import './components/pb-tag';
-import './components/pb-table';
-import type { PbTableColumn } from './components/pb-table';
+import './components/layout';
+import './components/sidebar';
+import './components/header';
+import './components/icon';
+import './components/button';
+import './components/stat-card';
+import './components/card';
+import './components/text-field';
+import './components/switch';
+import './components/tag';
+import './components/table';
+import type { TableColumn } from './components/table';
 
 // For icons
 import 'material-symbols/outlined.css';
@@ -62,7 +62,7 @@ export class Dashboard extends LitElement {
     { id: "s_3391", user: "Load_Test", transport: "UDP", rate: "4.2 Mbps", status: "Active" },
   ];
 
-  columns: PbTableColumn[] = [
+  columns: TableColumn[] = [
     { header: 'Session ID', accessor: 'id', width: '120px', render: (r) => html`<span style="font-family:var(--pb-font-mono); font-size:12px">${r.id}</span>` },
     { header: 'User', accessor: 'user', render: (r) => html`<span style="font-weight:600">${r.user}</span>` },
     { header: 'Transport', accessor: 'transport', render: (r) => html`<pb-tag label="${r.transport}"></pb-tag>` },

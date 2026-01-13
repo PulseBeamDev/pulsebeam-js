@@ -2,10 +2,10 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { pulseBeamStyles } from '../theme';
 
-import './pb-icon';
+import './icon';
 
 @customElement('pb-stat-card')
-export class PbStatCard extends LitElement {
+export class StatCard extends LitElement {
   static styles = [
     pulseBeamStyles,
     css`
@@ -80,6 +80,6 @@ export class PbStatCard extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'pb-stat-card': PbStatCard;
+    'pb-stat-card': StatCard;
   }
 }

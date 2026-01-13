@@ -3,7 +3,7 @@ import { customElement } from 'lit/decorators.js';
 import { pulseBeamStyles } from '../theme';
 
 @customElement('pb-header')
-export class PbHeader extends LitElement {
+export class Header extends LitElement {
   static styles = [
     pulseBeamStyles,
     css`
@@ -36,6 +36,6 @@ export class PbHeader extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'pb-header': PbHeader;
+    'pb-header': Header;
   }
 }

@@ -5,7 +5,7 @@ import { pulseBeamStyles } from '../theme';
 import '@material/web/chips/assist-chip.js';
 
 @customElement('pb-tag')
-export class PbTag extends LitElement {
+export class Tag extends LitElement {
   static styles = [
     pulseBeamStyles,
     css`
@@ -32,6 +32,6 @@ export class PbTag extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'pb-tag': PbTag;
+    'pb-tag': Tag;
   }
 }

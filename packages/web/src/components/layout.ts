@@ -3,7 +3,7 @@ import { customElement } from 'lit/decorators.js';
 import { pulseBeamStyles } from '../theme';
 
 @customElement('pb-layout')
-export class PbLayout extends LitElement {
+export class Layout extends LitElement {
   static styles = [
     pulseBeamStyles,
     css`
@@ -64,6 +64,6 @@ export class PbLayout extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'pb-layout': PbLayout;
+    'pb-layout': Layout;
   }
 }

@@ -1,6 +1,6 @@
 <script lang="ts">
 import { WebAdapter, Session } from "@pulsebeam/web";
-import { PbButton } from "@pulsebeam/web/components";
+import "@pulsebeam/web/components";
 import { onMount } from "svelte";
 
 let stream = $state<MediaStream>();

@@ -2,10 +2,10 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { pulseBeamStyles } from '../theme';
 
-import '@material/web/checkbox/checkbox.js';
+import '@material/web/switch/switch.js';
 
-@customElement('pb-checkbox')
-export class PbCheckbox extends LitElement {
+@customElement('pb-switch')
+export class Switch extends LitElement {
   static styles = [
     pulseBeamStyles,
     css`
@@ -13,34 +13,32 @@ export class PbCheckbox extends LitElement {
         display: inline-flex;
         vertical-align: middle;
       }
-      md-checkbox {
-        --md-checkbox-outline-color: var(--pb-border-dk);
-        --md-checkbox-selected-container-color: var(--pb-blue);
-      }
     `
   ];
 
-  @property({ type: Boolean }) checked = false;
+  @property({ type: Boolean }) selected = false;
   @property({ type: Boolean }) disabled = false;
+  @property({ type: Boolean }) icons = false;
 
   render() {
     return html`
-      <md-checkbox
-        ?checked=${this.checked}
+      <md-switch
+        ?selected=${this.selected}
         ?disabled=${this.disabled}
+        ?icons=${this.icons}
         @change=${this._handleChange}
-      ></md-checkbox>
+      ></md-switch>
     `;
   }
 
   private _handleChange(e: Event) {
-    this.checked = (e.target as HTMLInputElement).checked;
+    this.selected = (e.target as HTMLInputElement).checked;
     this.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
   }
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    'pb-checkbox': PbCheckbox;
+    'pb-switch': Switch;
   }
 }

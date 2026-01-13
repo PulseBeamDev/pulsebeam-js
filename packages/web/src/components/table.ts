@@ -3,7 +3,7 @@ import type { TemplateResult } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { pulseBeamStyles } from '../theme';
 
-export interface PbTableColumn<T = any> {
+export interface TableColumn<T = any> {
   header: string;
   accessor?: keyof T;
   render?: (item: T) => TemplateResult | string | number;
@@ -12,7 +12,7 @@ export interface PbTableColumn<T = any> {
 }
 
 @customElement('pb-table')
-export class PbTable extends LitElement {
+export class Table extends LitElement {
   static styles = [
     pulseBeamStyles,
     css`
@@ -48,7 +48,7 @@ export class PbTable extends LitElement {
     `
   ];
 
-  @property({ type: Array }) columns: PbTableColumn[] = [];
+  @property({ type: Array }) columns: TableColumn[] = [];
   @property({ type: Array }) data: any[] = [];
 
   render() {
@@ -78,7 +78,7 @@ export class PbTable extends LitElement {
     `;
   }
 
-  private _renderCell(row: any, col: PbTableColumn) {
+  private _renderCell(row: any, col: TableColumn) {
     if (col.render) {
       return col.render(row);
     }
@@ -91,6 +91,6 @@ export class PbTable extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'pb-table': PbTable;
+    'pb-table': Table;
   }
 }

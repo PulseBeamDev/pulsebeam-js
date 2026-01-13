@@ -10,7 +10,7 @@ import '@material/web/iconbutton/icon-button.js';
 export type ButtonVariant = 'filled' | 'outlined' | 'icon';
 
 @customElement('pb-button')
-export class PbButton extends LitElement {
+export class Button extends LitElement {
   static styles = [
     pulseBeamStyles,
     css`
@@ -54,6 +54,6 @@ export class PbButton extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'pb-button': PbButton;
+    'pb-button': Button;
   }
 }

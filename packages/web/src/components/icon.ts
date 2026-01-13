@@ -5,7 +5,7 @@ import { pulseBeamStyles } from '../theme';
 import '@material/web/icon/icon.js';
 
 @customElement('pb-icon')
-export class PbIcon extends LitElement {
+export class Icon extends LitElement {
   static styles = [
     pulseBeamStyles,
     css`
@@ -26,6 +26,6 @@ export class PbIcon extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'pb-icon': PbIcon;
+    'pb-icon': Icon;
   }
 }

@@ -2,16 +2,16 @@ import { LitElement, html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { pulseBeamStyles } from './theme';
 
-import './components/pb-layout';
-import './components/pb-sidebar';
-import './components/pb-header';
-import './components/pb-icon';
-import './components/pb-button';
-import './components/pb-card';
-import './components/pb-tag';
+import './components/layout';
+import './components/sidebar';
+import './components/header';
+import './components/icon';
+import './components/button';
+import './components/card';
+import './components/tag';
 
 @customElement('pb-video-app')
-export class PbVideoApp extends LitElement {
+export class VideoApp extends LitElement {
   static styles = [
     pulseBeamStyles,
     css`

@@ -6,7 +6,7 @@ import '@material/web/select/outlined-select.js';
 import '@material/web/select/select-option.js';
 
 @customElement('pb-select')
-export class PbSelect extends LitElement {
+export class Select extends LitElement {
   static styles = [
     pulseBeamStyles,
     css`
@@ -35,7 +35,7 @@ export class PbSelect extends LitElement {
 }
 
 @customElement('pb-option')
-export class PbOption extends LitElement {
+export class Option extends LitElement {
   static styles = [pulseBeamStyles];
 
   @property({ type: String }) value = '';
@@ -52,7 +52,7 @@ export class PbOption extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'pb-select': PbSelect;
-    'pb-option': PbOption;
+    'pb-select': Select;
+    'pb-option': Option;
   }
 }
