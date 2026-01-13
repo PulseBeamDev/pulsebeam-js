@@ -38,11 +38,6 @@ export class Dashboard extends LitElement {
     }
     
     .crumbs { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: var(--pb-text-sec); font-weight: 500; }
-    .tag { 
-       font-family: var(--pb-font-mono); font-size: 0.75rem; 
-       background: #fff; padding: 3px 8px; 
-       border: 1px solid var(--pb-border-dk); border-radius: var(--pb-radius);
-    }
     
     /* Utility for flex spacing */
     .flex-row { display: flex; gap: 8px; align-items: center; }
@@ -111,7 +106,7 @@ export class Dashboard extends LitElement {
         <pb-header slot="header">
           <div slot="start" class="crumbs">
             <pb-icon icon="home" style="font-size:18px; color:var(--pb-text-dim)"></pb-icon> / us-east-1 / 
-            <span class="tag">prod-sfu-04</span>
+            <pb-tag label="prod-sfu-04"/>
           </div>
           <div slot="end" style="display:flex; gap:8px;">
             <pb-button variant="icon" icon="${ThemeManager.getIcon(this.theme)}" @click=${this.toggleTheme}></pb-button>
