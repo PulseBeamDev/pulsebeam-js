@@ -6,15 +6,15 @@ import './pb-icon';
 
 @customElement('pb-stat-card')
 export class PbStatCard extends LitElement {
-    static styles = [
-        pulseBeamStyles,
-        css`
+  static styles = [
+    pulseBeamStyles,
+    css`
       :host {
         display: block;
-        background: var(--pb-paper); /* Should match card usually, strictly defined in this component or via composition? */
-        /* But stat card in dashboard was wrapped in <section> (aka pb-card). 
-           However, pb-stat-card might just be the content. 
-           But plan says 'Encapsulates the specific "stat" look' */
+        background: var(--pb-paper);
+        border: 1px solid var(--pb-border);
+        border-radius: var(--pb-radius);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.02);
       }
       
       .stat-content {
@@ -54,19 +54,19 @@ export class PbStatCard extends LitElement {
       .trend-down { color: #dc2626; }
       .trend-neutral { color: var(--pb-text-sub); }
     `
-    ];
+  ];
 
-    @property({ type: String }) label = '';
-    @property({ type: String }) value = '';
-    @property({ type: String }) trend = ''; // e.g. "+12%"
-    @property({ type: String }) trendDirection: 'up' | 'down' | 'neutral' = 'neutral';
+  @property({ type: String }) label = '';
+  @property({ type: String }) value = '';
+  @property({ type: String }) trend = ''; // e.g. "+12%"
+  @property({ type: String }) trendDirection: 'up' | 'down' | 'neutral' = 'neutral';
 
-    render() {
-        let icon = 'remove';
-        if (this.trendDirection === 'up') icon = 'trending_up';
-        if (this.trendDirection === 'down') icon = 'trending_down';
+  render() {
+    let icon = 'remove';
+    if (this.trendDirection === 'up') icon = 'trending_up';
+    if (this.trendDirection === 'down') icon = 'trending_down';
 
-        return html`
+    return html`
       <div class="stat-content">
         <div class="label">${this.label}</div>
         <div class="value">${this.value}</div>
@@ -75,11 +75,11 @@ export class PbStatCard extends LitElement {
         </div>
       </div>
     `;
-    }
+  }
 }
 
 declare global {
-    interface HTMLElementTagNameMap {
-        'pb-stat-card': PbStatCard;
-    }
+  interface HTMLElementTagNameMap {
+    'pb-stat-card': PbStatCard;
+  }
 }

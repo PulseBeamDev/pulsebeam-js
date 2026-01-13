@@ -4,9 +4,9 @@ import { pulseBeamStyles } from '../design-system';
 
 @customElement('pb-layout')
 export class PbLayout extends LitElement {
-    static styles = [
-        pulseBeamStyles,
-        css`
+  static styles = [
+    pulseBeamStyles,
+    css`
       :host {
         display: grid;
         grid-template-columns: 240px 1fr;
@@ -36,21 +36,19 @@ export class PbLayout extends LitElement {
       .content {
         overflow-y: auto;
         padding: 32px;
-        display: grid;
-        grid-template-columns: repeat(12, 1fr);
-        gap: 24px;
-        align-content: start;
-        grid-auto-rows: min-content;
+        display: block; /* Removed forced grid */
+        height: 100%;
+        box-sizing: border-box;
       }
       
       @media (max-width: 1200px) {
         /* simple responsive handling if needed */
       }
     `
-    ];
+  ];
 
-    render() {
-        return html`
+  render() {
+    return html`
       <aside>
         <slot name="sidebar"></slot>
       </aside>
@@ -61,11 +59,11 @@ export class PbLayout extends LitElement {
         </div>
       </main>
     `;
-    }
+  }
 }
 
 declare global {
-    interface HTMLElementTagNameMap {
-        'pb-layout': PbLayout;
-    }
+  interface HTMLElementTagNameMap {
+    'pb-layout': PbLayout;
+  }
 }
