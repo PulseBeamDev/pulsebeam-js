@@ -22,6 +22,13 @@ export class Button extends LitElement {
     css`
       :host {
         display: inline-flex;
+        width: auto;
+      }
+
+      md-filled-button,
+      md-outlined-button,
+      md-icon-button {
+        width: 100%;
       }
     `
   ];

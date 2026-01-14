@@ -1,4 +1,4 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, type PropertyValues } from 'lit';
 import { customElement, state, query } from 'lit/decorators.js';
 import { pulseBeamStyles } from '../theme';
 
@@ -14,6 +14,7 @@ export class DeviceSelector extends LitElement {
     pulseBeamStyles,
     css`
       :host {
+        width: 100%;
         display: block;
         max-width: 600px;
         margin: 0 auto;
@@ -92,8 +93,12 @@ export class DeviceSelector extends LitElement {
 
   async connectedCallback() {
     await this.refreshDevices();
-    await this.startPreview();
     super.connectedCallback();
+  }
+
+  protected override firstUpdated(_changedProperties: PropertyValues): void {
+    super.firstUpdated(_changedProperties);
+    this.startPreview();
   }
 
   disconnectedCallback() {
@@ -123,8 +128,6 @@ export class DeviceSelector extends LitElement {
   }
 
   private async startPreview() {
-    this.stopStream();
-
     if (!this.selectedVideoId && !this.selectedAudioId) return;
 
     try {
@@ -133,10 +136,12 @@ export class DeviceSelector extends LitElement {
         audio: this.selectedAudioId ? { deviceId: { exact: this.selectedAudioId } } : false,
       };
 
-      this.currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+      const newStream = await navigator.mediaDevices.getUserMedia(constraints);
       if (this.videoElement) {
-        this.videoElement.srcObject = this.currentStream;
+        this.videoElement.srcObject = newStream;
       }
+      this.stopStream();
+      this.currentStream = newStream;
 
       this.dispatchEvent(new CustomEvent('stream-change', {
         detail: { stream: this.currentStream },
@@ -170,52 +175,48 @@ export class DeviceSelector extends LitElement {
 
   render() {
     return html`
-      <pb-card header="Check your audio and video">
-        <div class="preview-container">
-          <video autoplay playsinline muted></video>
-          ${this.error ? html`
-            <div class="placeholder">
-              <pb-icon icon="videocam_off"></pb-icon>
-              <p>${this.error}</p>
-              <pb-button variant="outlined" @click=${this.refreshDevices}>Retry</pb-button>
-            </div>
-          ` : !this.currentStream ? html`
-            <div class="placeholder">
-              <pb-icon icon="cached"></pb-icon>
-              <p>Starting camera...</p>
-            </div>
-          ` : ''}
-        </div>
-
-        
-        <div class="controls">
-          <div class="device-item">
-            <label>Camera</label>
-            <pb-select .value=${this.selectedVideoId} @change=${this.handleVideoChange}>
-              ${repeat(this.videoDevices, (d) => d.deviceId, (d) => html`
-                <pb-select-option .value=${d.deviceId} .selected=${d.deviceId === this.selectedVideoId}>
-                  ${d.label || `Camera ${d.deviceId.slice(0, 5)}`}
-                </pb-select-option>
-              `)}
-            </pb-select>
+      <div class="preview-container">
+        <video autoplay playsinline muted></video>
+        ${this.error ? html`
+          <div class="placeholder">
+            <pb-icon class="theme-dark" icon="videocam_off"></pb-icon>
+            <p>${this.error}</p>
+            <pb-button variant="outlined" class="theme-dark" @click=${this.refreshDevices}>Retry</pb-button>
           </div>
-
-          <div class="device-item">
-            <label>Microphone</label>
-            <pb-select value=${this.selectedAudioId} @change=${this.handleAudioChange}>
-              ${this.audioDevices.map(d => html`
-                <pb-select-option .value=${d.deviceId} ?selected=${d.deviceId === this.selectedAudioId}>
-                  ${d.label || `Microphone ${d.deviceId.slice(0, 5)}`}
-                </pb-select-option>
-              `)}
-            </pb-select>
+        ` : !this.currentStream ? html`
+          <div class="placeholder">
+            <pb-icon icon="cached"></pb-icon>
+            <p>Starting camera...</p>
           </div>
+        ` : ''}
+      </div>
+
+      
+      <div class="controls">
+        <div class="device-item">
+          <label>Camera</label>
+          <pb-select .value=${this.selectedVideoId} @change=${this.handleVideoChange}>
+            ${repeat(this.videoDevices, (d) => d.deviceId, (d) => html`
+              <pb-select-option .value=${d.deviceId} .selected=${d.deviceId === this.selectedVideoId}>
+                ${d.label || `Camera ${d.deviceId.slice(0, 5)}`}
+              </pb-select-option>
+            `)}
+          </pb-select>
         </div>
 
-        <div slot="header-actions">
-           <pb-button variant="icon" icon="settings"></pb-button>
+        <div class="device-item">
+          <label>Microphone</label>
+          <pb-select value=${this.selectedAudioId} @change=${this.handleAudioChange}>
+            ${this.audioDevices.map(d => html`
+              <pb-select-option .value=${d.deviceId} ?selected=${d.deviceId === this.selectedAudioId}>
+                ${d.label || `Microphone ${d.deviceId.slice(0, 5)}`}
+              </pb-select-option>
+            `)}
+          </pb-select>
         </div>
-      </pb-card>
+
+        <pb-button style="width: 100%">Apply</pb-button>
+      </div>
     `;
   }
 }

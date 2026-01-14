@@ -26,7 +26,7 @@ export const pulseBeamStyles = css`
     --pb-font-ui:   'Manrope', system-ui, sans-serif;
     --pb-font-mono: 'JetBrains Mono', monospace;
     
-    --pb-radius:    2px; /* Strict Square */
+    --pb-radius:    4px; /* Strict Square */
 
     /* ========================================================================
        2. COMPONENT OVERRIDES
@@ -108,7 +108,7 @@ export const pulseBeamStyles = css`
   /* ========================================================================
      3. DARK MODE OVERRIDES (Injected to maintain support)
      ======================================================================== */
-  :host-context(html.dark) {
+  :host-context(html.dark), :host(.theme-dark) {
     --pb-blue:       #60a5fa;
     --pb-ink:        #f8fafc;
     --pb-paper:      #1e293b;

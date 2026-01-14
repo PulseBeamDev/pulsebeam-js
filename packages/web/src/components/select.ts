@@ -18,6 +18,11 @@ export class Select extends LitElement {
     css`
       :host {
         display: block;
+        width: auto;
+      }
+
+      md-outlined-select {
+        width: 100%;
       }
     `
   ];
