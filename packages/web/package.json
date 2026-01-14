@@ -34,9 +34,6 @@
     }
   },
   "dependencies": {
-    "@fontsource/ibm-plex-mono": "^5.2.7",
-    "@fontsource/ibm-plex-sans": "^5.2.8",
-    "@fontsource/inter": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@fontsource/manrope": "^5.2.8",
     "@material/web": "^2.4.1",
