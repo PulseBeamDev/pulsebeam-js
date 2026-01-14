@@ -19,7 +19,6 @@ export class Select extends LitElement {
       :host {
         display: block;
       }
-      }
     `
   ];
 

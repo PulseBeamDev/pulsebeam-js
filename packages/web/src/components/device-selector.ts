@@ -6,6 +6,7 @@ import './card';
 import './select';
 import './button';
 import './icon';
+import { repeat } from 'lit/directives/repeat.js';
 
 @customElement('pb-device-selector')
 export class DeviceSelector extends LitElement {
@@ -89,9 +90,10 @@ export class DeviceSelector extends LitElement {
 
   @query('video') private videoElement?: HTMLVideoElement;
 
-  async firstUpdated() {
+  async connectedCallback() {
     await this.refreshDevices();
     await this.startPreview();
+    super.connectedCallback();
   }
 
   disconnectedCallback() {
@@ -189,9 +191,9 @@ export class DeviceSelector extends LitElement {
         <div class="controls">
           <div class="device-item">
             <label>Camera</label>
-            <pb-select value=${this.selectedVideoId} @change=${this.handleVideoChange}>
-              ${this.videoDevices.map(d => html`
-                <pb-select-option value=${d.deviceId} selected=${d.deviceId === this.selectedVideoId}>
+            <pb-select .value=${this.selectedVideoId} @change=${this.handleVideoChange}>
+              ${repeat(this.videoDevices, (d) => d.deviceId, (d) => html`
+                <pb-select-option .value=${d.deviceId} .selected=${d.deviceId === this.selectedVideoId}>
                   ${d.label || `Camera ${d.deviceId.slice(0, 5)}`}
                 </pb-select-option>
               `)}
@@ -202,7 +204,9 @@ export class DeviceSelector extends LitElement {
             <label>Microphone</label>
             <pb-select value=${this.selectedAudioId} @change=${this.handleAudioChange}>
               ${this.audioDevices.map(d => html`
-                <pb-select-option value=${d.deviceId}>${d.label || `Microphone ${d.deviceId.slice(0, 5)}`}</pb-select-option>
+                <pb-select-option .value=${d.deviceId} ?selected=${d.deviceId === this.selectedAudioId}>
+                  ${d.label || `Microphone ${d.deviceId.slice(0, 5)}`}
+                </pb-select-option>
               `)}
             </pb-select>
           </div>

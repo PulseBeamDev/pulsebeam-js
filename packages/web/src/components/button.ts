@@ -66,6 +66,7 @@ export class Button extends LitElement {
       </md-filled-button>
     `;
   }
+
 }
 
 declare global {
