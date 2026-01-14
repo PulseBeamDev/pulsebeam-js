@@ -13,7 +13,6 @@
     "dist"
   ],
   "customElements": "dist/custom-elements.json",
-  "custom-elements": "dist/custom-elements.json",
   "sideEffects": [
     "**/*.css",
     "src/components/*.ts"
@@ -23,7 +22,8 @@
       "types": "./dist/engine.d.ts",
       "default": "./dist/engine.js"
     },
-    "./custom-elements.json": "./dist/custom-elements.json",
+    "./dist/custom-elements.json": "./dist/custom-elements.json",
+    "./package.json": "./package.json",
     "./components": {
       "types": "./dist/components/index.d.ts",
       "default": "./dist/components/index.js"
