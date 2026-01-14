@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "manifest": "cem analyze --outdir dist",
+    "manifest": "cem analyze --config ./custom-elements-manifest.config.mjs",
     "build": "tsc && vite build && npm run manifest",
     "preview": "vite preview"
   },

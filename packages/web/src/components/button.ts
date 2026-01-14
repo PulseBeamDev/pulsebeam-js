@@ -10,7 +10,10 @@ import '@material/web/iconbutton/icon-button.js';
 export type ButtonVariant = 'filled' | 'outlined' | 'icon';
 
 /**
+ * A pulsebeam button component that wraps material design buttons.
+ * 
  * @tag pb-button
+ * @slot - The button's label or content.
  */
 @customElement('pb-button')
 export class Button extends LitElement {
@@ -23,13 +26,19 @@ export class Button extends LitElement {
     `
   ];
 
-  /** @attribute */
+  /**
+   * The visual variant of the button.
+   * @type {'filled' | 'outlined' | 'icon'}
+   */
   @property({ type: String }) variant: ButtonVariant = 'filled';
-  /** @attribute */
+
+  /** Whether the button is disabled. */
   @property({ type: Boolean }) disabled = false;
-  /** @attribute */
+
+  /** The material icon name to display. */
   @property({ type: String }) icon = '';
-  /** @attribute */
+
+  /** The HTML button type. */
   @property({ type: String }) type = 'button';
 
   render() {

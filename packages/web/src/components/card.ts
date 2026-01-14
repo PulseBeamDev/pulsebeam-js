@@ -3,10 +3,12 @@ import { customElement, property } from 'lit/decorators.js';
 import { pulseBeamStyles } from '../theme';
 
 /**
+ * A pulsebeam card component for grouping content.
+ * 
  * @tag pb-card
- * @slot header-actions - Actions shown in the card header
- * @slot header-full - Custom full header replacement
- * @slot - Main content of the card
+ * @slot header-actions - Actions shown in the card header.
+ * @slot header-full - Custom full header replacement.
+ * @slot - Main content of the card.
  */
 @customElement('pb-card')
 export class Card extends LitElement {
@@ -52,7 +54,7 @@ export class Card extends LitElement {
     `
   ];
 
-  /** @attribute */
+  /** The header text to display in the card. */
   @property({ type: String }) header = '';
 
   render() {

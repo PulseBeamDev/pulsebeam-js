@@ -855,8 +855,14 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "",
+          "description": "A pulsebeam button component that wraps material design buttons.",
           "name": "Button",
+          "slots": [
+            {
+              "description": "The button's label or content.",
+              "name": ""
+            }
+          ],
           "members": [
             {
               "kind": "field",
@@ -871,10 +877,10 @@
               "kind": "field",
               "name": "variant",
               "type": {
-                "text": "ButtonVariant"
+                "text": "'filled' | 'outlined' | 'icon'"
               },
               "default": "'filled'",
-              "attribute": "variant"
+              "description": "The visual variant of the button."
             },
             {
               "kind": "field",
@@ -883,7 +889,7 @@
                 "text": "boolean"
               },
               "default": "false",
-              "attribute": "disabled"
+              "description": "Whether the button is disabled."
             },
             {
               "kind": "field",
@@ -892,7 +898,7 @@
                 "text": "string"
               },
               "default": "''",
-              "attribute": "icon"
+              "description": "The material icon name to display."
             },
             {
               "kind": "field",
@@ -901,45 +907,11 @@
                 "text": "string"
               },
               "default": "'button'",
-              "attribute": "type"
+              "description": "The HTML button type."
             },
             {
               "kind": "method",
               "name": "render"
-            }
-          ],
-          "attributes": [
-            {
-              "name": "variant",
-              "type": {
-                "text": "ButtonVariant"
-              },
-              "default": "'filled'",
-              "fieldName": "variant"
-            },
-            {
-              "name": "disabled",
-              "type": {
-                "text": "boolean"
-              },
-              "default": "false",
-              "fieldName": "disabled"
-            },
-            {
-              "name": "icon",
-              "type": {
-                "text": "string"
-              },
-              "default": "''",
-              "fieldName": "icon"
-            },
-            {
-              "name": "type",
-              "type": {
-                "text": "string"
-              },
-              "default": "'button'",
-              "fieldName": "type"
             }
           ],
           "superclass": {
@@ -967,19 +939,19 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "",
+          "description": "A pulsebeam card component for grouping content.",
           "name": "Card",
           "slots": [
             {
-              "description": "Actions shown in the card header",
+              "description": "Actions shown in the card header.",
               "name": "header-actions"
             },
             {
-              "description": "Custom full header replacement",
+              "description": "Custom full header replacement.",
               "name": "header-full"
             },
             {
-              "description": "Main content of the card",
+              "description": "Main content of the card.",
               "name": ""
             }
           ],
@@ -1000,21 +972,11 @@
                 "text": "string"
               },
               "default": "''",
-              "attribute": "header"
+              "description": "The header text to display in the card."
             },
             {
               "kind": "method",
               "name": "render"
-            }
-          ],
-          "attributes": [
-            {
-              "name": "header",
-              "type": {
-                "text": "string"
-              },
-              "default": "''",
-              "fieldName": "header"
             }
           ],
           "superclass": {
@@ -1042,7 +1004,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "",
+          "description": "A pulsebeam checkbox component.",
           "name": "Checkbox",
           "members": [
             {
@@ -1061,7 +1023,7 @@
                 "text": "boolean"
               },
               "default": "false",
-              "attribute": "checked"
+              "description": "Whether the checkbox is checked."
             },
             {
               "kind": "field",
@@ -1070,7 +1032,7 @@
                 "text": "boolean"
               },
               "default": "false",
-              "attribute": "disabled"
+              "description": "Whether the checkbox is disabled."
             },
             {
               "kind": "method",
@@ -1096,25 +1058,7 @@
               "type": {
                 "text": "Event"
               },
-              "description": "Dispatched when the checked state changes"
-            }
-          ],
-          "attributes": [
-            {
-              "name": "checked",
-              "type": {
-                "text": "boolean"
-              },
-              "default": "false",
-              "fieldName": "checked"
-            },
-            {
-              "name": "disabled",
-              "type": {
-                "text": "boolean"
-              },
-              "default": "false",
-              "fieldName": "disabled"
+              "description": "Dispatched when the checked state changes."
             }
           ],
           "superclass": {

@@ -5,8 +5,10 @@ import { pulseBeamStyles } from '../theme';
 import '@material/web/checkbox/checkbox.js';
 
 /**
+ * A pulsebeam checkbox component.
+ * 
  * @tag pb-checkbox
- * @event change - Dispatched when the checked state changes
+ * @event {Event} change - Dispatched when the checked state changes.
  */
 @customElement('pb-checkbox')
 export class Checkbox extends LitElement {
@@ -24,9 +26,10 @@ export class Checkbox extends LitElement {
     `
   ];
 
-  /** @attribute */
+  /** Whether the checkbox is checked. */
   @property({ type: Boolean }) checked = false;
-  /** @attribute */
+
+  /** Whether the checkbox is disabled. */
   @property({ type: Boolean }) disabled = false;
 
   render() {
