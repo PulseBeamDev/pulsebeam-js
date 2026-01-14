@@ -13,3 +13,4 @@ export * from "./table";
 export * from "./tag";
 export * from "./text-field";
 export * from "./textarea";
+export * from "./device-selector";

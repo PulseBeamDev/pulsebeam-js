@@ -2,14 +2,14 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { pulseBeamStyles } from '../theme';
 
+import { MdSelectOption } from '@material/web/select/select-option.js';
 import '@material/web/select/outlined-select.js';
-import '@material/web/select/select-option.js';
 
 /**
  * A pulsebeam select component for choosing from a list of options.
  * 
  * @tag pb-select
- * @slot - The select options (pb-option elements).
+ * @slot - The select options (pb-select-option elements).
  */
 @customElement('pb-select')
 export class Select extends LitElement {
@@ -19,58 +19,56 @@ export class Select extends LitElement {
       :host {
         display: block;
       }
-      md-outlined-select {
-        width: 100%;
-        --md-outlined-select-container-shape: var(--pb-radius);
-        --md-outlined-select-outline-color: var(--pb-border);
-        --md-outlined-select-focus-outline-color: var(--pb-blue);
       }
     `
   ];
 
-  /** The label for the select field. */
   @property({ type: String }) label = '';
-
-  /** The currently selected value. */
   @property({ type: String }) value = '';
 
   render() {
     return html`
-      <md-outlined-select label="${this.label}" value="${this.value}">
+      <md-outlined-select 
+        .label="${this.label}" 
+        .value="${this.value}"
+        @change=${this._handleChange}
+      >
         <slot></slot>
       </md-outlined-select>
     `;
+  }
+
+  private _handleChange(e: Event) {
+    e.stopPropagation(); // Stop the material event to normalize the payload
+    const target = e.target as any;
+    this.value = target.value;
+
+    this.dispatchEvent(new CustomEvent('change', {
+      bubbles: true,
+      composed: true,
+      detail: { value: this.value }
+    }));
   }
 }
 
 /**
  * An option element for use within pb-select.
  * 
- * @tag pb-option
- * @slot - The label text for the option.
+ * We must extend MdSelectOption. The md-outlined-select component inspects 
+ * its children looking for specific class instances to handle navigation/selection.
+ * If we wrapped this in ShadowDOM, the parent would not see it.
  */
-@customElement('pb-option')
-export class Option extends LitElement {
-  static styles = [pulseBeamStyles];
-
-  /** The value of the option. */
-  @property({ type: String }) value = '';
-
-  /** Whether this option is currently selected. */
-  @property({ type: Boolean }) selected = false;
-
-  render() {
-    return html`
-      <md-select-option value="${this.value}" ?selected=${this.selected}>
-        <div slot="headline"><slot></slot></div>
-      </md-select-option>
-    `;
-  }
+@customElement('pb-select-option')
+export class Option extends MdSelectOption {
+  static override styles = [
+    ...super.styles,
+    pulseBeamStyles,
+  ];
 }
 
 declare global {
   interface HTMLElementTagNameMap {
     'pb-select': Select;
-    'pb-option': Option;
+    'pb-select-option': Option;
   }
 }

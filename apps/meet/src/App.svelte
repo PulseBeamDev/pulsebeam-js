@@ -1,27 +1,28 @@
 <script lang="ts">
   import "./app.css";
-  import { WebAdapter, Session } from "@pulsebeam/web";
-  import "@pulsebeam/web/components/card";
+  import "@pulsebeam/web/components/device-selector";
   import "@pulsebeam/web/components/button";
-  import { onMount } from "svelte";
 
   let stream = $state<MediaStream>();
 
-  onMount(async () => {
-    const session = new Session({
-      videoSlots: 16,
-      audioSlots: 3,
-      adapter: WebAdapter,
-    });
-
-    session.connect("https://demo.pulsebeam.dev", "demo");
-    stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    session.publish(stream);
-  });
+  function handleStreamChange(e: CustomEvent<{ stream: MediaStream }>) {
+    console.log("New stream:", e.detail.stream);
+    stream = e.detail.stream;
+  }
 </script>
 
-<pb-card class="w-lg">
-  <video autoplay width="640" style="aspect-ratio: 16/9" srcobject={stream}
-  ></video>
-  <nav><pb-button>Hello</pb-button></nav>
-</pb-card>
+<div class="min-h-screen bg-slate-50 p-8 flex flex-col items-center gap-8">
+  <pb-device-selector onstream-change={handleStreamChange}></pb-device-selector>
+
+  {#if stream}
+    <div class="mt-8 text-center">
+      <h2 class="text-xl font-bold mb-4">Stream Result (Application State)</h2>
+      <div class="w-96 aspect-video bg-black rounded shadow-lg overflow-hidden">
+        <video autoplay playsinline muted srcObject={stream}></video>
+      </div>
+      <p class="mt-2 text-slate-500 text-sm">
+        Tracks: {stream.getTracks().map(t => `${t.kind}: ${t.label}`).join(', ')}
+      </p>
+    </div>
+  {/if}
+</div>

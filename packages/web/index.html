@@ -1,16 +1,21 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>web</title>
-    <link rel="stylesheet" href="./src/index.css" />
-    <script type="module" src="/src/dashboard.ts"></script>
-    <script type="module" src="/src/video-app.ts"></script>
-  </head>
-  <body>
-    <pb-dashboard style="width: 100%; height: 100vh"></pb-dashboard>
-    <pb-video-app style="width: 100%; height: 100vh"/>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>web</title>
+  <link rel="stylesheet" href="./src/index.css" />
+  <script type="module" src="/src/dashboard.ts"></script>
+  <script type="module" src="/src/components/device-selector.ts"></script>
+  <script type="module" src="/src/video-app.ts"></script>
+</head>
+
+<body>
+  <pb-dashboard style="width: 100%; height: 100vh"></pb-dashboard>
+  <pb-device-selector></pb-device-selector>
+  <pb-video-app style="width: 100%; height: 100vh" />
+</body>
+
 </html>

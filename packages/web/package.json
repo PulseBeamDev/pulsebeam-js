@@ -47,6 +47,7 @@
   "devDependencies": {
     "@custom-elements-manifest/analyzer": "^0.11.0",
     "fast-glob": "^3.3.3",
+    "ts-lit-plugin": "^2.0.2",
     "typescript": "~5.8.2",
     "vite": "^7.2.4",
     "vite-plugin-dts": "^4.5.4"
