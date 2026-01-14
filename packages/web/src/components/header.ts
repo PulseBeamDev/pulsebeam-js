@@ -3,9 +3,11 @@ import { customElement } from 'lit/decorators.js';
 import { pulseBeamStyles } from '../theme';
 
 /**
+ * A top header component for the dashboard.
+ * 
  * @tag pb-header
- * @slot start - Content on the left side
- * @slot end - Content on the right side
+ * @slot start - Content on the left side (e.g., breadcrumbs).
+ * @slot end - Content on the right side (e.g., user profile, settings).
  */
 @customElement('pb-header')
 export class Header extends LitElement {

@@ -5,6 +5,8 @@ import { pulseBeamStyles } from '../theme';
 import '@material/web/textfield/outlined-text-field.js';
 
 /**
+ * A pulsebeam multi-line text input component.
+ * 
  * @tag pb-textarea
  */
 @customElement('pb-textarea')
@@ -24,15 +26,19 @@ export class Textarea extends LitElement {
     `
   ];
 
-  /** @attribute */
+  /** The label for the textarea. */
   @property({ type: String }) label = '';
-  /** @attribute */
+
+  /** The current value of the textarea. */
   @property({ type: String }) value = '';
-  /** @attribute */
+
+  /** Helper text displayed when the textarea is empty. */
   @property({ type: String }) placeholder = '';
-  /** @attribute */
+
+  /** Whether the textarea is read-only. */
   @property({ type: Boolean }) readonly = false;
-  /** @attribute */
+
+  /** The number of visible text lines. */
   @property({ type: Number }) rows = 3;
 
   render() {

@@ -5,8 +5,10 @@ import { pulseBeamStyles } from '../theme';
 import '@material/web/switch/switch.js';
 
 /**
+ * A pulsebeam switch component.
+ * 
  * @tag pb-switch
- * @event change - Dispatched when the selected state changes
+ * @event {Event} change - Dispatched when the selected state changes.
  */
 @customElement('pb-switch')
 export class Switch extends LitElement {
@@ -20,11 +22,13 @@ export class Switch extends LitElement {
     `
   ];
 
-  /** @attribute */
+  /** Whether the switch is selected (on). */
   @property({ type: Boolean }) selected = false;
-  /** @attribute */
+
+  /** Whether the switch is disabled. */
   @property({ type: Boolean }) disabled = false;
-  /** @attribute */
+
+  /** Whether to show icons inside the switch handle. */
   @property({ type: Boolean }) icons = false;
 
   render() {

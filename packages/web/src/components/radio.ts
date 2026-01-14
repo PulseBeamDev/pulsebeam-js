@@ -5,8 +5,10 @@ import { pulseBeamStyles } from '../theme';
 import '@material/web/radio/radio.js';
 
 /**
+ * A pulsebeam radio button component.
+ * 
  * @tag pb-radio
- * @event change - Dispatched when the checked state changes
+ * @event {Event} change - Dispatched when the checked state changes.
  */
 @customElement('pb-radio')
 export class Radio extends LitElement {
@@ -24,13 +26,16 @@ export class Radio extends LitElement {
     `
   ];
 
-  /** @attribute */
+  /** Whether the radio button is checked. */
   @property({ type: Boolean }) checked = false;
-  /** @attribute */
+
+  /** Whether the radio button is disabled. */
   @property({ type: Boolean }) disabled = false;
-  /** @attribute */
+
+  /** The name of the radio group. */
   @property({ type: String }) name = '';
-  /** @attribute */
+
+  /** The value associated with this radio button. */
   @property({ type: String }) value = '';
 
   render() {

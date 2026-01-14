@@ -3,9 +3,11 @@ import { customElement, property } from 'lit/decorators.js';
 import { pulseBeamStyles } from '../theme';
 
 /**
+ * A sidebar navigation component.
+ * 
  * @tag pb-sidebar
- * @slot brand - The brand/logo area
- * @slot - Main navigation items
+ * @slot brand - The brand/logo area at the top of the sidebar.
+ * @slot - Main navigation items (typically SidebarItem or SidebarGroup).
  */
 @customElement('pb-sidebar')
 export class Sidebar extends LitElement {
@@ -43,8 +45,10 @@ export class Sidebar extends LitElement {
 }
 
 /**
+ * A group of navigation items within the sidebar.
+ * 
  * @tag pb-sidebar-group
- * @slot - The group items
+ * @slot - The group items (typically SidebarItem).
  */
 @customElement('pb-sidebar-group')
 export class SidebarGroup extends LitElement {
@@ -65,7 +69,7 @@ export class SidebarGroup extends LitElement {
     `
   ];
 
-  /** @attribute */
+  /** The title of the navigation group. */
   @property({ type: String }) title = '';
 
   render() {
@@ -77,8 +81,10 @@ export class SidebarGroup extends LitElement {
 }
 
 /**
+ * A single navigation item within the sidebar.
+ * 
  * @tag pb-sidebar-item
- * @slot - The label text
+ * @slot - The label text for the item.
  */
 @customElement('pb-sidebar-item')
 export class SidebarItem extends LitElement {
@@ -101,11 +107,13 @@ export class SidebarItem extends LitElement {
     `
   ];
 
-  /** @attribute */
+  /** Whether the item is currently active. */
   @property({ type: Boolean }) active = false;
-  /** @attribute */
+
+  /** The link destination. */
   @property({ type: String }) href = '#';
-  /** @attribute */
+
+  /** Material icon name to display next to the label. */
   @property({ type: String }) icon = '';
 
   render() {

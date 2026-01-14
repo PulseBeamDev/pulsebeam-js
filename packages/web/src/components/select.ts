@@ -6,8 +6,10 @@ import '@material/web/select/outlined-select.js';
 import '@material/web/select/select-option.js';
 
 /**
+ * A pulsebeam select component for choosing from a list of options.
+ * 
  * @tag pb-select
- * @slot - The select options (pb-option elements)
+ * @slot - The select options (pb-option elements).
  */
 @customElement('pb-select')
 export class Select extends LitElement {
@@ -26,9 +28,10 @@ export class Select extends LitElement {
     `
   ];
 
-  /** @attribute */
+  /** The label for the select field. */
   @property({ type: String }) label = '';
-  /** @attribute */
+
+  /** The currently selected value. */
   @property({ type: String }) value = '';
 
   render() {
@@ -41,15 +44,19 @@ export class Select extends LitElement {
 }
 
 /**
+ * An option element for use within pb-select.
+ * 
  * @tag pb-option
+ * @slot - The label text for the option.
  */
 @customElement('pb-option')
 export class Option extends LitElement {
   static styles = [pulseBeamStyles];
 
-  /** @attribute */
+  /** The value of the option. */
   @property({ type: String }) value = '';
-  /** @attribute */
+
+  /** Whether this option is currently selected. */
   @property({ type: Boolean }) selected = false;
 
   render() {

@@ -23,4 +23,4 @@
 <h1>Welcome to SvelteKit</h1>
 <p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
 <video autoplay width="640" style="aspect-ratio: 16/9" srcobject={stream}> </video>
-<pb-button variant="outlined">Hello</pb-button>
+<pb-button>Hello</pb-button>

@@ -2,10 +2,12 @@ import { LitElement, html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { pulseBeamStyles } from '../theme';
 /**
+ * The main layout component for the PulseBeam dashboard.
+ * 
  * @tag pb-layout
- * @slot sidebar - The sidebar area
- * @slot header - The header area
- * @slot - Main content area
+ * @slot sidebar - The sidebar area where navigation is typically placed.
+ * @slot header - The header area for top-level navigation and breadcrumbs.
+ * @slot - Main content area of the application.
  */
 @customElement('pb-layout')
 export class Layout extends LitElement {

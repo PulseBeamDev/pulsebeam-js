@@ -12,6 +12,8 @@ export interface TableColumn<T = any> {
 }
 
 /**
+ * A pulsebeam data table component.
+ * 
  * @tag pb-table
  */
 @customElement('pb-table')
@@ -51,9 +53,10 @@ export class Table extends LitElement {
     `
   ];
 
-  /** @attribute */
+  /** The column definitions for the table. */
   @property({ type: Array }) columns: TableColumn[] = [];
-  /** @attribute */
+
+  /** The data to display in the table. */
   @property({ type: Array }) data: any[] = [];
 
   render() {

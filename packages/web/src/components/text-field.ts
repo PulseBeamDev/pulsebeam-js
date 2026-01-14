@@ -7,8 +7,10 @@ import '@material/web/icon/icon.js';
 import '@material/web/iconbutton/icon-button.js';
 
 /**
+ * A pulsebeam text field component that wraps material design outlined text field.
+ * 
  * @tag pb-text-field
- * @slot trailing-action - Action shown in the trailing area
+ * @slot trailing-action - Action shown in the trailing area.
  */
 @customElement('pb-text-field')
 export class TextField extends LitElement {
@@ -31,19 +33,25 @@ export class TextField extends LitElement {
     `
   ];
 
-  /** @attribute */
+  /** The label for the text field. */
   @property({ type: String }) label = '';
-  /** @attribute */
+
+  /** The current value of the text field. */
   @property({ type: String }) value = '';
-  /** @attribute */
+
+  /** Helper text displayed when the field is empty. */
   @property({ type: String }) placeholder = '';
-  /** @attribute */
+
+  /** The HTML input type (e.g., 'text', 'password', 'email'). */
   @property({ type: String }) type = 'text';
-  /** @attribute */
+
+  /** Whether the field is read-only. */
   @property({ type: Boolean }) readonly = false;
-  /** @attribute */
+
+  /** Material icon name to display at the start of the field. */
   @property({ type: String }) leadingIcon = '';
-  /** @attribute */
+
+  /** Material icon name to display at the end of the field. */
   @property({ type: String }) trailingIcon = '';
 
   render() {

@@ -5,6 +5,8 @@ import { pulseBeamStyles } from '../theme';
 import '@material/web/chips/assist-chip.js';
 
 /**
+ * A pulsebeam tag component for labels or categories.
+ * 
  * @tag pb-tag
  */
 @customElement('pb-tag')
@@ -24,7 +26,7 @@ export class Tag extends LitElement {
     `
   ];
 
-  /** @attribute */
+  /** The label text to display in the tag. */
   @property({ type: String }) label = '';
 
   render() {

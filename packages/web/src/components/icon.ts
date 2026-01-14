@@ -5,6 +5,8 @@ import { pulseBeamStyles } from '../theme';
 import '@material/web/icon/icon.js';
 
 /**
+ * A wrapper component for material design icons.
+ * 
  * @tag pb-icon
  */
 @customElement('pb-icon')
@@ -20,7 +22,7 @@ export class Icon extends LitElement {
     `
   ];
 
-  /** @attribute */
+  /** The name of the material icon to display. */
   @property({ type: String }) icon = '';
 
   render() {
