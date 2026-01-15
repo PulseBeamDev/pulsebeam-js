@@ -26,7 +26,8 @@
     "@bufbuild/protoc-gen-es": "^2.10.2",
     "@types/webrtc": "^0.0.47",
     "tsup": "^8.5.1",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.17"
   },
   "scripts": {
     "gen": "buf generate",
