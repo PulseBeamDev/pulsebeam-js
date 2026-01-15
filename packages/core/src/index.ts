@@ -1,3 +1,2 @@
-export * from "./session";
-export * from "./device";
+export * from "./participant";
 export * from "./platform";

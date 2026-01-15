@@ -1,28 +1,30 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import "./app.css";
-  import "@pulsebeam/web/components/device-selector";
-  import "@pulsebeam/web/components/button";
+  import { WebSession } from "./lib/web";
+  import type { DeviceState } from "./lib/web";
 
   let stream = $state<MediaStream>();
+  let devices = $state<DeviceState>();
 
-  function handleStreamChange(e: CustomEvent<{ stream: MediaStream }>) {
-    console.log("New stream:", e.detail.stream);
-    stream = e.detail.stream;
-  }
+  let session = new WebSession({
+    videoSlots: 16,
+    audioSlots: 3,
+  });
+
+  session.devices.subscribe((state) => {
+    devices = state;
+  });
+
+  onMount(async () => {
+    await session.devices.init();
+    await session.devices.enableCamera();
+  });
 </script>
 
-<div class="min-h-screen bg-slate-50 p-8 flex flex-col items-center gap-8">
-  <pb-device-selector onstream-change={handleStreamChange}></pb-device-selector>
-
-  {#if stream}
-    <div class="mt-8 text-center">
-      <h2 class="text-xl font-bold mb-4">Stream Result (Application State)</h2>
-      <div class="w-96 aspect-video bg-black rounded shadow-lg overflow-hidden">
-        <video autoplay playsinline muted srcObject={stream}></video>
-      </div>
-      <p class="mt-2 text-slate-500 text-sm">
-        Tracks: {stream.getTracks().map(t => `${t.kind}: ${t.label}`).join(', ')}
-      </p>
-    </div>
-  {/if}
-</div>
+{#if !devices}
+  <h1>Initializing</h1>
+{:else}
+  <div>{devices.isScanning}</div>
+  <div>{JSON.stringify(devices)}</div>
+{/if}

@@ -10,6 +10,9 @@ importers:
 
   apps/meet:
     dependencies:
+      '@pulsebeam/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@pulsebeam/web':
         specifier: workspace:*
         version: link:../../packages/web
