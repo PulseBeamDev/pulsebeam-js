@@ -10,6 +10,7 @@ import {
 } from "./gen/signaling_pb";
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 import type { PlatformAdapter } from "./platform";
+import { EventEmitter } from "./event";
 
 const SIGNALING_LABEL = "__internal/v1/signaling";
 const DEBOUNCE_MS = 50;
@@ -19,13 +20,30 @@ export interface ParticipantConfig {
   readonly audioSlots: number;
 }
 
-export type ParticipantEvent =
+export type ConnectionState =
   | { type: "new" }
   | { type: "connecting" }
   | { type: "connected" }
-  | { type: "closed"; error: Error | null }
-  | { type: "slot_added"; slot: Slot }
-  | { type: "slot_removed"; slotId: string }
+  | { type: "disconnected" }
+  | { type: "closed"; error: Error | null };
+
+export interface ConnectionEvents {
+  changed: ConnectionState,
+}
+
+export interface RoomEvents {
+  slotAdded: { slot: Slot };
+  slotRemoved: { slotId: string };
+}
+
+// Helper to prefix keys (e.g., 'connected' becomes 'conn:connected')
+type PrefixKeys<T, P extends string> = {
+  [K in keyof T as `${P}:${Extract<K, string>}`]: T[K];
+};
+
+export type ParticipantEventMap =
+  & PrefixKeys<ConnectionEvents, "conn">
+  & PrefixKeys<RoomEvents, "room">;
 
 export class Slot {
   public height: number = 0;
@@ -67,25 +85,24 @@ class StateStore {
   assignments: Map<string, VideoAssignment> = new Map();
 }
 
-export class Participant {
-  public onEvent: (event: ParticipantEvent) => void = (_) => { };
-
+export class Participant extends EventEmitter<ParticipantEventMap> {
   private adapter: PlatformAdapter;
   private pc: RTCPeerConnection;
   private dc: RTCDataChannel;
   private deleteUri: string | null = null;
-  private lastEventType: ParticipantEvent["type"] = "new";
   private lastError: Error | null = null;
 
   private localStream: LocalMediaStream;
 
   private physicalSlots: PhysicalSlot[] = [];
   private virtualSlots: Map<string, Slot> = new Map();
-  private state = new StateStore();
+  private mediaState = new StateStore();
+  private connState: ConnectionState = { type: "new" };
 
   private debounceTimer: any | null = null;
 
   constructor(adapter: PlatformAdapter, config: ParticipantConfig) {
+    super();
     this.adapter = adapter;
 
     this.pc = new this.adapter.RTCPeerConnection();
@@ -113,13 +130,17 @@ export class Participant {
     this.localStream = new LocalMediaStream(video, audio);
   }
 
+  get state(): ConnectionState {
+    return this.connState;
+  }
+
   /**
    * Connect to a room.
    * Can only be called once.
    */
   async connect(endpoint: string, room: string): Promise<void> {
-    if (this.lastEventType !== "new") {
-      throw new Error("Participant already connected or closed");
+    if (this.pc.connectionState !== "new") {
+      throw new Error("Participant connection has been initated");
     }
 
     try {
@@ -157,7 +178,6 @@ export class Participant {
       });
     } catch (e) {
       this.lastError = e instanceof Error ? e : new Error(String(e));
-      this.dispatch({ type: "closed", error: this.lastError });
       this.close();
       throw this.lastError;
     }
@@ -217,19 +237,19 @@ export class Participant {
   private applyUpdate(u: StateUpdate) {
     const seq = u.seq;
     if (!u.isSnapshot) {
-      if (seq > this.state.seq + 1n) return this.sendSyncRequest();
-      if (seq <= this.state.seq) return;
+      if (seq > this.mediaState.seq + 1n) return this.sendSyncRequest();
+      if (seq <= this.mediaState.seq) return;
     }
 
     if (u.isSnapshot) {
-      this.state.tracks.clear();
-      this.state.assignments.clear();
+      this.mediaState.tracks.clear();
+      this.mediaState.assignments.clear();
       this.virtualSlots.forEach((v) => v.clearStream());
     }
 
     u.tracksRemove.forEach((id) => {
-      this.state.tracks.delete(id);
-      this.dispatch({ type: "slot_removed", slotId: id });
+      this.mediaState.tracks.delete(id);
+      this.emit("room:slotRemoved", { slotId: id });
       const vSlot = this.virtualSlots.get(id);
       if (vSlot) {
         vSlot.clearStream();
@@ -238,16 +258,16 @@ export class Participant {
     });
 
     u.tracksUpsert.forEach((t) => {
-      if (!this.state.tracks.has(t.id)) {
+      if (!this.mediaState.tracks.has(t.id)) {
         const vSlot = this.getOrCreateVirtualSlot(t);
-        this.dispatch({ type: "slot_added", slot: vSlot });
+        this.emit("room:slotAdded", { slot: vSlot });
       }
-      this.state.tracks.set(t.id, t);
+      this.mediaState.tracks.set(t.id, t);
     });
 
-    u.assignmentsRemove.forEach((mid) => this.state.assignments.delete(mid));
-    u.assignmentsUpsert.forEach((a) => this.state.assignments.set(a.mid, a));
-    this.state.seq = seq;
+    u.assignmentsRemove.forEach((mid) => this.mediaState.assignments.delete(mid));
+    u.assignmentsUpsert.forEach((a) => this.mediaState.assignments.set(a.mid, a));
+    this.mediaState.seq = seq;
 
     this.routePhysicalToVirtual();
     this.scheduleReconcile();
@@ -257,7 +277,7 @@ export class Participant {
     for (const pSlot of this.physicalSlots) {
       const mid = pSlot.transceiver.mid;
       if (!mid) continue;
-      const assignment = this.state.assignments.get(mid);
+      const assignment = this.mediaState.assignments.get(mid);
       if (assignment) {
         const vSlot = this.virtualSlots.get(assignment.trackId);
         if (vSlot) vSlot.setStream(pSlot.transceiver.receiver.track);
@@ -287,7 +307,7 @@ export class Participant {
       const mid = pSlot.transceiver.mid;
       if (!mid) continue;
 
-      const currentAssignment = this.state.assignments.get(mid);
+      const currentAssignment = this.mediaState.assignments.get(mid);
       if (currentAssignment) {
         const vSlot = this.virtualSlots.get(currentAssignment.trackId);
         if (vSlot && vSlot.height > 0) {
@@ -340,28 +360,32 @@ export class Participant {
   }
 
   private handleConnectionState() {
+    let state: ConnectionState | null = null;
     switch (this.pc.connectionState) {
       case "new":
-        this.dispatch({ type: "new" });
+        state = { type: "new" };
         break;
       case "connecting":
-        this.dispatch({ type: "connecting" });
+        state = { type: "connecting" };
         break;
       case "connected":
-        this.dispatch({ type: "connected" });
+        state = { type: "connected" };
+        break;
+      case "disconnected":
+        state = { type: "disconnected" };
         break;
       case "failed":
         this.pc.close();
         break;
       case "closed":
-        this.dispatch({ type: "closed", error: this.lastError });
+        state = { type: "closed", error: this.lastError };
         break;
     }
-  }
 
-  private dispatch(event: ParticipantEvent) {
-    this.lastEventType = event.type;
-    this.onEvent(event);
+    if (state !== null) {
+      this.connState = state;
+      this.emit("conn:changed", state);
+    }
   }
 }
 
@@ -373,6 +397,7 @@ class LocalMediaStream {
   }
 
   set stream(s: MediaStream | null) {
+    this.stop();
     this.video.track = s?.getVideoTracks()[0] || null;
     this.audio.track = s?.getAudioTracks()[0] || null;
   }
