@@ -235,27 +235,28 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
   private applyUpdate(u: StateUpdate) {
     const seq = u.seq;
+
+    // Gap / Reorder detection
     if (!u.isSnapshot) {
       if (seq > this.mediaState.seq + 1n) return this.sendSyncRequest();
       if (seq <= this.mediaState.seq) return;
     }
 
+    // 1. Snapshot: Identify implicit removals locally
     if (u.isSnapshot) {
-      this.mediaState.tracks.clear();
+      const incomingIds = new Set(u.tracksUpsert.map((t) => t.id));
+      for (const id of this.mediaState.tracks.keys()) {
+        if (!incomingIds.has(id)) {
+          this.handleTrackRemoval(id);
+        }
+      }
       this.mediaState.assignments.clear();
-      this.virtualSlots.forEach((v) => v.clearStream());
     }
 
-    u.tracksRemove.forEach((id) => {
-      this.mediaState.tracks.delete(id);
-      this.emit(ParticipantEvent.SlotRemoved, { slotId: id });
-      const vSlot = this.virtualSlots.get(id);
-      if (vSlot) {
-        vSlot.clearStream();
-        this.virtualSlots.delete(id);
-      }
-    });
+    // 2. Delta: Explicit removals
+    u.tracksRemove.forEach((id) => this.handleTrackRemoval(id));
 
+    // 3. Upserts
     u.tracksUpsert.forEach((t) => {
       if (!this.mediaState.tracks.has(t.id)) {
         const vSlot = this.getOrCreateVirtualSlot(t);
@@ -264,21 +265,47 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       this.mediaState.tracks.set(t.id, t);
     });
 
+    // 4. Assignments
     u.assignmentsRemove.forEach((mid) => this.mediaState.assignments.delete(mid));
     u.assignmentsUpsert.forEach((a) => this.mediaState.assignments.set(a.mid, a));
-    this.mediaState.seq = seq;
 
+    this.mediaState.seq = seq;
     this.routePhysicalToVirtual();
   }
 
+  private handleTrackRemoval(id: string) {
+    this.mediaState.tracks.delete(id);
+    const vSlot = this.virtualSlots.get(id);
+    if (vSlot) {
+      vSlot.clearStream();
+      this.virtualSlots.delete(id);
+      this.emit(ParticipantEvent.SlotRemoved, { slotId: id });
+    }
+  }
+
   private routePhysicalToVirtual() {
+    // Map active assignments to tracks
+    const activeStreams = new Map<string, MediaStreamTrack>();
+
     for (const pSlot of this.physicalSlots) {
       const mid = pSlot.transceiver.mid;
       if (!mid) continue;
+
       const assignment = this.mediaState.assignments.get(mid);
-      if (assignment) {
-        const vSlot = this.virtualSlots.get(assignment.trackId);
-        if (vSlot) vSlot.setStream(pSlot.transceiver.receiver.track);
+      if (assignment && !assignment.paused) {
+        if (this.mediaState.tracks.has(assignment.trackId)) {
+          activeStreams.set(assignment.trackId, pSlot.transceiver.receiver.track);
+        }
+      }
+    }
+
+    // Apply to virtual slots (Set stream if active, clear if paused/unassigned)
+    for (const vSlot of this.virtualSlots.values()) {
+      const track = activeStreams.get(vSlot.id);
+      if (track) {
+        vSlot.setStream(track);
+      } else {
+        vSlot.clearStream();
       }
     }
   }
@@ -341,11 +368,11 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     }
 
     if (requests.length > 0) {
+      console.table(requests);
       const intent = create(ClientIntentSchema, { requests });
       const msg = create(ClientMessageSchema, {
         payload: { case: "intent", value: intent },
       });
-      console.log(msg);
       this.dc.send(toBinary(ClientMessageSchema, msg));
     }
   }
