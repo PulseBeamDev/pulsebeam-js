@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import "./app.css";
-  import { Participant } from "./lib/web";
+  import { Participant, ParticipantEvent } from "./lib/web";
 
   let stream = $state<MediaStream>();
 
@@ -11,7 +11,7 @@
   });
   let state = $state(participant.state);
 
-  participant.on("conn:changed", (e) => (state = e));
+  participant.on(ParticipantEvent.State, (e) => (state = e));
 
   onMount(async () => {
     stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -28,8 +28,8 @@
 {:else}
   <video srcobject={stream} autoplay width="640" height="480"></video>
 
-  <h1>Status: {state.type}</h1>
-  {#if state.type === "connected"}
+  <h1>Status: {state}</h1>
+  {#if state === "connected"}
     <div>Connected</div>
   {:else}
     <button onclick={handleConnect}>Connect</button>

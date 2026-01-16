@@ -1,6 +1,14 @@
 export { };
 
 declare global {
+  type RTCPeerConnectionState =
+    | "new"
+    | "connecting"
+    | "connected"
+    | "disconnected"
+    | "failed"
+    | "closed";
+
   interface RTCRtpEncodingParameters {
     active?: boolean;
     maxBitrate?: number;

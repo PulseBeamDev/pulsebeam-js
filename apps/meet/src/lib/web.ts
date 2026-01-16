@@ -1,5 +1,6 @@
 import type { PlatformAdapter, Slot, ParticipantConfig } from "@pulsebeam/core";
 export type * from "@pulsebeam/core";
+export { ParticipantEvent } from "@pulsebeam/core";
 import { Participant as CoreParticipant } from "@pulsebeam/core";
 
 export const BrowserAdapter: PlatformAdapter = {

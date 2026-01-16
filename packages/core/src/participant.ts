@@ -20,30 +20,21 @@ export interface ParticipantConfig {
   readonly audioSlots: number;
 }
 
-export type ConnectionState =
-  | { type: "new" }
-  | { type: "connecting" }
-  | { type: "connected" }
-  | { type: "disconnected" }
-  | { type: "closed"; error: Error | null };
+export type ConnectionState = RTCPeerConnectionState;
 
-export interface ConnectionEvents {
-  changed: ConnectionState,
+export const ParticipantEvent = {
+  State: "state",
+  SlotAdded: "slot_added",
+  SlotRemoved: "slot_removed",
+  Error: "error",
+} as const;
+
+export interface ParticipantEvents {
+  [ParticipantEvent.State]: ConnectionState,
+  [ParticipantEvent.SlotAdded]: { slot: Slot };
+  [ParticipantEvent.SlotRemoved]: { slotId: string };
+  [ParticipantEvent.Error]: Error,
 }
-
-export interface RoomEvents {
-  slotAdded: { slot: Slot };
-  slotRemoved: { slotId: string };
-}
-
-// Helper to prefix keys (e.g., 'connected' becomes 'conn:connected')
-type PrefixKeys<T, P extends string> = {
-  [K in keyof T as `${P}:${Extract<K, string>}`]: T[K];
-};
-
-export type ParticipantEventMap =
-  & PrefixKeys<ConnectionEvents, "conn">
-  & PrefixKeys<RoomEvents, "room">;
 
 export class Slot {
   public height: number = 0;
@@ -85,7 +76,7 @@ class StateStore {
   assignments: Map<string, VideoAssignment> = new Map();
 }
 
-export class Participant extends EventEmitter<ParticipantEventMap> {
+export class Participant extends EventEmitter<ParticipantEvents> {
   private adapter: PlatformAdapter;
   private pc: RTCPeerConnection;
   private dc: RTCDataChannel;
@@ -97,7 +88,7 @@ export class Participant extends EventEmitter<ParticipantEventMap> {
   private physicalSlots: PhysicalSlot[] = [];
   private virtualSlots: Map<string, Slot> = new Map();
   private mediaState = new StateStore();
-  private connState: ConnectionState = { type: "new" };
+  private connState: ConnectionState = "new";
 
   private debounceTimer: any | null = null;
 
@@ -178,6 +169,7 @@ export class Participant extends EventEmitter<ParticipantEventMap> {
       });
     } catch (e) {
       this.lastError = e instanceof Error ? e : new Error(String(e));
+      this.emit(ParticipantEvent.Error, this.lastError);
       this.close();
       throw this.lastError;
     }
@@ -249,7 +241,7 @@ export class Participant extends EventEmitter<ParticipantEventMap> {
 
     u.tracksRemove.forEach((id) => {
       this.mediaState.tracks.delete(id);
-      this.emit("room:slotRemoved", { slotId: id });
+      this.emit(ParticipantEvent.SlotRemoved, { slotId: id });
       const vSlot = this.virtualSlots.get(id);
       if (vSlot) {
         vSlot.clearStream();
@@ -260,7 +252,7 @@ export class Participant extends EventEmitter<ParticipantEventMap> {
     u.tracksUpsert.forEach((t) => {
       if (!this.mediaState.tracks.has(t.id)) {
         const vSlot = this.getOrCreateVirtualSlot(t);
-        this.emit("room:slotAdded", { slot: vSlot });
+        this.emit(ParticipantEvent.SlotAdded, { slot: vSlot });
       }
       this.mediaState.tracks.set(t.id, t);
     });
@@ -360,32 +352,8 @@ export class Participant extends EventEmitter<ParticipantEventMap> {
   }
 
   private handleConnectionState() {
-    let state: ConnectionState | null = null;
-    switch (this.pc.connectionState) {
-      case "new":
-        state = { type: "new" };
-        break;
-      case "connecting":
-        state = { type: "connecting" };
-        break;
-      case "connected":
-        state = { type: "connected" };
-        break;
-      case "disconnected":
-        state = { type: "disconnected" };
-        break;
-      case "failed":
-        this.pc.close();
-        break;
-      case "closed":
-        state = { type: "closed", error: this.lastError };
-        break;
-    }
-
-    if (state !== null) {
-      this.connState = state;
-      this.emit("conn:changed", state);
-    }
+    this.connState = this.pc.connectionState;
+    this.emit(ParticipantEvent.State, this.connState);
   }
 }
 
