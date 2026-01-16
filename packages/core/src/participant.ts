@@ -92,6 +92,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   private virtualSlots: Map<string, Slot> = new Map();
   private mediaState = new StateStore();
   private connState: ConnectionState = "new";
+  private lastSentRequests: VideoRequest[] = [];
 
   private debounceTimer: any | null = null;
 
@@ -102,7 +103,11 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     this.pc = new this.adapter.RTCPeerConnection();
     this.pc.onconnectionstatechange = () => this.handleConnectionState();
 
-    this.dc = this.pc.createDataChannel(SIGNALING_LABEL, { ordered: true });
+    this.dc = this.pc.createDataChannel(SIGNALING_LABEL, {
+      ordered: true,
+      maxPacketLifeTime: undefined,
+      maxRetransmits: undefined
+    });
     this.dc.binaryType = "arraybuffer";
     this.dc.onmessage = (ev) => this.handleSignal(ev.data);
 
@@ -270,6 +275,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     u.assignmentsUpsert.forEach((a) => this.mediaState.assignments.set(a.mid, a));
 
     this.mediaState.seq = seq;
+    this.scheduleReconcile();
     this.routePhysicalToVirtual();
   }
 
@@ -321,13 +327,15 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   private reconcile() {
     if (this.dc.readyState !== "open") return;
 
+    // 1. Identify desired tracks (implicitly filters out height 0)
     const desiredTracks = Array.from(this.virtualSlots.values())
       .filter((v) => v.height > 0)
       .sort((a, b) => b.height - a.height);
 
-    const requests: VideoRequest[] = [];
+    const nextAssignments = new Map<string, { trackId: string; height: number }>();
     const usedMids = new Set<string>();
 
+    // 2. Sticky Assignments
     for (const pSlot of this.physicalSlots) {
       const mid = pSlot.transceiver.mid;
       if (!mid) continue;
@@ -335,46 +343,62 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       const currentAssignment = this.mediaState.assignments.get(mid);
       if (currentAssignment) {
         const vSlot = this.virtualSlots.get(currentAssignment.trackId);
-        if (vSlot && vSlot.height > 0) {
-          requests.push(
-            create(VideoRequestSchema, {
-              mid,
-              trackId: vSlot.id,
-              height: vSlot.height,
-            })
-          );
+        // vSlot.height > 0 is checked by presence in desiredTracks
+        if (vSlot && desiredTracks.includes(vSlot)) {
+          nextAssignments.set(mid, { trackId: vSlot.id, height: vSlot.height });
           usedMids.add(mid);
-          const idx = desiredTracks.indexOf(vSlot);
-          if (idx > -1) desiredTracks.splice(idx, 1);
+          // Remove from queue so it doesn't get assigned again
+          desiredTracks.splice(desiredTracks.indexOf(vSlot), 1);
         }
       }
     }
 
+    // 3. New Assignments
     for (const vSlot of desiredTracks) {
       const freeSlot = this.physicalSlots.find(
         (p) => p.transceiver.mid && !usedMids.has(p.transceiver.mid)
       );
       if (freeSlot) {
         const mid = freeSlot.transceiver.mid!;
-        requests.push(
-          create(VideoRequestSchema, {
-            mid,
-            trackId: vSlot.id,
-            height: vSlot.height,
-          })
-        );
+        nextAssignments.set(mid, { trackId: vSlot.id, height: vSlot.height });
         usedMids.add(mid);
       }
     }
 
-    if (requests.length > 0) {
-      console.table(requests);
-      const intent = create(ClientIntentSchema, { requests });
-      const msg = create(ClientMessageSchema, {
-        payload: { case: "intent", value: intent },
-      });
-      this.dc.send(toBinary(ClientMessageSchema, msg));
+    // 4. Build Requests (Pruning 0 height/unassigned)
+    const requests: VideoRequest[] = [];
+    for (const pSlot of this.physicalSlots) {
+      const mid = pSlot.transceiver.mid;
+      if (!mid) continue;
+
+      const assignment = nextAssignments.get(mid);
+
+      // Only include if there is an active assignment. 
+      // Unassigned MIDs (or height 0) are omitted (pruned).
+      if (assignment) {
+        requests.push(
+          create(VideoRequestSchema, {
+            mid,
+            trackId: assignment.trackId,
+            height: assignment.height,
+          })
+        );
+      }
     }
+
+    // 5. Idempotent, no sync when nothing changed.
+    if (areRequestsEqual(this.lastSentRequests, requests)) return;
+
+    // 6. Update Cache and Send
+    // We send even if requests is empty, to ensure we clear the state on the server.
+    this.lastSentRequests = requests;
+
+    console.table(requests);
+    const intent = create(ClientIntentSchema, { requests });
+    const msg = create(ClientMessageSchema, {
+      payload: { case: "intent", value: intent },
+    });
+    this.dc.send(toBinary(ClientMessageSchema, msg));
   }
 
   private sendSyncRequest() {
@@ -483,4 +507,27 @@ class LocalTrack {
   get track(): MediaStreamTrack | null {
     return this._track;
   }
+}
+
+function areRequestsEqual(a: VideoRequest[], b: VideoRequest[]): boolean {
+  if (a.length !== b.length) return false;
+
+  const sA = [...a].sort((x, y) => x.mid.localeCompare(y.mid));
+  const sB = [...b].sort((x, y) => x.mid.localeCompare(y.mid));
+
+  for (let i = 0; i < sA.length; i++) {
+    const reqA = sA[i];
+    const reqB = sB[i];
+
+    if (!reqA || !reqB) return false;
+
+    if (
+      reqA.mid !== reqB.mid ||
+      reqA.trackId !== reqB.trackId ||
+      reqA.height !== reqB.height
+    ) {
+      return false;
+    }
+  }
+  return true;
 }

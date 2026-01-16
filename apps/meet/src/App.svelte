@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import "./app.css";
-  import { Participant, ParticipantEvent, VideoBinder } from "./lib/web";
+  import { Participant, ParticipantEvent, binder } from "./lib/svelte";
   import type { Slot } from "@pulsebeam/core";
 
   let localStream = $state<MediaStream>();
@@ -22,24 +22,12 @@
     remoteSlots = remoteSlots.filter((s) => s.id !== e.slotId);
   });
 
-  function binder(node: HTMLVideoElement, slot: Slot) {
-    const instance = new VideoBinder(node, slot);
-    instance.mount();
-    return {
-      update(newSlot: Slot) {
-        instance.update(newSlot);
-      },
-      destroy() {
-        instance.unmount();
-      },
-    };
-  }
-
   onMount(async () => {
     localStream = await navigator.mediaDevices.getUserMedia({
       video: true,
       audio: true,
     });
+
     participant.publish(localStream);
   });
 
