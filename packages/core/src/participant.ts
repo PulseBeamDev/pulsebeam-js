@@ -77,8 +77,7 @@ export class Participant {
   private lastEventType: ParticipantEvent["type"] = "new";
   private lastError: Error | null = null;
 
-  private primary: LocalMediaStream;
-  private secondary: LocalMediaStream;
+  private localStream: LocalMediaStream;
 
   private physicalSlots: PhysicalSlot[] = [];
   private virtualSlots: Map<string, Slot> = new Map();
@@ -104,23 +103,14 @@ export class Participant {
       this.pc.addTransceiver("audio", { direction: "recvonly" });
     }
 
-    const primaryVideo = new LocalTrack(this.pc.addTransceiver("video", {
+    const video = new LocalTrack(this.pc.addTransceiver("video", {
       direction: "sendonly",
       sendEncodings: LocalTrack.PRESET_CAMERA,
     }));
-    const primaryAudio = new LocalTrack(this.pc.addTransceiver("audio", {
+    const audio = new LocalTrack(this.pc.addTransceiver("audio", {
       direction: "sendonly",
     }));
-    this.primary = new LocalMediaStream(primaryVideo, primaryAudio);
-
-    const secondaryVideo = new LocalTrack(this.pc.addTransceiver("video", {
-      direction: "sendonly",
-      sendEncodings: LocalTrack.PRESET_SCREEN,
-    }));
-    const secondaryAudio = new LocalTrack(this.pc.addTransceiver("audio", {
-      direction: "sendonly",
-    }));
-    this.secondary = new LocalMediaStream(secondaryVideo, secondaryAudio);
+    this.localStream = new LocalMediaStream(video, audio);
   }
 
   /**
@@ -138,7 +128,7 @@ export class Participant {
       await this.pc.setLocalDescription(offer);
 
       const res = await this.adapter.fetch(
-        `${endpoint}/api/v1/rooms/${room}/participants`,
+        `${endpoint}/api/v1/rooms/${room}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/sdp" },
@@ -174,21 +164,11 @@ export class Participant {
   }
 
   /**
-   * Set primary media stream (camera + microphone).
    * Can be called before or after connect().
    * Pass null to stop publishing.
    */
-  setPrimary(stream: MediaStream | null) {
-    this.primary.stream = stream;
-  }
-
-  /**
-   * Set secondary media stream (e.g. screen share).
-   * Can be called before or after connect().
-   * Pass null to stop publishing.
-   */
-  setSecondary(stream: MediaStream | null) {
-    this.secondary.stream = stream;
+  publish(stream: MediaStream | null) {
+    this.localStream.stream = stream;
   }
 
   /**
@@ -207,8 +187,7 @@ export class Participant {
   }
 
   private stopAllTracks() {
-    this.primary.stop();
-    this.secondary.stop();
+    this.localStream.stop();
   }
 
   private getOrCreateVirtualSlot(track: Track): Slot {
@@ -406,9 +385,9 @@ class LocalMediaStream {
 
 class LocalTrack {
   public static PRESET_CAMERA: RTCRtpEncodingParameters[] = [
-    { rid: "q", scaleResolutionDownBy: 4, maxBitrate: 150_000 },
-    { rid: "h", scaleResolutionDownBy: 2, maxBitrate: 400_000 },
-    { rid: "f", scaleResolutionDownBy: 1, maxBitrate: 1_250_000 },
+    { rid: "q", scaleResolutionDownBy: 4, maxBitrate: 150_000, active: false },
+    { rid: "h", scaleResolutionDownBy: 2, maxBitrate: 400_000, active: false },
+    { rid: "f", scaleResolutionDownBy: 1, maxBitrate: 1_250_000, active: false },
   ];
 
   // TODO: 
@@ -417,18 +396,21 @@ class LocalTrack {
       rid: "q",
       scaleResolutionDownBy: 4,
       maxBitrate: 250_000,
+      active: false,
     },
 
     {
       rid: "h",
       scaleResolutionDownBy: 2,
       maxBitrate: 1_000_000,
+      active: false,
     },
 
     {
       rid: "f",
       scaleResolutionDownBy: 1,
       maxBitrate: 3_000_000,
+      active: false,
     },
   ];
 
@@ -445,12 +427,30 @@ class LocalTrack {
   set track(track: MediaStreamTrack | null) {
     this.stop();
     this._track = track;
+
     this.transceiver.sender.replaceTrack(track).catch((err) => {
       console.error(
         `[Participant] Failed to replace ${track?.kind} track`,
         err
       );
     });
+
+    const params = this.transceiver.sender.getParameters();
+    const shouldBeActive = !!track;
+
+    let hasChanges = false;
+    for (const config of params.encodings) {
+      if (config.active !== shouldBeActive) {
+        config.active = shouldBeActive;
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
+      this.transceiver.sender.setParameters(params).catch((err) => {
+        console.error(`[Participant] Failed to set encoding parameters`, err);
+      });
+    }
   }
 
   get track(): MediaStreamTrack | null {

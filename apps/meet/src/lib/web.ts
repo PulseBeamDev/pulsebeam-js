@@ -1,13 +1,13 @@
-import type { PlatformAdapter, VirtualSlot, SessionConfig } from "@pulsebeam/core";
+import type { PlatformAdapter, Slot, ParticipantConfig } from "@pulsebeam/core";
 export type * from "@pulsebeam/core";
-import { Session } from "@pulsebeam/core";
+import { Participant as CoreParticipant } from "@pulsebeam/core";
 
 export const BrowserAdapter: PlatformAdapter = {
-  RTCPeerConnection: globalThis.RTCPeerConnection,
-  MediaStream: globalThis.MediaStream,
-  fetch: globalThis.fetch,
-  setTimeout: globalThis.setTimeout,
-  clearTimeout: globalThis.clearTimeout,
+  RTCPeerConnection: globalThis.RTCPeerConnection.bind(globalThis),
+  MediaStream: globalThis.MediaStream.bind(globalThis),
+  fetch: globalThis.fetch.bind(globalThis),
+  setTimeout: globalThis.setTimeout.bind(globalThis),
+  clearTimeout: globalThis.clearTimeout.bind(globalThis),
   mediaDevices: globalThis.navigator.mediaDevices,
 };
 
@@ -16,25 +16,24 @@ export const BrowserAdapter: PlatformAdapter = {
  * A Session pre-configured for the Browser.
  * Usage: const session = new WebSession({ ... });
  */
-export class WebSession extends Session {
-  constructor(config: Omit<SessionConfig, "adapter">) {
-    super({
-      ...config,
-      // Automatically inject the BrowserAdapter
-      adapter: BrowserAdapter
-    });
+export class Participant extends CoreParticipant {
+  constructor(config: ParticipantConfig) {
+    super(
+      BrowserAdapter,
+      config,
+    );
   }
 }
 
 export class VideoBinder {
   private el: HTMLVideoElement;
-  private slot: VirtualSlot;
+  private slot: Slot;
   private resizeObserver: ResizeObserver | null = null;
   private intersectionObserver: IntersectionObserver | null = null;
 
   public onAutoplayFailed?: () => void;
 
-  constructor(el: HTMLVideoElement, slot: VirtualSlot) {
+  constructor(el: HTMLVideoElement, slot: Slot) {
     this.el = el;
     this.slot = slot;
   }
@@ -69,7 +68,7 @@ export class VideoBinder {
    * Helper to switch tracks without destroying the binder
    * (e.g., when screen share replaces camera)
    */
-  update(newSlot: VirtualSlot) {
+  update(newSlot: Slot) {
     if (this.slot === newSlot) return;
 
     this.slot = newSlot;
