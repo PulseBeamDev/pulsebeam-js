@@ -1,21 +1,46 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import "./app.css";
-  import { Participant, ParticipantEvent } from "./lib/web";
+  import { Participant, ParticipantEvent, VideoBinder } from "./lib/web";
+  import type { Slot } from "@pulsebeam/core";
 
-  let stream = $state<MediaStream>();
+  let localStream = $state<MediaStream>();
+  let remoteSlots = $state<Slot[]>([]);
 
-  let participant = new Participant({
+  const participant = new Participant({
     videoSlots: 16,
     audioSlots: 3,
   });
-  let state = $state(participant.state);
 
-  participant.on(ParticipantEvent.State, (e) => (state = e));
+  let connection = $state(participant.state);
+  participant.on(ParticipantEvent.State, (s) => (connection = s));
+  participant.on(ParticipantEvent.SlotAdded, (e) => {
+    remoteSlots.push(e.slot);
+  });
+
+  participant.on(ParticipantEvent.SlotRemoved, (e) => {
+    remoteSlots = remoteSlots.filter((s) => s.id !== e.slotId);
+  });
+
+  function binder(node: HTMLVideoElement, slot: Slot) {
+    const instance = new VideoBinder(node, slot);
+    instance.mount();
+    return {
+      update(newSlot: Slot) {
+        instance.update(newSlot);
+      },
+      destroy() {
+        instance.unmount();
+      },
+    };
+  }
 
   onMount(async () => {
-    stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    participant.publish(stream);
+    localStream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true,
+    });
+    participant.publish(localStream);
   });
 
   async function handleConnect() {
@@ -23,15 +48,51 @@
   }
 </script>
 
-{#if !stream}
-  <h1>Initializing</h1>
+{#if !localStream}
+  <h1>Initializing Camera...</h1>
 {:else}
-  <video srcobject={stream} autoplay width="640" height="480"></video>
+  <div class="video-layout">
+    <section>
+      <h2>Local (You)</h2>
+      <video srcObject={localStream} autoplay muted width="320"></video>
+    </section>
 
-  <h1>Status: {state}</h1>
-  {#if state === "connected"}
-    <div>Connected</div>
-  {:else}
-    <button onclick={handleConnect}>Connect</button>
-  {/if}
+    <section>
+      <h2>Room Status: {connection}</h2>
+
+      {#if connection === "connected"}
+        <div class="grid">
+          {#each remoteSlots as slot (slot.id)}
+            <div class="remote-video">
+              <video use:binder={slot} autoplay playsinline></video>
+              <p>{slot.id} ({slot.track.kind})</p>
+            </div>
+          {/each}
+        </div>
+      {:else if connection === "closed"}
+        <p class="error">Error: {participant.error}</p>
+        <button onclick={handleConnect}>Retry</button>
+      {:else}
+        <button onclick={handleConnect} disabled={connection === "connecting"}>
+          {connection === "connecting" ? "Connecting..." : "Join Room"}
+        </button>
+      {/if}
+    </section>
+  </div>
 {/if}
+
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1rem;
+  }
+  .remote-video video {
+    width: 100%;
+    background: #222;
+    border-radius: 8px;
+  }
+  .error {
+    color: red;
+  }
+</style>

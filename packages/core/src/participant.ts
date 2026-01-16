@@ -13,7 +13,7 @@ import type { PlatformAdapter } from "./platform";
 import { EventEmitter } from "./event";
 
 const SIGNALING_LABEL = "__internal/v1/signaling";
-const DEBOUNCE_MS = 50;
+const SYNC_DEBOUNCE_MS = 300;
 
 export interface ParticipantConfig {
   readonly videoSlots: number;
@@ -50,9 +50,12 @@ export class Slot {
   }
 
   setHeight(h: number) {
-    const safeHeight = Math.floor(h);
-    if (this.height === safeHeight) return;
-    this.height = safeHeight;
+    const layers = [0, 90, 180, 360, 540, 720, 1080];
+    // Find the smallest layer that is >= the observed height
+    const quantizedHeight = layers.find(l => l >= h) ?? 1080;
+
+    if (this.height === quantizedHeight) return;
+    this.height = quantizedHeight;
     this.onLayoutChange?.();
   }
 
@@ -123,6 +126,10 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
   get state(): ConnectionState {
     return this.connState;
+  }
+
+  get error(): Error | null {
+    return this.lastError;
   }
 
   /**
@@ -262,7 +269,6 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     this.mediaState.seq = seq;
 
     this.routePhysicalToVirtual();
-    this.scheduleReconcile();
   }
 
   private routePhysicalToVirtual() {
@@ -281,7 +287,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     if (this.debounceTimer) this.adapter.clearTimeout(this.debounceTimer);
     this.debounceTimer = this.adapter.setTimeout(
       () => this.reconcile(),
-      DEBOUNCE_MS
+      SYNC_DEBOUNCE_MS
     );
   }
 
@@ -339,6 +345,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       const msg = create(ClientMessageSchema, {
         payload: { case: "intent", value: intent },
       });
+      console.log(msg);
       this.dc.send(toBinary(ClientMessageSchema, msg));
     }
   }
