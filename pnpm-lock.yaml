@@ -10,6 +10,9 @@ importers:
 
   apps/meet:
     dependencies:
+      '@picocss/pico':
+        specifier: ^2.1.1
+        version: 2.1.1
       '@pulsebeam/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -537,6 +540,9 @@ packages:
     resolution: {integrity: sha512-M7z0xjYQq1HdJk2DxTSLMvRMyBSI4wn4FXGcVQBsbAihgXevAReqwMdb593nmCK/OiFwSNcOaGIzUvzyzQ+95w==}
     cpu: [x64]
     os: [win32]
+
+  '@picocss/pico@2.1.1':
+    resolution: {integrity: sha512-kIDugA7Ps4U+2BHxiNHmvgPIQDWPDU4IeU6TNRdvXQM1uZX+FibqDQT2xUOnnO2yq/LUHcwnGlu1hvf4KfXnMg==}
 
   '@rollup/pluginutils@5.3.0':
     resolution: {integrity: sha512-5EdhGZtnu3V88ces7s53hhfK5KSASnJZv8Lulpc04cWO3REESroJXg73DFsOmgbU2BhwV0E20bu2IDZb3VKW4Q==}
@@ -2302,6 +2308,8 @@ snapshots:
 
   '@oxc-resolver/binding-win32-x64-msvc@11.16.2':
     optional: true
+
+  '@picocss/pico@2.1.1': {}
 
   '@rollup/pluginutils@5.3.0(rollup@4.55.1)':
     dependencies:

@@ -21,7 +21,8 @@
     "vite": "^7.2.4"
   },
   "dependencies": {
-    "@pulsebeam/web": "workspace:*",
-    "@pulsebeam/core": "workspace:*"
+    "@picocss/pico": "^2.1.1",
+    "@pulsebeam/core": "workspace:*",
+    "@pulsebeam/web": "workspace:*"
   }
 }

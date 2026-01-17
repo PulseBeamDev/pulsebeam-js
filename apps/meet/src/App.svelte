@@ -1,86 +1,99 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import "./app.css";
-  import { Participant, ParticipantEvent, binder } from "./lib/svelte";
-  import type { Slot } from "@pulsebeam/core";
+  import { onDestroy } from "svelte";
+  import { Participant, ParticipantEvent, binder, Slot } from "./lib/svelte";
 
-  let localStream = $state<MediaStream>();
-  let remoteSlots = $state<Slot[]>([]);
+  const participant = new Participant({ videoSlots: 16, audioSlots: 3 });
 
-  const participant = new Participant({
-    videoSlots: 16,
-    audioSlots: 3,
-  });
+  let state = $state(participant.state);
+  let slots = $state<Slot[]>([]);
 
-  let connection = $state(participant.state);
-  participant.on(ParticipantEvent.State, (s) => (connection = s));
-  participant.on(ParticipantEvent.SlotAdded, (e) => {
-    remoteSlots.push(e.slot);
-  });
+  const cleanup = [
+    participant.on(ParticipantEvent.State, (s) => (state = s)),
+    participant.on(ParticipantEvent.SlotAdded, ({ slot }) => slots.push(slot)),
+    participant.on(ParticipantEvent.SlotRemoved, ({ slotId }) => {
+      slots = slots.filter((s) => s.id !== slotId);
+    }),
+  ];
 
-  participant.on(ParticipantEvent.SlotRemoved, (e) => {
-    remoteSlots = remoteSlots.filter((s) => s.id !== e.slotId);
-  });
+  onDestroy(() => cleanup.forEach((off) => off()));
 
-  onMount(async () => {
-    localStream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
+  const streamPromise = navigator.mediaDevices
+    .getUserMedia({ video: true, audio: true })
+    .then((stream) => {
+      participant.publish(stream);
+      return stream;
     });
 
-    participant.publish(localStream);
-  });
-
-  async function handleConnect() {
-    await participant.connect("http://localhost:3000", "demo");
+  async function connect() {
+    try {
+      await participant.connect("http://localhost:3000", "demo");
+    } catch (e) {
+      console.error(e);
+    }
   }
 </script>
 
-{#if !localStream}
-  <h1>Initializing Camera...</h1>
-{:else}
-  <div class="video-layout">
-    <section>
-      <h2>Local (You)</h2>
-      <video srcObject={localStream} autoplay muted width="320"></video>
-    </section>
+<main class="container">
+  {#await streamPromise}
+    <article aria-busy="true">Initializing Camera...</article>
+  {:then localStream}
+    <div class="grid">
+      <article>
+        <header><strong>Local (You)</strong></header>
+        <video srcObject={localStream} autoplay muted></video>
+      </article>
 
-    <section>
-      <h2>Room Status: {connection}</h2>
+      <article>
+        <header>
+          <strong>Status: {state}</strong>
+        </header>
 
-      {#if connection === "connected"}
-        <div class="grid">
-          {#each remoteSlots as slot (slot.id)}
-            <div class="remote-video">
-              <video use:binder={slot} autoplay playsinline></video>
-              <p>{slot.id} ({slot.track.kind})</p>
-            </div>
-          {/each}
-        </div>
-      {:else if connection === "closed"}
-        <p class="error">Error: {participant.error}</p>
-        <button onclick={handleConnect}>Retry</button>
-      {:else}
-        <button onclick={handleConnect} disabled={connection === "connecting"}>
-          {connection === "connecting" ? "Connecting..." : "Join Room"}
-        </button>
-      {/if}
-    </section>
-  </div>
-{/if}
+        {#if state === "connected"}
+          <div class="video-grid">
+            {#each slots as slot (slot.id)}
+              <div class="remote-video">
+                <video use:binder={slot} autoplay playsinline></video>
+                <small>{slot.id}</small>
+              </div>
+            {/each}
+          </div>
+        {:else if state === "closed" || participant.error}
+          <div class="headings">
+            <h4 style="color: var(--pico-del-color)">Error</h4>
+            <p>{participant.error || "Connection closed"}</p>
+            <button onclick={connect} class="contrast">Retry</button>
+          </div>
+        {:else}
+          <button
+            onclick={connect}
+            aria-busy={state === "connecting"}
+            disabled={state === "connecting"}
+          >
+            {state === "connecting" ? "Connecting..." : "Join Room"}
+          </button>
+        {/if}
+      </article>
+    </div>
+  {:catch err}
+    <article>
+      <header style="color: var(--pico-del-color)">
+        <strong>Camera Error</strong>
+      </header>
+      {err.message}
+    </article>
+  {/await}
+</main>
 
 <style>
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 1rem;
-  }
-  .remote-video video {
+  video {
     width: 100%;
-    background: #222;
-    border-radius: 8px;
+    border-radius: var(--pico-border-radius);
+    background: #000;
   }
-  .error {
-    color: red;
+
+  .video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
   }
 </style>
