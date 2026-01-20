@@ -1,24 +1,32 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
-  import { Participant, ParticipantEvent, binder, Slot } from "./lib/svelte";
+  import {
+    Participant,
+    ParticipantEvent,
+    binder,
+    RemoteTrack,
+  } from "./lib/svelte";
 
   const participant = new Participant({ videoSlots: 16, audioSlots: 3 });
 
   let state = $state(participant.state);
-  let slots = $state<Slot[]>([]);
+  let participantId = $state<string>();
+  let tracks = $state<RemoteTrack[]>([]);
 
   const cleanup = [
     participant.on(ParticipantEvent.State, (s) => (state = s)),
-    participant.on(ParticipantEvent.SlotAdded, ({ slot }) => slots.push(slot)),
-    participant.on(ParticipantEvent.SlotRemoved, ({ slotId }) => {
-      slots = slots.filter((s) => s.id !== slotId);
+    participant.on(ParticipantEvent.TrackAdded, ({ track }) =>
+      tracks.push(track),
+    ),
+    participant.on(ParticipantEvent.TrackRemoved, ({ trackId }) => {
+      tracks = tracks.filter((t) => t.id !== trackId);
     }),
   ];
 
   onDestroy(() => cleanup.forEach((off) => off()));
 
   const streamPromise = navigator.mediaDevices
-    .getUserMedia({ video: true, audio: true })
+    .getUserMedia({ video: { height: 720 }, audio: true })
     .then((stream) => {
       participant.publish(stream);
       return stream;
@@ -26,7 +34,10 @@
 
   async function connect() {
     try {
-      await participant.connect("http://localhost:3000", "demo");
+      participantId = await participant.connect(
+        "http://localhost:3000",
+        "demo",
+      );
     } catch (e) {
       console.error(e);
     }
@@ -39,7 +50,7 @@
   {:then localStream}
     <div class="grid">
       <article>
-        <header><strong>Local (You)</strong></header>
+        <header><strong>Local ({participantId || "You"})</strong></header>
         <video srcObject={localStream} autoplay muted></video>
       </article>
 
@@ -50,10 +61,10 @@
 
         {#if state === "connected"}
           <div class="video-grid">
-            {#each slots as slot (slot.id)}
+            {#each tracks as track (track.id)}
               <div class="remote-video">
-                <video use:binder={slot} autoplay playsinline></video>
-                <small>{slot.id}</small>
+                <video use:binder={track} autoplay playsinline></video>
+                <small>{track.participantId}</small>
               </div>
             {/each}
           </div>

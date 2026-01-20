@@ -15,6 +15,10 @@ import { EventEmitter } from "./event";
 const SIGNALING_LABEL = "__internal/v1/signaling";
 const SYNC_DEBOUNCE_MS = 300;
 
+enum HeaderExt {
+  ParticipantId = "pb-participant-id",
+}
+
 export interface ParticipantConfig {
   readonly videoSlots: number;
   readonly audioSlots: number;
@@ -24,19 +28,19 @@ export type ConnectionState = RTCPeerConnectionState;
 
 export const ParticipantEvent = {
   State: "state",
-  SlotAdded: "slot_added",
-  SlotRemoved: "slot_removed",
+  TrackAdded: "track_added",
+  TrackRemoved: "track_removed",
   Error: "error",
 } as const;
 
 export interface ParticipantEvents {
   [ParticipantEvent.State]: ConnectionState,
-  [ParticipantEvent.SlotAdded]: { slot: Slot };
-  [ParticipantEvent.SlotRemoved]: { slotId: string };
+  [ParticipantEvent.TrackAdded]: { track: RemoteTrack };
+  [ParticipantEvent.TrackRemoved]: { trackId: string };
   [ParticipantEvent.Error]: Error,
 }
 
-export class Slot {
+export class RemoteTrack {
   public height: number = 0;
   public onLayoutChange?: () => void;
 
@@ -47,6 +51,10 @@ export class Slot {
 
   get id() {
     return this.track.id;
+  }
+
+  get participantId() {
+    return this.track.participantId;
   }
 
   setHeight(h: number) {
@@ -69,7 +77,7 @@ export class Slot {
   }
 }
 
-class PhysicalSlot {
+class Slot {
   constructor(public readonly transceiver: RTCRtpTransceiver) { }
 }
 
@@ -85,11 +93,12 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   private dc: RTCDataChannel;
   private deleteUri: string | null = null;
   private lastError: Error | null = null;
+  private _participantId: string | null = null;
 
   private localStream: LocalMediaStream;
 
-  private physicalSlots: PhysicalSlot[] = [];
-  private virtualSlots: Map<string, Slot> = new Map();
+  private slots: Slot[] = [];
+  private remoteTracks: Map<string, RemoteTrack> = new Map();
   private mediaState = new StateStore();
   private connState: ConnectionState = "new";
   private lastSentRequests: VideoRequest[] = [];
@@ -137,11 +146,15 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     return this.lastError;
   }
 
+  get participantId(): string | null {
+    return this._participantId;
+  }
+
   /**
    * Connect to a room.
    * Can only be called once.
    */
-  async connect(endpoint: string, room: string): Promise<void> {
+  async connect(endpoint: string, room: string): Promise<string> {
     if (this.pc.connectionState !== "new") {
       throw new Error("Participant connection has been initated");
     }
@@ -152,7 +165,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       await this.pc.setLocalDescription(offer);
 
       const res = await this.adapter.fetch(
-        `${endpoint}/api/v1/rooms/${room}`,
+        `${endpoint}/api/v1/rooms/${room}/participants`,
         {
           method: "POST",
           headers: { "Content-Type": "application/sdp" },
@@ -165,6 +178,14 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       }
 
       this.deleteUri = res.headers.get("Location");
+      if (!this.deleteUri) {
+        throw new Error("Missing Location header");
+      }
+
+      this._participantId = res.headers.get(HeaderExt.ParticipantId);
+      if (!this._participantId) {
+        throw new Error("Missing ParticipantId");
+      }
       const answerSdp = await res.text();
       await this.pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
 
@@ -172,13 +193,15 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       this.pc.getTransceivers().forEach((t) => {
         if (t.direction === "recvonly") {
           if (t.receiver.track.kind === "video") {
-            this.physicalSlots.push(new PhysicalSlot(t));
+            this.slots.push(new Slot(t));
           } else if (t.receiver.track.kind === "audio") {
             // TODO: audio
             // this.dispatch({ type: "slot_added", slot: new Slot("audio")})
           }
         }
       });
+
+      return this._participantId;
     } catch (e) {
       this.lastError = e instanceof Error ? e : new Error(String(e));
       this.emit(ParticipantEvent.Error, this.lastError);
@@ -214,13 +237,13 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     this.localStream.stop();
   }
 
-  private getOrCreateVirtualSlot(track: Track): Slot {
-    let vSlot = this.virtualSlots.get(track.id);
+  private getOrCreateRemoteTrack(track: Track): RemoteTrack {
+    let vSlot = this.remoteTracks.get(track.id);
     if (!vSlot) {
       const stream = new this.adapter.MediaStream();
-      vSlot = new Slot(track, stream);
+      vSlot = new RemoteTrack(track, stream);
       vSlot.onLayoutChange = () => this.scheduleReconcile();
-      this.virtualSlots.set(vSlot.id, vSlot);
+      this.remoteTracks.set(vSlot.id, vSlot);
     }
     return vSlot;
   }
@@ -263,9 +286,9 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
     // 3. Upserts
     u.tracksUpsert.forEach((t) => {
-      if (!this.mediaState.tracks.has(t.id) && !this.virtualSlots.has(t.id)) {
-        const vSlot = this.getOrCreateVirtualSlot(t);
-        this.emit(ParticipantEvent.SlotAdded, { slot: vSlot });
+      if (!this.mediaState.tracks.has(t.id) && !this.remoteTracks.has(t.id)) {
+        const track = this.getOrCreateRemoteTrack(t);
+        this.emit(ParticipantEvent.TrackAdded, { track });
       }
       this.mediaState.tracks.set(t.id, t);
     });
@@ -281,11 +304,11 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
   private handleTrackRemoval(id: string) {
     this.mediaState.tracks.delete(id);
-    const vSlot = this.virtualSlots.get(id);
-    if (vSlot) {
-      vSlot.clearStream();
-      this.virtualSlots.delete(id);
-      this.emit(ParticipantEvent.SlotRemoved, { slotId: id });
+    const track = this.remoteTracks.get(id);
+    if (track) {
+      track.clearStream();
+      this.remoteTracks.delete(id);
+      this.emit(ParticipantEvent.TrackRemoved, { trackId: id });
     }
   }
 
@@ -293,7 +316,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     // Map active assignments to tracks
     const activeStreams = new Map<string, MediaStreamTrack>();
 
-    for (const pSlot of this.physicalSlots) {
+    for (const pSlot of this.slots) {
       const mid = pSlot.transceiver.mid;
       if (!mid) continue;
 
@@ -306,12 +329,12 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     }
 
     // Apply to virtual slots (Set stream if active, clear if paused/unassigned)
-    for (const vSlot of this.virtualSlots.values()) {
-      const track = activeStreams.get(vSlot.id);
+    for (const remoteTrack of this.remoteTracks.values()) {
+      const track = activeStreams.get(remoteTrack.id);
       if (track) {
-        vSlot.setStream(track);
+        remoteTrack.setStream(track);
       } else {
-        vSlot.clearStream();
+        remoteTrack.clearStream();
       }
     }
   }
@@ -328,7 +351,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     if (this.dc.readyState !== "open") return;
 
     // 1. Identify desired tracks (implicitly filters out height 0)
-    const desiredTracks = Array.from(this.virtualSlots.values())
+    const desiredTracks = Array.from(this.remoteTracks.values())
       .filter((v) => v.height > 0)
       .sort((a, b) => b.height - a.height);
 
@@ -336,13 +359,13 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     const usedMids = new Set<string>();
 
     // 2. Sticky Assignments
-    for (const pSlot of this.physicalSlots) {
+    for (const pSlot of this.slots) {
       const mid = pSlot.transceiver.mid;
       if (!mid) continue;
 
       const currentAssignment = this.mediaState.assignments.get(mid);
       if (currentAssignment) {
-        const vSlot = this.virtualSlots.get(currentAssignment.trackId);
+        const vSlot = this.remoteTracks.get(currentAssignment.trackId);
         // vSlot.height > 0 is checked by presence in desiredTracks
         if (vSlot && desiredTracks.includes(vSlot)) {
           nextAssignments.set(mid, { trackId: vSlot.id, height: vSlot.height });
@@ -355,7 +378,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
     // 3. New Assignments
     for (const vSlot of desiredTracks) {
-      const freeSlot = this.physicalSlots.find(
+      const freeSlot = this.slots.find(
         (p) => p.transceiver.mid && !usedMids.has(p.transceiver.mid)
       );
       if (freeSlot) {
@@ -367,7 +390,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
     // 4. Build Requests (Pruning 0 height/unassigned)
     const requests: VideoRequest[] = [];
-    for (const pSlot of this.physicalSlots) {
+    for (const pSlot of this.slots) {
       const mid = pSlot.transceiver.mid;
       if (!mid) continue;
 

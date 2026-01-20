@@ -1,6 +1,6 @@
-import type { PlatformAdapter, Slot, ParticipantConfig } from "@pulsebeam/core";
+import type { PlatformAdapter, RemoteTrack, ParticipantConfig } from "@pulsebeam/core";
 export type * from "@pulsebeam/core";
-export { Slot, ParticipantEvent } from "@pulsebeam/core";
+export { RemoteTrack, ParticipantEvent } from "@pulsebeam/core";
 import { Participant as CoreParticipant } from "@pulsebeam/core";
 
 export const BrowserAdapter: PlatformAdapter = {
@@ -28,21 +28,21 @@ export class Participant extends CoreParticipant {
 
 export class VideoBinder {
   private el: HTMLVideoElement;
-  private slot: Slot;
+  private track: RemoteTrack;
   private resizeObserver: ResizeObserver | null = null;
   private intersectionObserver: IntersectionObserver | null = null;
 
   public onAutoplayFailed?: () => void;
 
-  constructor(el: HTMLVideoElement, slot: Slot) {
+  constructor(el: HTMLVideoElement, track: RemoteTrack) {
     this.el = el;
-    this.slot = slot;
+    this.track = track;
   }
 
   mount() {
-    if (!this.el || !this.slot) return;
+    if (!this.el || !this.track) return;
 
-    this.el.srcObject = this.slot.stream;
+    this.el.srcObject = this.track.stream;
 
     this.el.playsInline = true; // Required for iOS Safari
     this.el.autoplay = true;
@@ -69,14 +69,14 @@ export class VideoBinder {
    * Helper to switch tracks without destroying the binder
    * (e.g., when screen share replaces camera)
    */
-  update(newSlot: Slot) {
-    if (this.slot === newSlot) return;
+  update(newTrack: RemoteTrack) {
+    if (this.track === newTrack) return;
 
-    this.slot = newSlot;
+    this.track = newTrack;
 
     // Re-assign stream
     if (this.el) {
-      this.el.srcObject = this.slot.stream;
+      this.el.srcObject = this.track.stream;
       this.el.play().catch(() => { });
     }
   }
@@ -92,7 +92,7 @@ export class VideoBinder {
       const { height } = entry.contentRect;
 
       // Tell Core the new height
-      this.slot.setHeight(height);
+      this.track.setHeight(height);
     });
     this.resizeObserver.observe(this.el);
 
@@ -102,11 +102,11 @@ export class VideoBinder {
 
       if (!isVisible) {
         // 0 height tells Core to pause/unsubscribe
-        this.slot.setHeight(0);
+        this.track.setHeight(0);
       } else {
         // Restore height when visible
         const rect = this.el.getBoundingClientRect();
-        this.slot.setHeight(rect.height);
+        this.track.setHeight(rect.height);
       }
     });
     this.intersectionObserver.observe(this.el);
