@@ -263,7 +263,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
     // 3. Upserts
     u.tracksUpsert.forEach((t) => {
-      if (!this.mediaState.tracks.has(t.id)) {
+      if (!this.mediaState.tracks.has(t.id) && !this.virtualSlots.has(t.id)) {
         const vSlot = this.getOrCreateVirtualSlot(t);
         this.emit(ParticipantEvent.SlotAdded, { slot: vSlot });
       }
