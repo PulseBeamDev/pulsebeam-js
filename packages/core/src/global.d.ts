@@ -14,6 +14,25 @@ declare global {
     maxBitrate?: number;
     scaleResolutionDownBy?: number;
     rid?: string;
+    codec?: RTCRtpCodecParameters;
+  }
+
+  interface RTCRtpCodecParameters {
+    // payloadType: number;
+    mimeType: string;
+    clockRate: number;
+    channels?: number | undefined; // default = 1
+    sdpFmtpLine?: string | undefined;
+  }
+
+  interface RTCRtpCapabilities {
+    codecs: RTCRtpCodecCapability[];
+    headerExtensions: RTCRtpHeaderExtensionCapability[];
+  }
+
+  interface RTCRtpCodecCapability {
+    mimeType: string;
+    sdpFmtpLine?: string;
   }
 
   interface RTCRtpReceiver {

@@ -160,16 +160,30 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     }
 
     try {
+      try {
+        const preferredCodecs = this.getPreferredVideoCodecs();
+        if (preferredCodecs.length > 0) {
+          this.pc.getTransceivers().forEach((t) => {
+            if (t.receiver.track.kind === "video") {
+              t.setCodecPreferences(preferredCodecs);
+            }
+          });
+        }
+      } catch (err) {
+        console.warn("Failed to set codec preferences", err);
+      }
+
       const offer = await this.pc.createOffer();
       if (!offer.sdp) throw new Error("Failed to generate offer");
-      await this.pc.setLocalDescription(offer);
+      const strippedSdp = stripUnusedExtensions(offer.sdp);
+      await this.pc.setLocalDescription({ type: "offer", sdp: strippedSdp });
 
       const res = await this.adapter.fetch(
         `${endpoint}/api/v1/rooms/${room}/participants`,
         {
           method: "POST",
           headers: { "Content-Type": "application/sdp" },
-          body: offer.sdp,
+          body: strippedSdp,
         }
       );
 
@@ -231,6 +245,26 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     // Stop all local tracks
     this.stopAllTracks();
     this.pc.close();
+  }
+
+  private getPreferredVideoCodecs(): RTCRtpCodecCapability[] {
+    if (!this.adapter.getCapabilities) {
+      return [];
+    }
+
+    const caps = this.adapter.getCapabilities("video");
+    if (!caps || !caps.codecs) return [];
+
+    return caps.codecs.filter((c) => {
+      const mime = c.mimeType.toLowerCase();
+      const fmtp = (c.sdpFmtpLine || "").toLowerCase();
+
+      if (mime !== "video/h264") return false;
+      if (!fmtp.includes("packetization-mode=1")) return false;
+      if (!fmtp.includes("profile-level-id=42001f")) return false;
+
+      return true;
+    });
   }
 
   private stopAllTracks() {
@@ -459,9 +493,24 @@ class LocalMediaStream {
 
 class LocalTrack {
   public static PRESET_CAMERA: RTCRtpEncodingParameters[] = [
-    { rid: "q", scaleResolutionDownBy: 4, maxBitrate: 150_000, active: false },
-    { rid: "h", scaleResolutionDownBy: 2, maxBitrate: 400_000, active: false },
-    { rid: "f", scaleResolutionDownBy: 1, maxBitrate: 1_250_000, active: false },
+    {
+      rid: "q",
+      scaleResolutionDownBy: 4,
+      maxBitrate: 150_000,
+      active: false
+    },
+    {
+      rid: "h",
+      scaleResolutionDownBy: 2,
+      maxBitrate: 400_000,
+      active: false
+    },
+    {
+      rid: "f",
+      scaleResolutionDownBy: 1,
+      maxBitrate: 1_250_000,
+      active: false
+    },
   ];
 
   // TODO: 
@@ -553,4 +602,24 @@ function areRequestsEqual(a: VideoRequest[], b: VideoRequest[]): boolean {
     }
   }
   return true;
+}
+
+function stripUnusedExtensions(sdp: string): string {
+  const allowedExtensions = [
+    "urn:ietf:params:rtp-hdrext:sdes:mid",
+    "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time",
+    "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01",
+    "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id",
+    "urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id"
+  ];
+
+  return sdp
+    .split("\r\n")
+    .filter((line) => {
+      if (line.startsWith("a=extmap:")) {
+        return allowedExtensions.some((ext) => line.includes(ext));
+      }
+      return true;
+    })
+    .join("\r\n");
 }

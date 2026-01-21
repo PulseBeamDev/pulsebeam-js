@@ -4,8 +4,9 @@ export { RemoteTrack, ParticipantEvent } from "@pulsebeam/core";
 import { Participant as CoreParticipant } from "@pulsebeam/core";
 
 export const BrowserAdapter: PlatformAdapter = {
-  RTCPeerConnection: globalThis.RTCPeerConnection.bind(globalThis),
-  MediaStream: globalThis.MediaStream.bind(globalThis),
+  RTCPeerConnection: globalThis.RTCPeerConnection,
+  MediaStream: globalThis.MediaStream,
+  getCapabilities: globalThis.RTCRtpSender.getCapabilities.bind(globalThis.RTCRtpSender),
   fetch: globalThis.fetch.bind(globalThis),
   setTimeout: globalThis.setTimeout.bind(globalThis),
   clearTimeout: globalThis.clearTimeout.bind(globalThis),
