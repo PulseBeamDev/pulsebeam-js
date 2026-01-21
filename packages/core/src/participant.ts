@@ -272,14 +272,14 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   }
 
   private getOrCreateRemoteTrack(track: Track): RemoteTrack {
-    let vSlot = this.remoteTracks.get(track.id);
-    if (!vSlot) {
+    let remoteTrack = this.remoteTracks.get(track.id);
+    if (!remoteTrack) {
       const stream = new this.adapter.MediaStream();
-      vSlot = new RemoteTrack(track, stream);
-      vSlot.onLayoutChange = () => this.scheduleReconcile();
-      this.remoteTracks.set(vSlot.id, vSlot);
+      remoteTrack = new RemoteTrack(track, stream);
+      remoteTrack.onLayoutChange = () => this.scheduleReconcile();
+      this.remoteTracks.set(remoteTrack.id, remoteTrack);
     }
-    return vSlot;
+    return remoteTrack;
   }
 
   private handleSignal(data: ArrayBuffer) {
