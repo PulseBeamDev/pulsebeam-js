@@ -1,4 +1,4 @@
-import type { PlatformAdapter, ParticipantConfig, RemoteVideoTrack } from "@pulsebeam/core";
+import type { PlatformAdapter, ParticipantConfig, RemoteVideoTrack, RemoteAudioTrack } from "@pulsebeam/core";
 export type * from "@pulsebeam/core";
 export { RemoteAudioTrack, RemoteVideoTrack, ParticipantEvent } from "@pulsebeam/core";
 import { Participant as CoreParticipant } from "@pulsebeam/core";
@@ -48,6 +48,7 @@ export class VideoBinder {
     this.el.playsInline = true; // Required for iOS Safari
     this.el.autoplay = true;
     this.el.muted = true; // Default to muted to allow autoplay
+    this.el.controls = false;
 
     this.el.play().catch((e) => {
       console.warn("[VideoBinder] Autoplay blocked:", e);
@@ -111,5 +112,48 @@ export class VideoBinder {
       }
     });
     this.intersectionObserver.observe(this.el);
+  }
+}
+
+export class AudioBinder {
+  private el: HTMLAudioElement;
+  private track: RemoteAudioTrack;
+
+  public onAutoplayFailed?: () => void;
+
+  constructor(el: HTMLAudioElement, track: RemoteAudioTrack) {
+    this.el = el;
+    this.track = track;
+  }
+
+  mount() {
+    if (!this.el || !this.track) return;
+
+    this.el.srcObject = this.track.stream;
+    this.el.autoplay = true;
+    this.el.controls = false;
+
+    this.el.play().catch((e) => {
+      console.warn("[AudioBinder] Autoplay blocked:", e);
+      if (this.onAutoplayFailed) this.onAutoplayFailed();
+    });
+  }
+
+  unmount() {
+    if (this.el) {
+      this.el.srcObject = null;
+    }
+  }
+
+  update(newTrack: RemoteAudioTrack) {
+    if (this.track === newTrack) return;
+
+    this.track = newTrack;
+
+    // Re-assign stream
+    if (this.el) {
+      this.el.srcObject = this.track.stream;
+      this.el.play().catch(() => { });
+    }
   }
 }
