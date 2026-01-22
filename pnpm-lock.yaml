@@ -15,10 +15,10 @@ importers:
         version: 2.1.1
       '@pulsebeam/core':
         specifier: workspace:*
-        version: link:../../packages/core
+        version: link:../../libs/core
       '@pulsebeam/web':
         specifier: workspace:*
-        version: link:../../packages/web
+        version: link:../../libs/web
     devDependencies:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^6.2.1
@@ -48,7 +48,7 @@ importers:
         specifier: ^7.2.4
         version: 7.3.1(@types/node@24.10.7)(jiti@2.6.1)(lightningcss@1.30.2)
 
-  packages/core:
+  libs/core:
     dependencies:
       '@bufbuild/protobuf':
         specifier: ^2.10.2
@@ -73,7 +73,7 @@ importers:
         specifier: ^4.0.17
         version: 4.0.17(@types/node@24.10.7)(jiti@2.6.1)(lightningcss@1.30.2)
 
-  packages/web:
+  libs/web:
     dependencies:
       '@fontsource/jetbrains-mono':
         specifier: ^5.2.8
