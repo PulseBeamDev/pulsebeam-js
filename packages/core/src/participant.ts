@@ -28,19 +28,29 @@ export type ConnectionState = RTCPeerConnectionState;
 
 export const ParticipantEvent = {
   State: "state",
-  TrackAdded: "track_added",
-  TrackRemoved: "track_removed",
+  VideoTrackAdded: "video_track_added",
+  VideoTrackRemoved: "video_track_removed",
+  AudioTrackAdded: "audio_track_added",
+  AudioTrackRemoved: "audio_track_removed",
   Error: "error",
 } as const;
 
 export interface ParticipantEvents {
   [ParticipantEvent.State]: ConnectionState,
-  [ParticipantEvent.TrackAdded]: { track: RemoteTrack };
-  [ParticipantEvent.TrackRemoved]: { trackId: string };
+  [ParticipantEvent.VideoTrackAdded]: { track: RemoteVideoTrack };
+  [ParticipantEvent.VideoTrackRemoved]: { trackId: string };
+  [ParticipantEvent.AudioTrackAdded]: { track: RemoteAudioTrack };
+  [ParticipantEvent.AudioTrackRemoved]: { trackId: string };
   [ParticipantEvent.Error]: Error,
 }
 
-export class RemoteTrack {
+export class RemoteAudioTrack {
+  constructor(
+    public readonly stream: MediaStream
+  ) { }
+}
+
+export class RemoteVideoTrack {
   public height: number = 0;
   public onLayoutChange?: () => void;
 
@@ -97,8 +107,9 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
   private localStream: LocalMediaStream;
 
-  private slots: Slot[] = [];
-  private remoteTracks: Map<string, RemoteTrack> = new Map();
+  private videoSlots: Slot[] = [];
+  private audioSlots: Slot[] = [];
+  private remoteVideoTracks: Map<string, RemoteVideoTrack> = new Map();
   private mediaState = new StateStore();
   private connState: ConnectionState = "new";
   private lastSentRequests: VideoRequest[] = [];
@@ -207,10 +218,12 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       this.pc.getTransceivers().forEach((t) => {
         if (t.direction === "recvonly") {
           if (t.receiver.track.kind === "video") {
-            this.slots.push(new Slot(t));
+            this.videoSlots.push(new Slot(t));
           } else if (t.receiver.track.kind === "audio") {
-            // TODO: audio
-            // this.dispatch({ type: "slot_added", slot: new Slot("audio")})
+            this.audioSlots.push(new Slot(t));
+            const stream = new this.adapter.MediaStream([t.receiver.track]);
+            const remoteTrack = new RemoteAudioTrack(stream);
+            this.emit(ParticipantEvent.AudioTrackAdded, { track: remoteTrack });
           }
         }
       });
@@ -271,13 +284,13 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     this.localStream.stop();
   }
 
-  private getOrCreateRemoteTrack(track: Track): RemoteTrack {
-    let remoteTrack = this.remoteTracks.get(track.id);
+  private getOrCreateRemoteTrack(track: Track): RemoteVideoTrack {
+    let remoteTrack = this.remoteVideoTracks.get(track.id);
     if (!remoteTrack) {
       const stream = new this.adapter.MediaStream();
-      remoteTrack = new RemoteTrack(track, stream);
+      remoteTrack = new RemoteVideoTrack(track, stream);
       remoteTrack.onLayoutChange = () => this.scheduleReconcile();
-      this.remoteTracks.set(remoteTrack.id, remoteTrack);
+      this.remoteVideoTracks.set(remoteTrack.id, remoteTrack);
     }
     return remoteTrack;
   }
@@ -320,9 +333,9 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
     // 3. Upserts
     u.tracksUpsert.forEach((t) => {
-      if (!this.mediaState.tracks.has(t.id) && !this.remoteTracks.has(t.id)) {
+      if (!this.mediaState.tracks.has(t.id) && !this.remoteVideoTracks.has(t.id)) {
         const track = this.getOrCreateRemoteTrack(t);
-        this.emit(ParticipantEvent.TrackAdded, { track });
+        this.emit(ParticipantEvent.VideoTrackAdded, { track });
       }
       this.mediaState.tracks.set(t.id, t);
     });
@@ -338,11 +351,11 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
   private handleTrackRemoval(id: string) {
     this.mediaState.tracks.delete(id);
-    const track = this.remoteTracks.get(id);
+    const track = this.remoteVideoTracks.get(id);
     if (track) {
       track.clearStream();
-      this.remoteTracks.delete(id);
-      this.emit(ParticipantEvent.TrackRemoved, { trackId: id });
+      this.remoteVideoTracks.delete(id);
+      this.emit(ParticipantEvent.VideoTrackRemoved, { trackId: id });
     }
   }
 
@@ -350,7 +363,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     // Map active assignments to tracks
     const activeStreams = new Map<string, MediaStreamTrack>();
 
-    for (const pSlot of this.slots) {
+    for (const pSlot of this.videoSlots) {
       const mid = pSlot.transceiver.mid;
       if (!mid) continue;
 
@@ -363,7 +376,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     }
 
     // Apply to virtual slots (Set stream if active, clear if paused/unassigned)
-    for (const remoteTrack of this.remoteTracks.values()) {
+    for (const remoteTrack of this.remoteVideoTracks.values()) {
       const track = activeStreams.get(remoteTrack.id);
       if (track) {
         remoteTrack.setStream(track);
@@ -385,7 +398,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     if (this.dc.readyState !== "open") return;
 
     // 1. Identify desired tracks (implicitly filters out height 0)
-    const desiredTracks = Array.from(this.remoteTracks.values())
+    const desiredTracks = Array.from(this.remoteVideoTracks.values())
       .filter((v) => v.height > 0)
       .sort((a, b) => b.height - a.height);
 
@@ -393,13 +406,13 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     const usedMids = new Set<string>();
 
     // 2. Sticky Assignments
-    for (const pSlot of this.slots) {
+    for (const pSlot of this.videoSlots) {
       const mid = pSlot.transceiver.mid;
       if (!mid) continue;
 
       const currentAssignment = this.mediaState.assignments.get(mid);
       if (currentAssignment) {
-        const vSlot = this.remoteTracks.get(currentAssignment.trackId);
+        const vSlot = this.remoteVideoTracks.get(currentAssignment.trackId);
         // vSlot.height > 0 is checked by presence in desiredTracks
         if (vSlot && desiredTracks.includes(vSlot)) {
           nextAssignments.set(mid, { trackId: vSlot.id, height: vSlot.height });
@@ -412,7 +425,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
     // 3. New Assignments
     for (const vSlot of desiredTracks) {
-      const freeSlot = this.slots.find(
+      const freeSlot = this.videoSlots.find(
         (p) => p.transceiver.mid && !usedMids.has(p.transceiver.mid)
       );
       if (freeSlot) {
@@ -424,7 +437,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
     // 4. Build Requests (Pruning 0 height/unassigned)
     const requests: VideoRequest[] = [];
-    for (const pSlot of this.slots) {
+    for (const pSlot of this.videoSlots) {
       const mid = pSlot.transceiver.mid;
       if (!mid) continue;
 

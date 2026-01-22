@@ -1,6 +1,6 @@
-import type { PlatformAdapter, RemoteTrack, ParticipantConfig } from "@pulsebeam/core";
+import type { PlatformAdapter, ParticipantConfig, RemoteVideoTrack } from "@pulsebeam/core";
 export type * from "@pulsebeam/core";
-export { RemoteTrack, ParticipantEvent } from "@pulsebeam/core";
+export { RemoteAudioTrack, RemoteVideoTrack, ParticipantEvent } from "@pulsebeam/core";
 import { Participant as CoreParticipant } from "@pulsebeam/core";
 
 export const BrowserAdapter: PlatformAdapter = {
@@ -29,13 +29,13 @@ export class Participant extends CoreParticipant {
 
 export class VideoBinder {
   private el: HTMLVideoElement;
-  private track: RemoteTrack;
+  private track: RemoteVideoTrack;
   private resizeObserver: ResizeObserver | null = null;
   private intersectionObserver: IntersectionObserver | null = null;
 
   public onAutoplayFailed?: () => void;
 
-  constructor(el: HTMLVideoElement, track: RemoteTrack) {
+  constructor(el: HTMLVideoElement, track: RemoteVideoTrack) {
     this.el = el;
     this.track = track;
   }
@@ -70,7 +70,7 @@ export class VideoBinder {
    * Helper to switch tracks without destroying the binder
    * (e.g., when screen share replaces camera)
    */
-  update(newTrack: RemoteTrack) {
+  update(newTrack: RemoteVideoTrack) {
     if (this.track === newTrack) return;
 
     this.track = newTrack;

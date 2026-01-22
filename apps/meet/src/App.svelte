@@ -3,8 +3,9 @@
   import {
     Participant,
     ParticipantEvent,
+    RemoteAudioTrack,
+    RemoteVideoTrack,
     binder,
-    type RemoteTrack,
   } from "./lib/svelte";
 
   const API_URL = "https://demo.pulsebeam.dev";
@@ -17,7 +18,8 @@
   let localStream = $state<MediaStream | null>(null);
   let activeParticipant = $state<Participant | null>(null);
   let connectionState = $state("disconnected");
-  let tracks = $state<RemoteTrack[]>([]);
+  let videoTracks = $state<RemoteVideoTrack[]>([]);
+  let audioTracks = $state<RemoteAudioTrack[]>([]);
 
   onMount(async () => {
     try {
@@ -43,13 +45,18 @@
     errorMsg = null;
 
     try {
-      const p = new Participant({ videoSlots: 16, audioSlots: 3 });
+      const p = new Participant({ videoSlots: 16, audioSlots: 8 });
 
       p.on(ParticipantEvent.State, (s) => (connectionState = s));
-      p.on(ParticipantEvent.TrackAdded, ({ track }) => tracks.push(track));
-      p.on(ParticipantEvent.TrackRemoved, ({ trackId }) => {
-        tracks = tracks.filter((t) => t.id !== trackId);
+      p.on(ParticipantEvent.VideoTrackAdded, ({ track }) =>
+        videoTracks.push(track),
+      );
+      p.on(ParticipantEvent.VideoTrackRemoved, ({ trackId }) => {
+        videoTracks = videoTracks.filter((t) => t.id !== trackId);
       });
+      p.on(ParticipantEvent.AudioTrackAdded, ({ track }) =>
+        audioTracks.push(track),
+      );
 
       p.publish(localStream);
       await p.connect(API_URL, roomId);
@@ -68,7 +75,7 @@
   function leave() {
     activeParticipant?.close();
     activeParticipant = null;
-    tracks = [];
+    videoTracks = [];
     connectionState = "disconnected";
     page = "lobby";
   }
@@ -141,7 +148,7 @@
         </ul>
       </nav>
 
-      <div class="grid-gallery" data-count={tracks.length + 1}>
+      <div class="grid-gallery" data-count={videoTracks.length + 1}>
         <div class="video-tile">
           {#if localStream}
             <video srcObject={localStream} autoplay muted playsinline></video>
@@ -149,14 +156,16 @@
           <span class="badge">You</span>
         </div>
 
-        {#each tracks as item (item.id)}
+        {#each videoTracks as item (item.id)}
           <div class="video-tile">
-            <video use:binder={item as RemoteTrack} autoplay playsinline
-            ></video>
-            <span class="badge">{(item as RemoteTrack).participantId}</span>
+            <video use:binder={item} autoplay playsinline></video>
+            <span class="badge">{item.participantId}</span>
           </div>
         {/each}
       </div>
+      {#each audioTracks as item}
+        <audio srcobject={item.stream} autoplay playsinline></audio>
+      {/each}
     </div>
   {/if}
 </main>
