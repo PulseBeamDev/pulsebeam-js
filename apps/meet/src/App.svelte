@@ -9,12 +9,12 @@
 
   const participant = new Participant({ videoSlots: 16, audioSlots: 3 });
 
-  let state = $state(participant.state);
+  let connectionState = $state(participant.state);
   let participantId = $state<string>();
   let tracks = $state<RemoteTrack[]>([]);
 
   const cleanup = [
-    participant.on(ParticipantEvent.State, (s) => (state = s)),
+    participant.on(ParticipantEvent.State, (s) => (connectionState = s)),
     participant.on(ParticipantEvent.TrackAdded, ({ track }) =>
       tracks.push(track),
     ),
@@ -35,8 +35,8 @@
   async function connect() {
     try {
       participantId = await participant.connect(
-        "http://localhost:3000",
-        "demo",
+        "https://demo.pulsebeam.dev",
+        "8hlofgn",
       );
     } catch (e) {
       console.error(e);
@@ -56,10 +56,10 @@
 
       <article>
         <header>
-          <strong>Status: {state}</strong>
+          <strong>Status: {connectionState}</strong>
         </header>
 
-        {#if state === "connected"}
+        {#if connectionState === "connected"}
           <div class="video-grid">
             {#each tracks as track (track.id)}
               <div class="remote-video">
@@ -68,7 +68,7 @@
               </div>
             {/each}
           </div>
-        {:else if state === "closed" || participant.error}
+        {:else if connectionState === "closed" || participant.error}
           <div class="headings">
             <h4 style="color: var(--pico-del-color)">Error</h4>
             <p>{participant.error || "Connection closed"}</p>
@@ -77,10 +77,10 @@
         {:else}
           <button
             onclick={connect}
-            aria-busy={state === "connecting"}
-            disabled={state === "connecting"}
+            aria-busy={connectionState === "connecting"}
+            disabled={connectionState === "connecting"}
           >
-            {state === "connecting" ? "Connecting..." : "Join Room"}
+            {connectionState === "connecting" ? "Connecting..." : "Join Room"}
           </button>
         {/if}
       </article>
