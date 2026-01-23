@@ -2,6 +2,7 @@ import type { PlatformAdapter, ParticipantConfig, RemoteVideoTrack, RemoteAudioT
 export type * from "@pulsebeam/core";
 export { RemoteAudioTrack, RemoteVideoTrack, ParticipantEvent } from "@pulsebeam/core";
 import { Participant as CoreParticipant } from "@pulsebeam/core";
+import adapter from "webrtc-adapter";
 
 export const BrowserAdapter: PlatformAdapter = {
   RTCPeerConnection: globalThis.RTCPeerConnection,
@@ -14,12 +15,13 @@ export const BrowserAdapter: PlatformAdapter = {
 };
 
 
-/**
- * A Session pre-configured for the Browser.
- * Usage: const session = new WebSession({ ... });
- */
 export class Participant extends CoreParticipant {
   constructor(config: ParticipantConfig) {
+    if (adapter.browserDetails.browser == "firefox" && !!adapter.browserDetails.version && adapter.browserDetails.version < 146) {
+      // TODO: this firefox requires at least 1 audio recv-only.. 
+      config.audioSlots = Math.max(config.audioSlots, 1);
+    }
+
     super(
       BrowserAdapter,
       config,

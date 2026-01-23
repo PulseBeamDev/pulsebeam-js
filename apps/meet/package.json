@@ -23,6 +23,7 @@
   "dependencies": {
     "@picocss/pico": "^2.1.1",
     "@pulsebeam/core": "workspace:*",
-    "@pulsebeam/web": "workspace:*"
+    "@pulsebeam/web": "workspace:*",
+    "webrtc-adapter": "^9.0.3"
   }
 }

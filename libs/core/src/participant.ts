@@ -20,8 +20,8 @@ enum HeaderExt {
 }
 
 export interface ParticipantConfig {
-  readonly videoSlots: number;
-  readonly audioSlots: number;
+  videoSlots: number;
+  audioSlots: number;
 }
 
 export type ConnectionState = RTCPeerConnectionState;
@@ -482,6 +482,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   private handleConnectionState() {
     this.connState = this.pc.connectionState;
     this.emit(ParticipantEvent.State, this.connState);
+    console.log("Connection state changed:", this.connState);
   }
 }
 
@@ -501,6 +502,7 @@ class LocalMediaStream {
   stop() {
     this.video.stop();
     this.audio.stop();
+    this._stream?.stop();
   }
 }
 
