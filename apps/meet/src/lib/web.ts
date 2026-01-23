@@ -12,6 +12,8 @@ export const BrowserAdapter: PlatformAdapter = {
     if (init?.body && ['POST', 'PUT', 'PATCH'].includes(init.method || '')) {
       try {
         const stream = new Blob([init.body as any]).stream();
+        // https://developer.mozilla.org/en-US/docs/Web/API/CompressionStream/CompressionStream#browser_compatibility
+        // GZIP is baseline widely available. We should update to zstd as it is widely available.
         const compressedStream = stream.pipeThrough(new CompressionStream('gzip'));
         const compressedBody = await new Response(compressedStream).blob();
 
