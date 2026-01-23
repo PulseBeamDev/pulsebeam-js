@@ -171,22 +171,23 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     }
 
     try {
-      try {
-        const preferredCodecs = this.getPreferredVideoCodecs();
-        if (preferredCodecs.length > 0) {
-          this.pc.getTransceivers().forEach((t) => {
-            if (t.receiver.track.kind === "video") {
-              t.setCodecPreferences(preferredCodecs);
-            }
-          });
-        }
-      } catch (err) {
-        console.warn("Failed to set codec preferences", err);
-      }
-
+      // try {
+      //   const preferredCodecs = this.getPreferredVideoCodecs();
+      //   if (preferredCodecs.length > 0) {
+      //     this.pc.getTransceivers().forEach((t) => {
+      //       if (t.receiver.track.kind === "video") {
+      //         t.setCodecPreferences(preferredCodecs);
+      //       }
+      //     });
+      //   }
+      // } catch (err) {
+      //   console.warn("Failed to set codec preferences", err);
+      // }
+      //
       const offer = await this.pc.createOffer();
       if (!offer.sdp) throw new Error("Failed to generate offer");
-      const strippedSdp = stripUnusedExtensions(offer.sdp);
+      // const strippedSdp = stripUnusedExtensions(offer.sdp);
+      const strippedSdp = offer.sdp;
       await this.pc.setLocalDescription({ type: "offer", sdp: strippedSdp });
 
       const res = await this.adapter.fetch(

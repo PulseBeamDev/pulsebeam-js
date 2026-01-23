@@ -8,7 +8,28 @@ export const BrowserAdapter: PlatformAdapter = {
   RTCPeerConnection: globalThis.RTCPeerConnection,
   MediaStream: globalThis.MediaStream,
   getCapabilities: globalThis.RTCRtpSender.getCapabilities.bind(globalThis.RTCRtpSender),
-  fetch: globalThis.fetch.bind(globalThis),
+  fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.body && ['POST', 'PUT', 'PATCH'].includes(init.method || '')) {
+      try {
+        const stream = new Blob([init.body as any]).stream();
+        const compressedStream = stream.pipeThrough(new CompressionStream('gzip'));
+        const compressedBody = await new Response(compressedStream).blob();
+
+        return globalThis.fetch(input, {
+          ...init,
+          body: compressedBody,
+          headers: {
+            ...init.headers,
+            'Content-Encoding': 'gzip',
+          }
+        });
+      } catch (err) {
+        console.error("Compression failed, falling back to uncompressed fetch", err);
+        return globalThis.fetch(input, init);
+      }
+    }
+    return globalThis.fetch(input, init);
+  },
   setTimeout: globalThis.setTimeout.bind(globalThis),
   clearTimeout: globalThis.clearTimeout.bind(globalThis),
   mediaDevices: globalThis.navigator.mediaDevices,
