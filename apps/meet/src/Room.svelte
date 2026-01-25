@@ -77,14 +77,14 @@
 
   {#each client.videoTracks as track (track.id)}
     <div class="video-card">
-      <video use:attach={track} autoplay muted playsinline></video>
+      <video use:attach={track}></video>
       <small>{track.participantId}</small>
     </div>
   {/each}
 </div>
 
 {#each client.audioTracks as track}
-  <audio use:attach={track} autoplay></audio>
+  <audio use:attach={track}></audio>
 {/each}
 
 <style>

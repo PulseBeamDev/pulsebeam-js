@@ -11,7 +11,7 @@
       try {
         localStream = await navigator.mediaDevices.getUserMedia({
           video: { height: 720 },
-          audio: false,
+          audio: true,
         });
       } catch (e: any) {
         errorMsg = e.message;
