@@ -17,7 +17,7 @@
 </script>
 
 <main class="container-fluid">
-  {#if page === "lobby"}
+  {#if page === "lobby" || !localStream}
     <Lobby bind:localStream onJoin={handleJoin} />
   {:else}
     <Room {localStream} {roomId} onLeave={handleLeave} />

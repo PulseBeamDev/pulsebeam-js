@@ -2,9 +2,14 @@
   import { onMount, onDestroy } from "svelte";
   import { Participant, attach } from "./lib/participant.svelte";
 
+  interface Props {
+    localStream: MediaStream;
+    roomId: string;
+    onLeave: () => void;
+  }
   const API_URL = "https://demo.pulsebeam.dev";
 
-  let { localStream, roomId, onLeave } = $props();
+  let { localStream, roomId, onLeave }: Props = $props();
 
   const client = new Participant({ videoSlots: 16, audioSlots: 8 });
   let screenClient = $state<Participant | null>(null);
