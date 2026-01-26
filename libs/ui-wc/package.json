@@ -1,0 +1,52 @@
+{
+  "name": "@pulsebeam/web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "manifest": "cem analyze --config ./custom-elements-manifest.config.mjs",
+    "build": "tsc && vite build && npm run manifest",
+    "preview": "vite preview"
+  },
+  "files": [
+    "dist"
+  ],
+  "customElements": "dist/custom-elements.json",
+  "sideEffects": [
+    "**/*.css",
+    "src/components/*.ts"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/engine.d.ts",
+      "default": "./dist/engine.js"
+    },
+    "./dist/custom-elements.json": "./dist/custom-elements.json",
+    "./package.json": "./package.json",
+    "./components": {
+      "types": "./dist/components/index.d.ts",
+      "default": "./dist/components/index.js"
+    },
+    "./components/*": {
+      "types": "./dist/components/*.d.ts",
+      "default": "./dist/components/*.js"
+    }
+  },
+  "dependencies": {
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@fontsource/manrope": "^5.2.8",
+    "@material/web": "^2.4.1",
+    "@pulsebeam/core": "workspace:*",
+    "lit": "^3.3.1",
+    "material-symbols": "^0.40.2"
+  },
+  "devDependencies": {
+    "@custom-elements-manifest/analyzer": "^0.11.0",
+    "fast-glob": "^3.3.3",
+    "ts-lit-plugin": "^2.0.2",
+    "typescript": "~5.8.2",
+    "vite": "^7.2.4",
+    "vite-plugin-dts": "^4.5.4"
+  }
+}
