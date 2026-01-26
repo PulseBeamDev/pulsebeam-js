@@ -23,5 +23,4 @@ dist-ssr
 *.sln
 *.sw?
 .svelte-kit
-workspace.*
-!workspace.override.json
+workspace.lock.json

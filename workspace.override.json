@@ -1,3 +1,0 @@
-{
-  "resolver": "fd -H 'package.json$' * | xargs -I{} dirname {}"
-}
