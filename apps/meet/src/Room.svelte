@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
-  import { Participant, attach } from "./lib/participant.svelte";
+  import { Participant, attach } from "@pulsebeam/svelte";
 
   interface Props {
     localStream: MediaStream;

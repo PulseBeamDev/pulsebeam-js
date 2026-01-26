@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@picocss/pico": "^2.1.1",
-    "@pulsebeam/core": "workspace:*",
+    "@pulsebeam/svelte": "workspace:*",
     "webrtc-adapter": "^9.0.3"
   }
 }

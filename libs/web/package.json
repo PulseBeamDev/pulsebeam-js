@@ -1,5 +1,5 @@
 {
-  "name": "web",
+  "name": "@pulsebeam/web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -14,7 +14,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "prepare": "tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {

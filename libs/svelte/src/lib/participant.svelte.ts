@@ -7,8 +7,8 @@ import {
   VideoBinder,
   AudioBinder,
   type ParticipantConfig
-} from "./web";
-export * from "./web";
+} from "@pulsebeam/web";
+export * from "@pulsebeam/web";
 
 export function attach(node: HTMLVideoElement, track: RemoteVideoTrack): ActionReturn<RemoteVideoTrack>;
 export function attach(node: HTMLAudioElement, track: RemoteAudioTrack): ActionReturn<RemoteAudioTrack>;
