@@ -11,9 +11,6 @@ A lightweight, optional SDK for connecting to the [PulseBeam WebRTC SFU server](
 |----------------|----------------|---------|
 | **Browser**    | Svelte          | In-pogress |
 | **Browser**    | React          | Planned |
-| **Browser**    | Vue            | Planned |
-| **Browser**    | Angular        | Planned |
-| **Mobile**     | React Native   | Planned |
 
 ## License
 
