@@ -9,6 +9,11 @@ declare global {
     | "failed"
     | "closed";
 
+  interface RTCSessionDescriptionInit {
+    type: "offer" | "answer";
+    sdp: string;
+  }
+
   interface RTCRtpEncodingParameters {
     active?: boolean;
     maxBitrate?: number;

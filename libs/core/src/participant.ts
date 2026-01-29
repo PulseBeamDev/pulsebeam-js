@@ -101,7 +101,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   private adapter: PlatformAdapter;
   private pc: RTCPeerConnection;
   private dc: RTCDataChannel;
-  private deleteUri: string | null = null;
+  private resourceUri: string | null = null;
   private lastError: Error | null = null;
   private _participantId: string | null = null;
 
@@ -165,7 +165,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
    * Connect to a room.
    * Can only be called once.
    */
-  async connect(endpoint: string, room: string): Promise<string> {
+  async connect(endpoint: string, room: string) {
     if (this.pc.connectionState !== "new") {
       throw new Error("Participant connection has been initated");
     }
@@ -185,7 +185,6 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       // }
       //
       const offer = await this.pc.createOffer();
-      if (!offer.sdp) throw new Error("Failed to generate offer");
       // const strippedSdp = stripUnusedExtensions(offer.sdp);
       const strippedSdp = offer.sdp;
       await this.pc.setLocalDescription({ type: "offer", sdp: strippedSdp });
@@ -203,15 +202,11 @@ export class Participant extends EventEmitter<ParticipantEvents> {
         throw new Error(`Failed to connect: ${res.status} ${res.statusText}`);
       }
 
-      this.deleteUri = res.headers.get("Location");
-      if (!this.deleteUri) {
+      this.resourceUri = res.headers.get("Location");
+      if (!this.resourceUri) {
         throw new Error("Missing Location header");
       }
 
-      this._participantId = res.headers.get(HeaderExt.ParticipantId);
-      if (!this._participantId) {
-        throw new Error("Missing ParticipantId");
-      }
       const answerSdp = await res.text();
       await this.pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
 
@@ -228,8 +223,31 @@ export class Participant extends EventEmitter<ParticipantEvents> {
           }
         }
       });
+    } catch (e) {
+      this.lastError = e instanceof Error ? e : new Error(String(e));
+      this.emit(ParticipantEvent.Error, this.lastError);
+      this.close();
+      throw this.lastError;
+    }
+  }
 
-      return this._participantId;
+  private async reconnect() {
+    if (!this.resourceUri) {
+      return;
+    }
+
+    try {
+      const offer = await this.pc.createOffer({
+        iceRestart: true,
+      });
+      await this.pc.setLocalDescription(offer);
+      const res = await this.adapter.fetch(this.resourceUri, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/sdp" },
+        body: offer.sdp,
+      })
+      let answer = await res.text();
+      await this.pc.setRemoteDescription({ type: "answer", sdp: answer });
     } catch (e) {
       this.lastError = e instanceof Error ? e : new Error(String(e));
       this.emit(ParticipantEvent.Error, this.lastError);
@@ -250,9 +268,9 @@ export class Participant extends EventEmitter<ParticipantEvents> {
    * Close the connection and cleanup resources.
    */
   close() {
-    if (this.deleteUri) {
+    if (this.resourceUri) {
       this.adapter
-        .fetch(this.deleteUri, { method: "DELETE" })
+        .fetch(this.resourceUri, { method: "DELETE" })
         .catch(() => { });
     }
 
@@ -481,6 +499,9 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   }
 
   private handleConnectionState() {
+    if (this.pc.connectionState === "disconnected" || this.pc.connectionState === "failed") {
+      this.reconnect();
+    }
     this.connState = this.pc.connectionState;
     this.emit(ParticipantEvent.State, this.connState);
     console.log("Connection state changed:", this.connState);

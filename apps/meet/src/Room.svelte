@@ -7,8 +7,8 @@
     roomId: string;
     onLeave: () => void;
   }
-  const API_URL = "https://demo.pulsebeam.dev";
-  // const API_URL = "http://localhost:3000";
+  // const API_URL = "https://demo.pulsebeam.dev";
+  const API_URL = "http://localhost:3000";
 
   let { localStream, roomId, onLeave }: Props = $props();
 
