@@ -8,6 +8,7 @@
     onLeave: () => void;
   }
   const API_URL = "https://demo.pulsebeam.dev";
+  // const API_URL = "http://localhost:3000";
 
   let { localStream, roomId, onLeave }: Props = $props();
 
@@ -74,23 +75,27 @@
   </article>
 {/if}
 
-<div class="video-grid">
-  <div class="video-card">
-    <video srcObject={localStream} autoplay muted playsinline></video>
-    <small>Me</small>
+{#if client.connectionState !== "connected"}
+  <span aria-busy="true">{client.connectionState}</span>
+{:else}
+  <div class="video-grid">
+    <div class="video-card">
+      <video srcObject={localStream} autoplay muted playsinline></video>
+      <small>Me</small>
+    </div>
+
+    {#each client.videoTracks as track (track.id)}
+      <div class="video-card">
+        <video use:attach={track}></video>
+        <small>{track.participantId}</small>
+      </div>
+    {/each}
   </div>
 
-  {#each client.videoTracks as track (track.id)}
-    <div class="video-card">
-      <video use:attach={track}></video>
-      <small>{track.participantId}</small>
-    </div>
+  {#each client.audioTracks as track}
+    <audio use:attach={track}></audio>
   {/each}
-</div>
-
-{#each client.audioTracks as track}
-  <audio use:attach={track}></audio>
-{/each}
+{/if}
 
 <style>
   .video-grid {
