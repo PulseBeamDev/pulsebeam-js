@@ -13,6 +13,7 @@
 
   function handleLeave() {
     page = "lobby";
+    localStream = null;
   }
 </script>
 

@@ -12,11 +12,12 @@
 
   let { localStream, roomId, onLeave }: Props = $props();
 
-  const client = new Participant({ videoSlots: 16, audioSlots: 8 });
+  let client = $state<Participant | null>(null);
   let screenClient = $state<Participant | null>(null);
   let errorMsg = $state<string | null>(null);
 
   onMount(async () => {
+    client = new Participant({ videoSlots: 16, audioSlots: 8 });
     try {
       client.publish(localStream);
       await client.join(API_URL, roomId);
@@ -26,7 +27,7 @@
   });
 
   onDestroy(() => {
-    client.leave();
+    client?.leave();
     screenClient?.leave();
   });
 
@@ -75,8 +76,8 @@
   </article>
 {/if}
 
-{#if client.connectionState !== "connected"}
-  <span aria-busy="true">{client.connectionState}</span>
+{#if client?.connectionState !== "connected"}
+  <span aria-busy="true">{client?.connectionState}</span>
 {:else}
   <div class="video-grid">
     <div class="video-card">
