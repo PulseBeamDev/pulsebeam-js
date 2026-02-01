@@ -125,14 +125,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
     this.pc = new this.adapter.RTCPeerConnection();
     this.pc.onconnectionstatechange = () => this.handleConnectionState();
-
-    this.dc = this.pc.createDataChannel(SIGNALING_LABEL, {
-      ordered: true,
-      maxPacketLifeTime: undefined,
-      maxRetransmits: undefined
-    });
-    this.dc.binaryType = "arraybuffer";
-    this.dc.onmessage = (ev) => this.handleSignal(ev.data);
+    this.dc = this.setupSignaling(this.pc);
 
     // Receive-only transceivers for remote participants
     for (let i = 0; i < config.videoSlots; i++) {
@@ -193,7 +186,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       await this.pc.setLocalDescription({ type: "offer", sdp: strippedSdp });
 
       const res = await this.adapter.fetch(
-        `${endpoint}/api/v1/rooms/${room}/participants`,
+        `${endpoint}/api/v1/rooms/${room}/participants?manual_sub=true`,
         {
           method: "POST",
           headers: { "Content-Type": "application/sdp" },
@@ -232,6 +225,19 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       this.close();
       throw this.lastError;
     }
+  }
+
+  private setupSignaling(pc: RTCPeerConnection): RTCDataChannel {
+    const dc = pc.createDataChannel(SIGNALING_LABEL, {
+      ordered: true,
+      maxPacketLifeTime: undefined,
+      maxRetransmits: undefined,
+      negotiated: true,
+      id: 0,
+    });
+    dc.binaryType = "arraybuffer";
+    dc.onmessage = (ev) => this.handleSignal(ev.data);
+    return dc;
   }
 
   /**
@@ -320,6 +326,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
     // 1. Snapshot: Identify implicit removals locally
     if (u.isSnapshot) {
+      console.log("received a snapshot");
       const incomingIds = new Set(u.tracksUpsert.map((t) => t.id));
       for (const id of this.mediaState.tracks.keys()) {
         if (!incomingIds.has(id)) {
@@ -473,11 +480,15 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   }
 
   private sendSyncRequest() {
-    if (this.dc.readyState !== "open") return;
+    if (this.dc.readyState !== "open") {
+      console.warn("signaling data channel is not opened, dropping");
+      return;
+    };
     const msg = create(ClientMessageSchema, {
       payload: { case: "requestSync", value: true },
     });
     this.dc.send(toBinary(ClientMessageSchema, msg));
+    console.info("sent sync request");
   }
 
   private handleConnectionState() {
@@ -528,17 +539,6 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
       const answer = await res.text();
       await this.pc.setRemoteDescription({ type: "answer", sdp: answer });
-
-      // Wait for data channel to recover to re-sync state
-      if (this.dc.readyState === "open") {
-        this.onReconnected();
-      } else {
-        const onOpen = () => {
-          this.onReconnected();
-          this.dc.removeEventListener("open", onOpen);
-        };
-        this.dc.addEventListener("open", onOpen);
-      }
     } catch (e) {
       this.isReconnecting = false;
       console.error("[Participant] Reconnect attempt failed:", e);
@@ -551,11 +551,6 @@ export class Participant extends EventEmitter<ParticipantEvents> {
         this.scheduleReconnect();
       }
     }
-  }
-
-  private onReconnected() {
-    this.sendSyncRequest();
-    this.scheduleReconcile();
   }
 }
 
