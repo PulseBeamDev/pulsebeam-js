@@ -31,6 +31,6 @@
   },
   "scripts": {
     "gen": "buf generate",
-    "build": "tsup src/index.ts --format esm --dts --clean"
+    "prepare": "tsup src/index.ts --format esm --dts --clean"
   }
 }

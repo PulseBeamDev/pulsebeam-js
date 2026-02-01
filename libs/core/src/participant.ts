@@ -115,6 +115,9 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   private lastSentRequests: VideoRequest[] = [];
 
   private debounceTimer: any | null = null;
+  private isReconnecting = false;
+  private retryCount = 0;
+  private reconnectTimer: any = null;
 
   constructor(adapter: PlatformAdapter, config: ParticipantConfig) {
     super();
@@ -231,31 +234,6 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     }
   }
 
-  private async reconnect() {
-    if (!this.resourceUri) {
-      return;
-    }
-
-    try {
-      const offer = await this.pc.createOffer({
-        iceRestart: true,
-      });
-      await this.pc.setLocalDescription(offer);
-      const res = await this.adapter.fetch(this.resourceUri, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/sdp" },
-        body: offer.sdp,
-      })
-      let answer = await res.text();
-      await this.pc.setRemoteDescription({ type: "answer", sdp: answer });
-    } catch (e) {
-      this.lastError = e instanceof Error ? e : new Error(String(e));
-      this.emit(ParticipantEvent.Error, this.lastError);
-      this.close();
-      throw this.lastError;
-    }
-  }
-
   /**
    * Can be called before or after connect().
    * Pass null to stop publishing.
@@ -268,15 +246,19 @@ export class Participant extends EventEmitter<ParticipantEvents> {
    * Close the connection and cleanup resources.
    */
   close() {
+    if (this.reconnectTimer) this.adapter.clearTimeout(this.reconnectTimer);
+    if (this.debounceTimer) this.adapter.clearTimeout(this.debounceTimer);
+
     if (this.resourceUri) {
       this.adapter
         .fetch(this.resourceUri, { method: "DELETE" })
         .catch(() => { });
     }
 
-    // Stop all local tracks
     this.stopAllTracks();
     this.pc.close();
+    this.connState = "closed";
+    this.emit(ParticipantEvent.State, "closed");
   }
 
   private getPreferredVideoCodecs(): RTCRtpCodecCapability[] {
@@ -499,12 +481,81 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   }
 
   private handleConnectionState() {
-    if (this.pc.connectionState === "disconnected" || this.pc.connectionState === "failed") {
-      this.reconnect();
+    const state = this.pc.connectionState;
+    this.connState = state;
+    this.emit(ParticipantEvent.State, state);
+
+    if (state === "disconnected" || state === "failed") {
+      this.scheduleReconnect();
+    } else if (state === "connected") {
+      this.isReconnecting = false;
+      this.retryCount = 0;
+      if (this.reconnectTimer) {
+        this.adapter.clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = null;
+      }
     }
-    this.connState = this.pc.connectionState;
-    this.emit(ParticipantEvent.State, this.connState);
-    console.log("Connection state changed:", this.connState);
+  }
+
+  private scheduleReconnect() {
+    if (this.isReconnecting || this.connState === "closed") return;
+
+    const delay = Math.min(1000 * Math.pow(2, this.retryCount), 10000);
+    this.retryCount++;
+
+    if (this.reconnectTimer) this.adapter.clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = this.adapter.setTimeout(() => this.reconnect(), delay);
+  }
+
+  private async reconnect() {
+    if (this.isReconnecting || !this.resourceUri) return;
+    this.isReconnecting = true;
+
+    try {
+      const offer = await this.pc.createOffer({ iceRestart: true });
+      await this.pc.setLocalDescription(offer);
+
+      const res = await this.adapter.fetch(this.resourceUri, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/sdp" },
+        body: offer.sdp,
+      });
+
+      if (!res.ok) {
+        if (res.status === 404) throw new Error("Session expired");
+        throw new Error(`Reconnect failed: ${res.status}`);
+      }
+
+      const answer = await res.text();
+      await this.pc.setRemoteDescription({ type: "answer", sdp: answer });
+
+      // Wait for data channel to recover to re-sync state
+      if (this.dc.readyState === "open") {
+        this.onReconnected();
+      } else {
+        const onOpen = () => {
+          this.onReconnected();
+          this.dc.removeEventListener("open", onOpen);
+        };
+        this.dc.addEventListener("open", onOpen);
+      }
+    } catch (e) {
+      this.isReconnecting = false;
+      console.error("[Participant] Reconnect attempt failed:", e);
+
+      if (this.retryCount > 5) {
+        this.lastError = e instanceof Error ? e : new Error("Reconnection exhausted");
+        this.emit(ParticipantEvent.Error, this.lastError);
+        this.close();
+      } else {
+        this.scheduleReconnect();
+      }
+    }
+  }
+
+  private onReconnected() {
+    this.sendSyncRequest();
+    this.scheduleReconcile();
   }
 }
 
