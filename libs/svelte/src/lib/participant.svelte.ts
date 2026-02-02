@@ -63,15 +63,15 @@ export class Participant {
     this.participant = p;
   }
 
-  async join(url: string, roomId: string) {
-    await this.participant.connect(url, roomId);
+  async connect(roomId: string) {
+    await this.participant.connect(roomId);
   }
 
   publish(stream: MediaStream | null) {
     this.participant.publish(stream);
   }
 
-  leave() {
+  close() {
     this.participant?.close();
     this.videoTracks = [];
     this.audioTracks = [];

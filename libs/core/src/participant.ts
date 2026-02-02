@@ -19,6 +19,7 @@ const SYNC_DEBOUNCE_MS = 300;
 export interface ParticipantConfig {
   videoSlots: number;
   audioSlots: number;
+  baseUrl?: string;
 }
 
 export type ConnectionState = RTCPeerConnectionState;
@@ -250,9 +251,10 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   get state() { return this._state; }
   get participantId() { return null; }
 
-  async connect(endpoint: string, room: string) {
+  async connect(room: string) {
     if (this._state === "closed") throw new Error("Participant closed");
-    const uri = `${endpoint}/api/v1/rooms/${room}/participants?manual_sub=true`;
+    const baseUrl = this.config.baseUrl || "https://demo.pulsebeam.dev/api/v1";
+    const uri = `${baseUrl}/rooms/${room}/participants?manual_sub=true`;
     await this.establishConnection("POST", uri);
   }
 

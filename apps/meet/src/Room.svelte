@@ -8,7 +8,7 @@
     onLeave: () => void;
   }
   // const API_URL = "https://demo.pulsebeam.dev";
-  const API_URL = "http://localhost:3000";
+  const API_URL = "http://localhost:3000/api/v1";
 
   let { localStream, roomId, onLeave }: Props = $props();
 
@@ -17,18 +17,22 @@
   let errorMsg = $state<string | null>(null);
 
   onMount(async () => {
-    client = new Participant({ videoSlots: 16, audioSlots: 8 });
+    client = new Participant({
+      videoSlots: 16,
+      audioSlots: 8,
+      baseUrl: API_URL,
+    });
     try {
       client.publish(localStream);
-      await client.join(API_URL, roomId);
+      await client.connect(roomId);
     } catch (e: any) {
       errorMsg = e.message;
     }
   });
 
   onDestroy(() => {
-    client?.leave();
-    screenClient?.leave();
+    client?.close();
+    screenClient?.close();
   });
 
   async function startScreenShare() {
@@ -36,17 +40,21 @@
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
       });
-      screenClient = new Participant({ videoSlots: 0, audioSlots: 0 });
+      screenClient = new Participant({
+        videoSlots: 0,
+        audioSlots: 0,
+        baseUrl: API_URL,
+      });
       stream.getVideoTracks()[0].onended = () => stopScreenShare();
       screenClient.publish(stream);
-      await screenClient.join(API_URL, roomId);
+      await screenClient.connect(roomId);
     } catch (e) {
       console.error(e);
     }
   }
 
   function stopScreenShare() {
-    screenClient?.leave();
+    screenClient?.close();
     screenClient = null;
   }
 </script>
@@ -66,6 +74,9 @@
       {/if}
     </li>
     <li><button class="contrast" onclick={onLeave}>Leave</button></li>
+    <li>
+      <button onclick={() => client?.connect(roomId)}>Reconnect</button>
+    </li>
   </ul>
 </nav>
 
