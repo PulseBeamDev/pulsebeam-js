@@ -63,8 +63,8 @@ export class Participant {
     this.participant = p;
   }
 
-  async connect(roomId: string) {
-    await this.participant.connect(roomId);
+  connect(roomId: string) {
+    this.participant.connect(roomId);
   }
 
   publish(stream: MediaStream | null) {

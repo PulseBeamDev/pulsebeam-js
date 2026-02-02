@@ -22,12 +22,8 @@
       audioSlots: 8,
       baseUrl: API_URL,
     });
-    try {
-      client.publish(localStream);
-      await client.connect(roomId);
-    } catch (e: any) {
-      errorMsg = e.message;
-    }
+    client.publish(localStream);
+    client.connect(roomId);
   });
 
   onDestroy(() => {
@@ -36,21 +32,24 @@
   });
 
   async function startScreenShare() {
+    let stream;
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
+      stream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
       });
-      screenClient = new Participant({
-        videoSlots: 0,
-        audioSlots: 0,
-        baseUrl: API_URL,
-      });
-      stream.getVideoTracks()[0].onended = () => stopScreenShare();
-      screenClient.publish(stream);
-      await screenClient.connect(roomId);
     } catch (e) {
       console.error(e);
+      return;
     }
+
+    screenClient = new Participant({
+      videoSlots: 0,
+      audioSlots: 0,
+      baseUrl: API_URL,
+    });
+    stream.getVideoTracks()[0].onended = () => stopScreenShare();
+    screenClient.publish(stream);
+    screenClient.connect(roomId);
   }
 
   function stopScreenShare() {

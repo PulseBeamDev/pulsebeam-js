@@ -251,11 +251,16 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   get state() { return this._state; }
   get participantId() { return null; }
 
-  async connect(room: string) {
+  connect(room: string) {
     if (this._state === "closed") throw new Error("Participant closed");
+    if (this.session.resourceUri) {
+      this.establishConnection("PATCH", this.session.resourceUri);
+      return;
+    }
+
     const baseUrl = this.config.baseUrl || "https://demo.pulsebeam.dev/api/v1";
     const uri = `${baseUrl}/rooms/${room}/participants?manual_sub=true`;
-    await this.establishConnection("POST", uri);
+    this.establishConnection("POST", uri);
   }
 
   publish(stream: MediaStream | null) {
@@ -376,7 +381,9 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     }
 
     const resourceUri = this.session.resourceUri;
-    const delay = Math.min(1000 * Math.pow(2, this.retryCount), 10000);
+    const delay = this.retryCount === 0 ? 0 :
+      this.retryCount === 1 ? 500 :
+        Math.min(500 * Math.pow(2, this.retryCount - 1), 5000);
     this.retryCount++;
 
     if (this.reconnectTimer) this.adapter.clearTimeout(this.reconnectTimer);
