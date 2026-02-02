@@ -7,6 +7,7 @@ import {
   type StateUpdate,
   type VideoRequest,
   type Track,
+  type ClientMessage,
 } from "./gen/signaling_pb";
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 import type { PlatformAdapter } from "./platform";
@@ -54,8 +55,6 @@ export class RemoteAudioTrack {
 
 export class RemoteVideoTrack {
   public height: number = 0;
-
-  // Internal callback for layout updates
   public onLayoutChange?: () => void;
 
   constructor(
@@ -76,7 +75,9 @@ export class RemoteVideoTrack {
   }
 
   setStream(track: MediaStreamTrack) {
-    this.stream.getTracks().forEach((t) => this.stream.removeTrack(t));
+    const current = this.stream.getVideoTracks()[0];
+    if (current && current.id === track.id) return;
+    this.clearStream();
     this.stream.addTrack(track);
   }
 
@@ -101,7 +102,6 @@ class SessionState extends EventEmitter<SessionEvents> {
     if (!remoteTrack) {
       const stream = new this.adapter.MediaStream();
       remoteTrack = new RemoteVideoTrack(trackData, stream);
-      // Bind internal layout change to session update signal
       remoteTrack.onLayoutChange = () => this.emit("update_needed", {});
       this.remoteVideoTracks.set(remoteTrack.id, remoteTrack);
       this.emit("track_added", { track: remoteTrack });
@@ -122,7 +122,6 @@ class SessionState extends EventEmitter<SessionEvents> {
   applyUpdate(u: StateUpdate) {
     const seq = u.seq;
 
-    // Snapshot: implicit removals
     if (u.isSnapshot) {
       const incomingIds = new Set(u.tracksUpsert.map((t) => t.id));
       for (const id of this.tracks.keys()) {
@@ -131,10 +130,7 @@ class SessionState extends EventEmitter<SessionEvents> {
       this.assignments.clear();
     }
 
-    // Delta: explicit removals
     u.tracksRemove.forEach((id) => this.removeTrack(id));
-
-    // Upserts
     u.tracksUpsert.forEach((t) => {
       if (!this.tracks.has(t.id) && !this.remoteVideoTracks.has(t.id)) {
         this.getOrCreateVideoTrack(t);
@@ -142,7 +138,6 @@ class SessionState extends EventEmitter<SessionEvents> {
       this.tracks.set(t.id, t);
     });
 
-    // Assignments
     u.assignmentsRemove.forEach((mid) => this.assignments.delete(mid));
     u.assignmentsUpsert.forEach((a) => this.assignments.set(a.mid, a));
 
@@ -168,7 +163,6 @@ class Transport {
     this.pc = new this.adapter.RTCPeerConnection();
     this.pc.onconnectionstatechange = () => onState(this.pc.connectionState);
 
-    // Always create new DC to ensure clean SCTP handshake
     this.dc = this.pc.createDataChannel(SIGNALING_LABEL, {
       ordered: true,
       negotiated: true,
@@ -234,7 +228,8 @@ class Transport {
 export class Participant extends EventEmitter<ParticipantEvents> {
   private session: SessionState;
   private transport: Transport | null = null;
-  private connState: ConnectionState = "new";
+  private _state: ConnectionState = "new";
+
   private localStream: MediaStream | null = null;
   private lastSentRequests: VideoRequest[] = [];
 
@@ -247,19 +242,16 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     super();
     this.session = new SessionState(adapter);
 
-    // Map internal session events to public API
     this.session.on("track_added", (e) => this.emit(ParticipantEvent.VideoTrackAdded, e));
     this.session.on("track_removed", (e) => this.emit(ParticipantEvent.VideoTrackRemoved, e));
-
-    // Map internal update signal to reconcile logic
     this.session.on("update_needed", () => this.scheduleReconcile());
   }
 
-  get state() { return this.connState; }
+  get state() { return this._state; }
   get participantId() { return null; }
 
   async connect(endpoint: string, room: string) {
-    if (this.connState === "closed") throw new Error("Participant closed");
+    if (this._state === "closed") throw new Error("Participant closed");
     const uri = `${endpoint}/api/v1/rooms/${room}/participants?manual_sub=true`;
     await this.establishConnection("POST", uri);
   }
@@ -278,21 +270,43 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     }
 
     this.transport?.close();
-    this.connState = "closed";
-    this.emit(ParticipantEvent.State, "closed");
+    this.updateState("closed");
   }
 
   private async establishConnection(method: "POST" | "PATCH", uri: string) {
+    // We do NOT update this.transport yet. We build the new one in isolation.
     const newTransport = new Transport(
       this.adapter,
       this.config,
       (data) => this.handleSignal(data),
-      (state) => this.handleTransportState(state)
+      (state) => {
+        // Only update the public state if this transport is the active one.
+        // This allows 'newTransport' to go through "new"->"connecting" without
+        // causing UI flicker if we are currently "connected" via the old transport.
+        if (this.transport === newTransport) {
+          this.updateState(state);
+          this.handleTransportState(state);
+        }
+      }
     );
 
     newTransport.updateLocalStream(this.localStream);
 
     try {
+      try {
+        const caps = this.adapter.getCapabilities?.("video");
+        const prefs = caps?.codecs?.filter(c =>
+          c.mimeType.toLowerCase() === "video/h264" &&
+          c.sdpFmtpLine?.includes("packetization-mode=1") &&
+          c.sdpFmtpLine?.includes("profile-level-id=42001f")
+        );
+        if (prefs?.length) {
+          newTransport.pc.getTransceivers().forEach(t => {
+            if (t.receiver.track.kind === "video") t.setCodecPreferences(prefs);
+          });
+        }
+      } catch (e) { /* ignore */ }
+
       const sdp = await newTransport.createOffer();
 
       const res = await this.adapter.fetch(uri, {
@@ -306,51 +320,54 @@ export class Participant extends EventEmitter<ParticipantEvents> {
         throw new Error(`Connection failed: ${res.status}`);
       }
 
-      this.session.resourceUri = res.headers.get("Location");
-      if (!this.session.resourceUri) throw new Error("Missing Location header");
+      if (method === "POST") {
+        this.session.resourceUri = res.headers.get("Location");
+        if (!this.session.resourceUri) throw new Error("Missing Location header");
+      }
 
       await newTransport.setAnswer(await res.text());
 
-      // Transport Swap
+      // ATOMIC SWAP: The new transport is ready.
       if (this.transport) this.transport.close();
       this.transport = newTransport;
 
-      this.connState = "connected";
+      // Sync the state immediately to the new transport's reality
+      this.updateState(newTransport.pc.connectionState);
+
       this.retryCount = 0;
       this.isReconnecting = false;
-      this.emit(ParticipantEvent.State, "connected");
 
-      // Setup audio tracks (simple 1:1 mapping)
       this.transport.audioSlots.forEach(t => {
         const stream = new this.adapter.MediaStream([t.receiver.track]);
         this.emit(ParticipantEvent.AudioTrackAdded, { track: new RemoteAudioTrack(stream) });
       });
 
-      // Restore video track mappings
       this.routePhysicalToVirtual();
-
-      // Force sync state
       this.reconcile(true);
 
     } catch (e) {
       newTransport.close();
       if (!this.isReconnecting) {
-        this.connState = "failed";
-        this.emit(ParticipantEvent.State, "failed");
+        this.updateState("failed");
       }
       throw e;
     }
   }
 
+  private updateState(newState: ConnectionState) {
+    if (this._state === newState) return;
+    this._state = newState;
+    this.emit(ParticipantEvent.State, newState);
+  }
+
   private handleTransportState(state: ConnectionState) {
     if (state === "failed" || state === "disconnected") {
-      this.emit(ParticipantEvent.State, state);
       this.scheduleReconnect();
     }
   }
 
   private scheduleReconnect() {
-    if (this.isReconnecting || this.connState === "closed") return;
+    if (this.isReconnecting || this._state === "closed") return;
 
     if (!this.session.resourceUri) {
       throw new Error("unexpected missing resourceUri");
@@ -363,8 +380,6 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     if (this.reconnectTimer) this.adapter.clearTimeout(this.reconnectTimer);
     this.reconnectTimer = this.adapter.setTimeout(() => {
       this.isReconnecting = true;
-      // We assume if resourceUri is present, we try PATCH.
-      // If resourceUri is missing (unlikely if we connected once), it will fail in establishConnection
       this.establishConnection("PATCH", resourceUri).catch(e => {
         console.warn("Reconnect attempt failed", e);
         this.isReconnecting = false;
@@ -433,7 +448,6 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     const nextAssignments = new Map<string, { trackId: string, height: number }>();
     const usedMids = new Set<string>();
 
-    // Sticky Assignments
     for (const slot of this.transport.videoSlots) {
       const mid = slot.mid;
       if (!mid) continue;
@@ -448,7 +462,6 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       }
     }
 
-    // New Assignments
     for (const vSlot of desired) {
       const free = this.transport.videoSlots.find(s => s.mid && !usedMids.has(s.mid));
       if (free) {
@@ -470,14 +483,21 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     if (!force && areRequestsEqual(this.lastSentRequests, requests)) return;
     this.lastSentRequests = requests;
 
+    console.table(requests);
     const intent = create(ClientIntentSchema, { requests });
-    const msg = create(ClientMessageSchema, { payload: { case: "intent", value: intent } });
-    this.transport.dc.send(toBinary(ClientMessageSchema, msg));
+    this.send({ case: "intent", value: intent });
   }
 
   private sendSyncRequest() {
-    if (!this.transport || this.transport.dc.readyState !== "open") return;
-    const msg = create(ClientMessageSchema, { payload: { case: "requestSync", value: true } });
+    this.send({ case: "requestSync", value: true });
+  }
+
+  private send(payload: ClientMessage["payload"]) {
+    if (!this.transport || this.transport.dc.readyState !== "open") {
+      console.warn("dropped a payload because data channel is not ready:", payload);
+      return;
+    }
+    const msg = create(ClientMessageSchema, { payload });
     this.transport.dc.send(toBinary(ClientMessageSchema, msg));
   }
 }
