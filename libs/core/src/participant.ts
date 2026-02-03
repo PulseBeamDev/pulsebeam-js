@@ -300,20 +300,6 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     newTransport.updateLocalStream(this.localStream);
 
     try {
-      try {
-        const caps = this.adapter.getCapabilities?.("video");
-        const prefs = caps?.codecs?.filter(c =>
-          c.mimeType.toLowerCase() === "video/h264" &&
-          c.sdpFmtpLine?.includes("packetization-mode=1") &&
-          c.sdpFmtpLine?.includes("profile-level-id=42001f")
-        );
-        if (prefs?.length) {
-          newTransport.pc.getTransceivers().forEach(t => {
-            if (t.receiver.track.kind === "video") t.setCodecPreferences(prefs);
-          });
-        }
-      } catch (e) { /* ignore */ }
-
       const sdp = await newTransport.createOffer();
 
       const res = await this.adapter.fetch(uri, {
