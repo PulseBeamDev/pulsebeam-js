@@ -327,10 +327,8 @@ export class Participant extends EventEmitter<ParticipantEvents> {
         throw new Error(`Connection failed: ${res.status}`);
       }
 
-      if (method === "POST") {
-        this.session.resourceUri = res.headers.get("Location");
-        if (!this.session.resourceUri) throw new Error("Missing Location header");
-      }
+      this.session.resourceUri = res.headers.get("Location");
+      if (!this.session.resourceUri) throw new Error("Missing Location header");
 
       await newTransport.setAnswer(await res.text());
 
