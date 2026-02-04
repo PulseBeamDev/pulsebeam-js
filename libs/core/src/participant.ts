@@ -125,6 +125,7 @@ class SessionState extends EventEmitter<SessionEvents> {
     const seq = u.seq;
 
     if (u.isSnapshot) {
+      console.info("received a snapshot");
       const incomingIds = new Set(u.tracksUpsert.map((t) => t.id));
       for (const id of this.tracks.keys()) {
         if (!incomingIds.has(id)) this.removeTrack(id);
@@ -343,9 +344,6 @@ export class Participant extends EventEmitter<ParticipantEvents> {
         this.emit(ParticipantEvent.AudioTrackAdded, { track: new RemoteAudioTrack(stream) });
       });
 
-      this.routePhysicalToVirtual();
-      this.reconcile(true);
-
     } catch (e) {
       newTransport.close();
       if (!this.isReconnecting) {
@@ -405,8 +403,14 @@ export class Participant extends EventEmitter<ParticipantEvents> {
           this.sendSyncRequest();
         } else if (u.isSnapshot || u.seq > this.session.seq) {
           this.session.applyUpdate(u);
-          this.scheduleReconcile();
           this.routePhysicalToVirtual();
+          if (u.isSnapshot) {
+            // if we received a snapshot, the state has been drifted. 
+            // We should reconcile immediately to recover the UI.
+            this.reconcile(true);
+          } else {
+            this.scheduleReconcile();
+          }
         }
       } else if (msg.payload.case === "error") {
         console.error("SFU Error:", msg.payload.value);
