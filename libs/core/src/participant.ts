@@ -89,6 +89,7 @@ export class RemoteVideoTrack {
 
 class SessionState extends EventEmitter<SessionEvents> {
   resourceUri: string | null = null;
+  etag: string | null = null;
   seq: bigint = 0n;
   tracks: Map<string, Track> = new Map();
   assignments: Map<string, VideoAssignment> = new Map();
@@ -302,10 +303,16 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     try {
       const sdp = await newTransport.createOffer();
 
+      const headers: Record<string, string> = {
+        "Content-Type": "application/sdp"
+      };
+      if (this.session.etag) {
+        headers["If-Match"] = this.session.etag;
+      }
       const res = await this.adapter.fetch(uri, {
         method,
-        headers: { "Content-Type": "application/sdp" },
         body: sdp,
+        headers,
       });
 
       if (!res.ok) {
@@ -315,6 +322,9 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
       this.session.resourceUri = res.headers.get("Location");
       if (!this.session.resourceUri) throw new Error("Missing Location header");
+
+      this.session.etag = res.headers.get("ETag");
+      if (!this.session.etag) throw new Error("Missing ETag header");
 
       await newTransport.setAnswer(await res.text());
 
