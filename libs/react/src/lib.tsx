@@ -1,0 +1,145 @@
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Participant as WebParticipant,
+  ParticipantEvent,
+  RemoteVideoTrack,
+  RemoteAudioTrack,
+  VideoBinder,
+  AudioBinder,
+  type ParticipantConfig,
+} from "@pulsebeam/web";
+
+export * from "@pulsebeam/web";
+
+/**
+ * Internal helper to handle the mounting logic for tracks
+ */
+function useTrackBinder<T extends HTMLVideoElement | HTMLAudioElement>(
+  track: RemoteVideoTrack | RemoteAudioTrack,
+  BinderClass: typeof VideoBinder | typeof AudioBinder
+) {
+  const ref = useRef<T>(null);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+
+    const instance = new (BinderClass as any)(node, track);
+    instance.mount();
+
+    return () => instance.unmount();
+  }, [track, BinderClass]);
+
+  return ref;
+}
+
+/**
+ * Declarative Video Component
+ */
+export const Video = ({
+  track,
+  ...props
+}: { track: RemoteVideoTrack } & React.VideoHTMLAttributes<HTMLVideoElement>) => {
+  const ref = useTrackBinder<HTMLVideoElement>(track, VideoBinder);
+  return <video ref={ref} autoPlay playsInline {...props} />;
+};
+
+/**
+ * Declarative Audio Component
+ */
+export const Audio = ({
+  track,
+  ...props
+}: { track: RemoteAudioTrack } & React.AudioHTMLAttributes<HTMLAudioElement>) => {
+  const ref = useTrackBinder<HTMLAudioElement>(track, AudioBinder);
+  return <audio ref={ref} autoPlay {...props} />;
+};
+
+type ConnectionState = string;
+
+/**
+ * Participant Hook
+ *
+ * NOTE: `config` is only used on first render.
+ * To change config, remount the component.
+ */
+export function useParticipant(config: ParticipantConfig) {
+  const participantRef = useRef<WebParticipant | null>(null);
+
+  if (!participantRef.current) {
+    participantRef.current = new WebParticipant(config);
+  }
+
+  const participant = participantRef.current;
+
+  const [connectionState, setConnectionState] =
+    useState<ConnectionState>("disconnected");
+
+  const [videoTracks, setVideoTracks] = useState<RemoteVideoTrack[]>([]);
+  const [audioTracks, setAudioTracks] = useState<RemoteAudioTrack[]>([]);
+
+  useEffect(() => {
+    const onState = (s: ConnectionState) => setConnectionState(s);
+
+    const onVideoAdded = ({ track }: { track: RemoteVideoTrack }) => {
+      setVideoTracks((prev) =>
+        prev.some((t) => t.id === track.id) ? prev : [...prev, track]
+      );
+    };
+
+    const onVideoRemoved = ({ trackId }: { trackId: string }) => {
+      setVideoTracks((prev) => prev.filter((t) => t.id !== trackId));
+    };
+
+    // const onAudioAdded = ({ track }: { track: RemoteAudioTrack }) => {
+    //   setAudioTracks((prev) =>
+    //     prev.some((t) => t.id === track.id) ? prev : [...prev, track]
+    //   );
+    // };
+    //
+    // const onAudioRemoved = ({ trackId }: { trackId: string }) => {
+    //   setAudioTracks((prev) => prev.filter((t) => t.id !== trackId));
+    // };
+
+    participant.on(ParticipantEvent.State, onState);
+    participant.on(ParticipantEvent.VideoTrackAdded, onVideoAdded);
+    participant.on(ParticipantEvent.VideoTrackRemoved, onVideoRemoved);
+    // participant.on(ParticipantEvent.AudioTrackAdded, onAudioAdded);
+    // participant.on(ParticipantEvent.AudioTrackRemoved, onAudioRemoved);
+
+    return () => {
+      // participant.off(ParticipantEvent.State, onState);
+      // participant.off(ParticipantEvent.VideoTrackAdded, onVideoAdded);
+      // participant.off(ParticipantEvent.VideoTrackRemoved, onVideoRemoved);
+      // participant.off(ParticipantEvent.AudioTrackAdded, onAudioAdded);
+      // participant.off(ParticipantEvent.AudioTrackRemoved, onAudioRemoved);
+    };
+  }, [participant]);
+
+  const connect = useCallback(
+    (roomId: string) => participant.connect(roomId),
+    [participant]
+  );
+
+  const publish = useCallback(
+    (stream: MediaStream | null) => participant.publish(stream),
+    [participant]
+  );
+
+  const close = useCallback(() => {
+    participant.close();
+    setVideoTracks([]);
+    setAudioTracks([]);
+    setConnectionState("closed");
+  }, [participant]);
+
+  return {
+    participant,
+    connectionState,
+    videoTracks,
+    audioTracks,
+    connect,
+    publish,
+    close,
+  };
+}
