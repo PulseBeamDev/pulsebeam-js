@@ -13,35 +13,53 @@ export default function MeetingRoom() {
   const client = useParticipant(APP_CONFIG);
 
   const handleJoin = async () => {
-    let stream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
         audio: true,
       });
+
+      client.publish(stream);
+      client.connect(roomId);
     } catch (err) {
       console.error("Failed to join:", err);
-      return;
+      alert("Failed to access camera/microphone");
     }
-
-    client.publish(stream);
-    client.connect(roomId);
   };
 
   const handleLeave = () => {
     client.close();
   };
 
+  const isConnectingOrConnected =
+    client.connectionState === "connecting" ||
+    client.connectionState === "connected";
+
   return (
     <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
-      <h1>Pulsebeam Room: {roomId}</h1>
+      <h1>Pulsebeam Room</h1>
+
+      <div style={{ marginBottom: "10px" }}>
+        <label>
+          Room:{" "}
+          <input
+            type="text"
+            value={roomId}
+            onChange={(e) => setRoomId(e.target.value)}
+            disabled={isConnectingOrConnected}
+            style={{ padding: "4px", fontSize: "14px" }}
+          />
+        </label>
+      </div>
 
       <p>
         Status: <strong>{client.connectionState}</strong>
       </p>
 
       {client.connectionState !== "connected" ? (
-        <button onClick={handleJoin}>Join Meeting</button>
+        <button onClick={handleJoin} disabled={client.connectionState === "connecting"}>
+          Join Meeting
+        </button>
       ) : (
         <button
           onClick={handleLeave}

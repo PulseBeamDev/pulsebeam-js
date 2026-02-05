@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Participant as WebParticipant,
   ParticipantEvent,
@@ -59,47 +59,34 @@ type ConnectionState = string;
 
 /**
  * Participant Hook
- *
- * NOTE: `config` is only used on first render.
- * To change config, remount the component.
  */
 export function useParticipant(config: ParticipantConfig) {
-  const participantRef = useRef<WebParticipant | null>(null);
+  const configRef = useRef(config);
+  useEffect(() => {
+    configRef.current = config;
+  }, [config]);
 
-  if (!participantRef.current) {
-    participantRef.current = new WebParticipant(config);
-  }
+  const [instanceKey, setInstanceKey] = useState(0);
 
-  const participant = participantRef.current;
+  const participant = useMemo(
+    () => new WebParticipant(configRef.current),
+    [instanceKey]
+  );
 
-  const [connectionState, setConnectionState] =
-    useState<ConnectionState>("disconnected");
-
+  const [connectionState, setConnectionState] = useState<ConnectionState>("disconnected");
   const [videoTracks, setVideoTracks] = useState<RemoteVideoTrack[]>([]);
   const [audioTracks, setAudioTracks] = useState<RemoteAudioTrack[]>([]);
 
   useEffect(() => {
     const onState = (s: ConnectionState) => setConnectionState(s);
-
-    const onVideoAdded = ({ track }: { track: RemoteVideoTrack }) => {
-      setVideoTracks((prev) =>
-        prev.some((t) => t.id === track.id) ? prev : [...prev, track]
-      );
-    };
-
-    const onVideoRemoved = ({ trackId }: { trackId: string }) => {
+    const onVideoAdded = ({ track }: { track: RemoteVideoTrack }) =>
+      setVideoTracks((prev) => (prev.some((t) => t.id === track.id) ? prev : [...prev, track]));
+    const onVideoRemoved = ({ trackId }: { trackId: string }) =>
       setVideoTracks((prev) => prev.filter((t) => t.id !== trackId));
-    };
-
-    const onAudioAdded = ({ track }: { track: RemoteAudioTrack }) => {
-      setAudioTracks((prev) =>
-        prev.some((t) => t.id === track.id) ? prev : [...prev, track]
-      );
-    };
-
-    const onAudioRemoved = ({ trackId }: { trackId: string }) => {
+    const onAudioAdded = ({ track }: { track: RemoteAudioTrack }) =>
+      setAudioTracks((prev) => (prev.some((t) => t.id === track.id) ? prev : [...prev, track]));
+    const onAudioRemoved = ({ trackId }: { trackId: string }) =>
       setAudioTracks((prev) => prev.filter((t) => t.id !== trackId));
-    };
 
     participant.on(ParticipantEvent.State, onState);
     participant.on(ParticipantEvent.VideoTrackAdded, onVideoAdded);
@@ -116,21 +103,15 @@ export function useParticipant(config: ParticipantConfig) {
     };
   }, [participant]);
 
-  const connect = useCallback(
-    (roomId: string) => participant.connect(roomId),
-    [participant]
-  );
-
-  const publish = useCallback(
-    (stream: MediaStream | null) => participant.publish(stream),
-    [participant]
-  );
+  const connect = useCallback((roomId: string) => participant.connect(roomId), [participant]);
+  const publish = useCallback((stream: MediaStream | null) => participant.publish(stream), [participant]);
 
   const close = useCallback(() => {
     participant.close();
     setVideoTracks([]);
     setAudioTracks([]);
     setConnectionState("closed");
+    setInstanceKey((k) => k + 1); // create fresh participant next time
   }, [participant]);
 
   return {
@@ -143,3 +124,4 @@ export function useParticipant(config: ParticipantConfig) {
     close,
   };
 }
+
