@@ -52,6 +52,8 @@ type SessionEvents = {
 
 export class RemoteAudioTrack {
   constructor(public readonly stream: MediaStream) { }
+
+  get id() { return this.stream.id; }
 }
 
 export class RemoteVideoTrack {

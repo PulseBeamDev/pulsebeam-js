@@ -18,7 +18,7 @@ export class EventEmitter<T extends Record<string, any>> {
     this.listeners[event]?.forEach((cb) => cb(data));
   }
 
-  private off<K extends keyof T>(event: K, callback: (data: T[K]) => void): void {
+  off<K extends keyof T>(event: K, callback: (data: T[K]) => void): void {
     this.listeners[event]?.delete(callback);
   }
 }

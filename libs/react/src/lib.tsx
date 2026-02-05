@@ -91,28 +91,28 @@ export function useParticipant(config: ParticipantConfig) {
       setVideoTracks((prev) => prev.filter((t) => t.id !== trackId));
     };
 
-    // const onAudioAdded = ({ track }: { track: RemoteAudioTrack }) => {
-    //   setAudioTracks((prev) =>
-    //     prev.some((t) => t.id === track.id) ? prev : [...prev, track]
-    //   );
-    // };
-    //
-    // const onAudioRemoved = ({ trackId }: { trackId: string }) => {
-    //   setAudioTracks((prev) => prev.filter((t) => t.id !== trackId));
-    // };
+    const onAudioAdded = ({ track }: { track: RemoteAudioTrack }) => {
+      setAudioTracks((prev) =>
+        prev.some((t) => t.id === track.id) ? prev : [...prev, track]
+      );
+    };
+
+    const onAudioRemoved = ({ trackId }: { trackId: string }) => {
+      setAudioTracks((prev) => prev.filter((t) => t.id !== trackId));
+    };
 
     participant.on(ParticipantEvent.State, onState);
     participant.on(ParticipantEvent.VideoTrackAdded, onVideoAdded);
     participant.on(ParticipantEvent.VideoTrackRemoved, onVideoRemoved);
-    // participant.on(ParticipantEvent.AudioTrackAdded, onAudioAdded);
-    // participant.on(ParticipantEvent.AudioTrackRemoved, onAudioRemoved);
+    participant.on(ParticipantEvent.AudioTrackAdded, onAudioAdded);
+    participant.on(ParticipantEvent.AudioTrackRemoved, onAudioRemoved);
 
     return () => {
-      // participant.off(ParticipantEvent.State, onState);
-      // participant.off(ParticipantEvent.VideoTrackAdded, onVideoAdded);
-      // participant.off(ParticipantEvent.VideoTrackRemoved, onVideoRemoved);
-      // participant.off(ParticipantEvent.AudioTrackAdded, onAudioAdded);
-      // participant.off(ParticipantEvent.AudioTrackRemoved, onAudioRemoved);
+      participant.off(ParticipantEvent.State, onState);
+      participant.off(ParticipantEvent.VideoTrackAdded, onVideoAdded);
+      participant.off(ParticipantEvent.VideoTrackRemoved, onVideoRemoved);
+      participant.off(ParticipantEvent.AudioTrackAdded, onAudioAdded);
+      participant.off(ParticipantEvent.AudioTrackRemoved, onAudioRemoved);
     };
   }, [participant]);
 

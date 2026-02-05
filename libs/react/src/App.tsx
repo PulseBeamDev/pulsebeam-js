@@ -4,6 +4,7 @@ import { useParticipant, Video, Audio, type ParticipantConfig } from "./lib";
 const APP_CONFIG: ParticipantConfig = {
   videoSlots: 16,
   audioSlots: 8,
+  baseUrl: "http://localhost:3000/api/v1"
 };
 
 export default function MeetingRoom() {
@@ -75,7 +76,7 @@ export default function MeetingRoom() {
       </div>
 
       {client.audioTracks.map((track) => (
-        <Audio track={track} />
+        <Audio key={track.id} track={track} />
       ))}
     </div>
   );
