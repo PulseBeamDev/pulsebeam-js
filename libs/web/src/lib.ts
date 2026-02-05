@@ -1,7 +1,7 @@
 import type { PlatformAdapter, ParticipantConfig, RemoteVideoTrack, RemoteAudioTrack } from "@pulsebeam/core";
 export type * from "@pulsebeam/core";
 export { RemoteAudioTrack, RemoteVideoTrack, ParticipantEvent } from "@pulsebeam/core";
-import { Participant as CoreParticipant } from "@pulsebeam/core";
+import { createParticipantStore as createCoreParticipantStore } from "@pulsebeam/core";
 import adapter from "webrtc-adapter";
 
 export const BrowserAdapter: PlatformAdapter = {
@@ -37,19 +37,13 @@ export const BrowserAdapter: PlatformAdapter = {
   mediaDevices: globalThis.navigator.mediaDevices,
 };
 
-
-export class Participant extends CoreParticipant {
-  constructor(config: ParticipantConfig) {
-    if (adapter.browserDetails.browser == "firefox" && !!adapter.browserDetails.version && adapter.browserDetails.version < 146) {
-      // TODO: this firefox requires at least 1 audio recv-only.. 
-      config.audioSlots = Math.max(config.audioSlots, 1);
-    }
-
-    super(
-      BrowserAdapter,
-      config,
-    );
+export function createParticipantStore(config: ParticipantConfig) {
+  if (adapter.browserDetails.browser == "firefox" && !!adapter.browserDetails.version && adapter.browserDetails.version < 146) {
+    // TODO: this firefox requires at least 1 audio recv-only.. 
+    config.audioSlots = Math.max(config.audioSlots, 1);
   }
+
+  return createCoreParticipantStore(BrowserAdapter, config);
 }
 
 export class VideoBinder {
