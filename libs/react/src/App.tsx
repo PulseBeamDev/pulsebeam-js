@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParticipant, Video, Audio, type ParticipantConfig } from "./lib";
 
 const APP_CONFIG: ParticipantConfig = {
-  videoSlots: 16, audioSlots: 8
+  videoSlots: 16, audioSlots: 8, baseUrl: "http://localhost:3000/api/v1"
 };
 
 export default function MeetingRoom() {
@@ -11,7 +11,7 @@ export default function MeetingRoom() {
   const screen = useParticipant({ ...APP_CONFIG, videoSlots: 0, audioSlots: 0 });
 
   const join = async () => {
-    const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    const s = await navigator.mediaDevices.getUserMedia({ video: { height: 720 }, audio: true });
     main.publish(s);
     main.connect(roomId);
   };
