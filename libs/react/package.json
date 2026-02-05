@@ -10,12 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@pulsebeam/web": "workspace:*",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "@pulsebeam/web": "workspace:*"
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@picocss/pico": "^2.1.1",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",

@@ -13,6 +13,8 @@ export default function MeetingRoom() {
   const mainClient = useParticipant(APP_CONFIG);
   const screenClient = useParticipant({ ...APP_CONFIG, videoSlots: 0, audioSlots: 0 });
 
+  const isLive = mainClient.connectionState === "connected";
+
   const startMeeting = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -23,7 +25,7 @@ export default function MeetingRoom() {
       mainClient.connect(roomId);
     } catch (err) {
       console.error("Failed to join:", err);
-      alert("Failed to access camera/microphone");
+      alert("Could not access media devices.");
     }
   };
 
@@ -38,80 +40,105 @@ export default function MeetingRoom() {
         video: true,
         audio: true,
       });
-
       screenClient.publish(stream);
       screenClient.connect(roomId);
 
-      // Stop automatically if user ends screen share via browser UI
+      // Auto-close if user clicks "Stop Sharing" in browser UI
       stream.getVideoTracks()[0].onended = () => screenClient.close();
     } catch (err) {
-      console.error("Screen share failed", err);
-      alert("Failed to start screen share");
+      console.error("Screen share failed:", err);
     }
   };
 
   const stopScreenShare = () => screenClient.close();
 
-  const isConnectingOrConnected =
-    mainClient.connectionState === "connecting" ||
-    mainClient.connectionState === "connected";
-
   return (
-    <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
-      <h1>Pulsebeam Room</h1>
+    <main className="container">
+      <hgroup>
+        <h1>Pulsebeam Room</h1>
+        <p>
+          Status: <mark>{mainClient.connectionState}</mark>
+        </p>
+      </hgroup>
 
-      <div style={{ marginBottom: "10px" }}>
-        <label>
-          Room:{" "}
-          <input
-            type="text"
-            value={roomId}
-            onChange={(e) => setRoomId(e.target.value)}
-            disabled={isConnectingOrConnected}
-            style={{ padding: "4px", fontSize: "14px" }}
-          />
-        </label>
-      </div>
+      <article>
+        <header>
+          <fieldset role="group">
+            <input
+              type="text"
+              value={roomId}
+              onChange={(e) => setRoomId(e.target.value)}
+              disabled={isLive}
+              placeholder="Room ID"
+            />
+            {!isLive ? (
+              <button
+                onClick={startMeeting}
+                aria-busy={mainClient.connectionState === "connecting"}
+              >
+                Join
+              </button>
+            ) : (
+              <button className="secondary" onClick={leaveMeeting}>
+                Leave
+              </button>
+            )}
+          </fieldset>
+        </header>
 
-      <p>Status: <strong>{mainClient.connectionState}</strong></p>
+        {isLive && (
+          <nav>
+            <ul>
+              <li>
+                <button
+                  className={mainClient.videoMuted ? "outline" : ""}
+                  onClick={() => mainClient.mute({ video: !mainClient.videoMuted })}
+                >
+                  {mainClient.videoMuted ? "Start Camera" : "Stop Camera"}
+                </button>
+              </li>
+              <li>
+                <button
+                  className={mainClient.audioMuted ? "outline" : ""}
+                  onClick={() => mainClient.mute({ audio: !mainClient.audioMuted })}
+                >
+                  {mainClient.audioMuted ? "Unmute Mic" : "Mute Mic"}
+                </button>
+              </li>
+            </ul>
+            <ul>
+              <li>
+                {screenClient.connectionState !== "connected" ? (
+                  <button className="contrast" onClick={startScreenShare}>
+                    Share Screen
+                  </button>
+                ) : (
+                  <button className="secondary outline" onClick={stopScreenShare}>
+                    Stop Sharing
+                  </button>
+                )}
+              </li>
+            </ul>
+          </nav>
+        )}
+      </article>
 
-      {mainClient.connectionState !== "connected" ? (
-        <button
-          onClick={startMeeting}
-          disabled={mainClient.connectionState === "connecting"}
-        >
-          Join Meeting
-        </button>
-      ) : (
-        <>
-          <button onClick={leaveMeeting} style={{ background: "red", color: "white", marginRight: "10px" }}>
-            Leave Meeting
-          </button>
-          {screenClient.connectionState !== "connected" ? (
-            <button onClick={startScreenShare}>Start Screen Share</button>
-          ) : (
-            <button onClick={stopScreenShare}>Stop Screen Share</button>
-          )}
-        </>
-      )}
-
-      <hr />
-      <button onClick={() => mainClient.mute({ video: !mainClient.videoMuted })}>{mainClient.videoMuted ? "Unmute" : "Mute"}</button>
-
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-        gap: "10px",
-      }}>
-        {mainClient.videoTracks.map(track => (
-          <div key={track.id} style={{ border: "1px solid #ccc", borderRadius: "8px", overflow: "hidden" }}>
-            <Video track={track} style={{ width: "100%", display: "block" }} />
-            <p style={{ padding: "5px", margin: 0 }}>{track.participantId}</p>
-          </div>
+      {/* Video Gallery */}
+      <div className="grid">
+        {mainClient.videoTracks.map((track) => (
+          <article key={track.id} style={{ padding: 0, overflow: "hidden", backgroundColor: "#000" }}>
+            <Video track={track} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover" }} />
+            <footer style={{ padding: "var(--pico-spacing)", fontSize: "0.8rem" }}>
+              {track.participantId || "Remote Participant"}
+            </footer>
+          </article>
         ))}
       </div>
 
-      {mainClient.audioTracks.map(track => <Audio key={track.id} track={track} />)}
-    </div>
+      {/* Hidden Audio Elements */}
+      {mainClient.audioTracks.map((track) => (
+        <Audio key={track.id} track={track} />
+      ))}
+    </main>
   );
 }
