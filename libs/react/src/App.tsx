@@ -96,6 +96,7 @@ export default function MeetingRoom() {
       )}
 
       <hr />
+      <button onClick={() => mainClient.mute({ video: !mainClient.videoMuted })}>{mainClient.videoMuted ? "Unmute" : "Mute"}</button>
 
       <div style={{
         display: "grid",

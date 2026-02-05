@@ -7,6 +7,7 @@ import {
   VideoBinder,
   AudioBinder,
   type ParticipantConfig,
+  type LocalStreamState,
 } from "@pulsebeam/web";
 
 export * from "@pulsebeam/web";
@@ -76,6 +77,7 @@ export function useParticipant(config: ParticipantConfig) {
   const [connectionState, setConnectionState] = useState<ConnectionState>("disconnected");
   const [videoTracks, setVideoTracks] = useState<RemoteVideoTrack[]>([]);
   const [audioTracks, setAudioTracks] = useState<RemoteAudioTrack[]>([]);
+  const [local, setLocal] = useState(participant.local);
 
   useEffect(() => {
     const onState = (s: ConnectionState) => setConnectionState(s);
@@ -87,12 +89,14 @@ export function useParticipant(config: ParticipantConfig) {
       setAudioTracks((prev) => (prev.some((t) => t.id === track.id) ? prev : [...prev, track]));
     const onAudioRemoved = ({ trackId }: { trackId: string }) =>
       setAudioTracks((prev) => prev.filter((t) => t.id !== trackId));
+    const onLocalStreamUpdate = (data: LocalStreamState) => setLocal(data);
 
     participant.on(ParticipantEvent.State, onState);
     participant.on(ParticipantEvent.VideoTrackAdded, onVideoAdded);
     participant.on(ParticipantEvent.VideoTrackRemoved, onVideoRemoved);
     participant.on(ParticipantEvent.AudioTrackAdded, onAudioAdded);
     participant.on(ParticipantEvent.AudioTrackRemoved, onAudioRemoved);
+    participant.on(ParticipantEvent.LocalStreamUpdate, onLocalStreamUpdate);
 
     return () => {
       participant.off(ParticipantEvent.State, onState);
@@ -100,11 +104,24 @@ export function useParticipant(config: ParticipantConfig) {
       participant.off(ParticipantEvent.VideoTrackRemoved, onVideoRemoved);
       participant.off(ParticipantEvent.AudioTrackAdded, onAudioAdded);
       participant.off(ParticipantEvent.AudioTrackRemoved, onAudioRemoved);
+      participant.off(ParticipantEvent.LocalStreamUpdate, onLocalStreamUpdate);
     };
   }, [participant]);
 
-  const connect = useCallback((roomId: string) => participant.connect(roomId), [participant]);
-  const publish = useCallback((stream: MediaStream | null) => participant.publish(stream), [participant]);
+  const connect = useCallback(
+    (...args: Parameters<WebParticipant["connect"]>) => participant.connect(...args),
+    [participant]
+  );
+
+  const publish = useCallback(
+    (...args: Parameters<WebParticipant["publish"]>) => participant.publish(...args),
+    [participant]
+  );
+
+  const mute = useCallback(
+    (...args: Parameters<WebParticipant["mute"]>) => participant.mute(...args),
+    [participant]
+  );
 
   const close = useCallback(() => {
     participant.close();
@@ -115,12 +132,14 @@ export function useParticipant(config: ParticipantConfig) {
   }, [participant]);
 
   return {
+    ...local,
     participant,
     connectionState,
     videoTracks,
     audioTracks,
     connect,
     publish,
+    mute,
     close,
   };
 }

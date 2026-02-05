@@ -24,6 +24,12 @@ export interface ParticipantConfig {
 
 export type ConnectionState = RTCPeerConnectionState;
 
+export interface LocalStreamState {
+  isPublishing: boolean;
+  videoMuted: boolean;
+  audioMuted: boolean;
+}
+
 // Public Events
 export const ParticipantEvent = {
   State: "state",
@@ -31,6 +37,7 @@ export const ParticipantEvent = {
   VideoTrackRemoved: "video_track_removed",
   AudioTrackAdded: "audio_track_added",
   AudioTrackRemoved: "audio_track_removed",
+  LocalStreamUpdate: "local_stream_update",
   Error: "error",
 } as const;
 
@@ -40,6 +47,7 @@ export interface ParticipantEvents {
   [ParticipantEvent.VideoTrackRemoved]: { trackId: string };
   [ParticipantEvent.AudioTrackAdded]: { track: RemoteAudioTrack };
   [ParticipantEvent.AudioTrackRemoved]: { trackId: string };
+  [ParticipantEvent.LocalStreamUpdate]: LocalStreamState;
   [ParticipantEvent.Error]: Error;
 }
 
@@ -48,6 +56,35 @@ type SessionEvents = {
   "track_added": { track: RemoteVideoTrack };
   "track_removed": { trackId: string };
   "update_needed": {};
+}
+
+export class LocalTrack {
+  constructor(
+    public readonly track: MediaStreamTrack,
+  ) { }
+
+  get id() { return this.track.id; }
+  get kind() { return this.track.kind; }
+  get muted() { return !this.track.enabled; }
+
+  setMuted(muted: boolean) {
+    if (this.track.enabled === !muted) return;
+    this.track.enabled = !muted;
+  }
+}
+
+export class LocalMediaStream {
+  public readonly video: LocalTrack | null;
+  public readonly audio: LocalTrack | null;
+
+  constructor(
+    public readonly stream: MediaStream,
+  ) {
+    const v = stream.getVideoTracks()[0];
+    const a = stream.getAudioTracks()[0];
+    this.video = v ? new LocalTrack(v) : null;
+    this.audio = a ? new LocalTrack(a) : null;
+  }
 }
 
 export class RemoteAudioTrack {
@@ -203,24 +240,27 @@ class Transport {
     await this.pc.setRemoteDescription({ type: "answer", sdp });
   }
 
-  updateLocalStream(stream: MediaStream | null) {
-    const videoTrack = stream?.getVideoTracks()[0] ?? null;
-    const audioTrack = stream?.getAudioTracks()[0] ?? null;
+  updateLocalStream(local: LocalMediaStream | null) {
+    const vTrack = local?.video?.track ?? null;
+    const aTrack = local?.audio?.track ?? null;
 
-    this.videoSender.replaceTrack(videoTrack).catch(e => console.error("Failed to replace video", e));
-    this.audioSender.replaceTrack(audioTrack).catch(e => console.error("Failed to replace audio", e));
+    // Swap the actual hardware tracks
+    this.videoSender.replaceTrack(vTrack);
+    this.audioSender.replaceTrack(aTrack);
 
     const params = this.videoSender.getParameters();
-    let hasChanges = false;
-    const shouldBeActive = !!videoTrack;
-    for (const enc of params.encodings) {
+    const shouldBeActive = !!vTrack && !local?.video?.muted;
+
+    let changed = false;
+    params.encodings.forEach(enc => {
       if (enc.active !== shouldBeActive) {
         enc.active = shouldBeActive;
-        hasChanges = true;
+        changed = true;
       }
-    }
-    if (hasChanges) {
-      this.videoSender.setParameters(params).catch(e => console.error("Failed to update params", e));
+    });
+
+    if (changed) {
+      this.videoSender.setParameters(params).catch(() => { });
     }
   }
 
@@ -231,11 +271,11 @@ class Transport {
 }
 
 export class Participant extends EventEmitter<ParticipantEvents> {
+  private _localStream: LocalMediaStream | null = null;
   private session: SessionState;
   private transport: Transport | null = null;
   private _state: ConnectionState = "new";
 
-  private localStream: MediaStream | null = null;
   private lastSentRequests: VideoRequest[] = [];
 
   private debounceTimer: any | null = null;
@@ -255,6 +295,17 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   get state() { return this._state; }
   get participantId() { return null; }
 
+  /**
+   * Snapshot of current local media state for UI binding.
+   */
+  get local(): LocalStreamState {
+    return {
+      isPublishing: !!this._localStream,
+      audioMuted: this._localStream?.audio?.muted ?? false,
+      videoMuted: this._localStream?.video?.muted ?? false,
+    };
+  }
+
   connect(room: string) {
     if (this._state === "closed") throw new Error("Participant closed");
     if (this.session.resourceUri) {
@@ -267,9 +318,29 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     this.establishConnection("POST", uri);
   }
 
+  /**
+   * Replaces the current stream. Pass null to unpublish.
+   */
   publish(stream: MediaStream | null) {
-    this.localStream = stream;
-    this.transport?.updateLocalStream(stream);
+    if (this._localStream?.stream === stream) return;
+
+    this._localStream = stream ? new LocalMediaStream(stream) : null;
+
+    this.transport?.updateLocalStream(this._localStream);
+    this.emit(ParticipantEvent.LocalStreamUpdate, this.local);
+  }
+
+  mute(options: { video?: boolean; audio?: boolean }) {
+    if (options.video !== undefined) {
+      this._localStream?.video?.setMuted(options.video);
+    }
+    if (options.audio !== undefined) {
+      this._localStream?.audio?.setMuted(options.audio);
+    }
+
+    // Update transport flow and notify UI
+    this.transport?.updateLocalStream(this._localStream);
+    this.emit(ParticipantEvent.LocalStreamUpdate, this.local);
   }
 
   close() {
@@ -301,7 +372,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       }
     );
 
-    newTransport.updateLocalStream(this.localStream);
+    newTransport.updateLocalStream(this._localStream);
 
     try {
       const sdp = await newTransport.createOffer();
