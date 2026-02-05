@@ -4,36 +4,57 @@ import { useParticipant, Video, Audio, type ParticipantConfig } from "./lib";
 const APP_CONFIG: ParticipantConfig = {
   videoSlots: 16,
   audioSlots: 8,
-  baseUrl: "http://localhost:3000/api/v1"
+  baseUrl: "http://localhost:3000/api/v1",
 };
 
 export default function MeetingRoom() {
   const [roomId, setRoomId] = useState("demo-room");
 
-  const client = useParticipant(APP_CONFIG);
+  const mainClient = useParticipant(APP_CONFIG);
+  const screenClient = useParticipant({ ...APP_CONFIG, videoSlots: 0, audioSlots: 0 });
 
-  const handleJoin = async () => {
+  const startMeeting = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
         audio: true,
       });
-
-      client.publish(stream);
-      client.connect(roomId);
+      mainClient.publish(stream);
+      mainClient.connect(roomId);
     } catch (err) {
       console.error("Failed to join:", err);
       alert("Failed to access camera/microphone");
     }
   };
 
-  const handleLeave = () => {
-    client.close();
+  const leaveMeeting = () => {
+    mainClient.close();
+    screenClient.close();
   };
 
+  const startScreenShare = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true,
+      });
+
+      screenClient.publish(stream);
+      screenClient.connect(roomId);
+
+      // Stop automatically if user ends screen share via browser UI
+      stream.getVideoTracks()[0].onended = () => screenClient.close();
+    } catch (err) {
+      console.error("Screen share failed", err);
+      alert("Failed to start screen share");
+    }
+  };
+
+  const stopScreenShare = () => screenClient.close();
+
   const isConnectingOrConnected =
-    client.connectionState === "connecting" ||
-    client.connectionState === "connected";
+    mainClient.connectionState === "connecting" ||
+    mainClient.connectionState === "connected";
 
   return (
     <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
@@ -52,50 +73,44 @@ export default function MeetingRoom() {
         </label>
       </div>
 
-      <p>
-        Status: <strong>{client.connectionState}</strong>
-      </p>
+      <p>Status: <strong>{mainClient.connectionState}</strong></p>
 
-      {client.connectionState !== "connected" ? (
-        <button onClick={handleJoin} disabled={client.connectionState === "connecting"}>
+      {mainClient.connectionState !== "connected" ? (
+        <button
+          onClick={startMeeting}
+          disabled={mainClient.connectionState === "connecting"}
+        >
           Join Meeting
         </button>
       ) : (
-        <button
-          onClick={handleLeave}
-          style={{ background: "red", color: "white" }}
-        >
-          Leave Meeting
-        </button>
+        <>
+          <button onClick={leaveMeeting} style={{ background: "red", color: "white", marginRight: "10px" }}>
+            Leave Meeting
+          </button>
+          {screenClient.connectionState !== "connected" ? (
+            <button onClick={startScreenShare}>Start Screen Share</button>
+          ) : (
+            <button onClick={stopScreenShare}>Stop Screen Share</button>
+          )}
+        </>
       )}
 
       <hr />
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-          gap: "10px",
-        }}
-      >
-        {client.videoTracks.map((track) => (
-          <div
-            key={track.id}
-            style={{
-              border: "1px solid #ccc",
-              borderRadius: "8px",
-              overflow: "hidden",
-            }}
-          >
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+        gap: "10px",
+      }}>
+        {mainClient.videoTracks.map(track => (
+          <div key={track.id} style={{ border: "1px solid #ccc", borderRadius: "8px", overflow: "hidden" }}>
             <Video track={track} style={{ width: "100%", display: "block" }} />
             <p style={{ padding: "5px", margin: 0 }}>{track.participantId}</p>
           </div>
         ))}
       </div>
 
-      {client.audioTracks.map((track) => (
-        <Audio key={track.id} track={track} />
-      ))}
+      {mainClient.audioTracks.map(track => <Audio key={track.id} track={track} />)}
     </div>
   );
 }
