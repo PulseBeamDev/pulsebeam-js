@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParticipant, Video, Audio, type ParticipantConfig } from "./lib";
 
 const APP_CONFIG: ParticipantConfig = {
-  videoSlots: 16, audioSlots: 8, //baseUrl: "http://localhost:3000/api/v1"
+  videoSlots: 16, audioSlots: 8, // baseUrl: "http://localhost:3000/api/v1"
 };
 
 export default function MeetingRoom() {
@@ -57,7 +57,7 @@ export default function MeetingRoom() {
       <div className="grid">
         {main.videoTracks.map(t => (
           <article key={t.id} style={{ padding: 0, overflow: "hidden", background: "#000" }}>
-            <Video track={t} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover" }} />
+            <Video track={t} style={{ width: "100%", objectFit: "cover" }} />
             <footer><small>{t.participantId}</small></footer>
           </article>
         ))}
