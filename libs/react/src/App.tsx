@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParticipant, Video, Audio, type ParticipantConfig } from "./lib";
 
 const APP_CONFIG: ParticipantConfig = {
-  videoSlots: 16, audioSlots: 8, baseUrl: "http://localhost:3000/api/v1"
+  videoSlots: 16, audioSlots: 8, //baseUrl: "http://localhost:3000/api/v1"
 };
 
 export default function MeetingRoom() {
@@ -18,8 +18,8 @@ export default function MeetingRoom() {
 
   const toggleScreen = async () => {
     if (screen.connectionState === "connected") return screen.close();
-    const s = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-    screen.publish(s);
+    const s = await navigator.mediaDevices.getDisplayMedia({ video: { height: 1080 }, audio: true });
+    screen.publish(s, "screen");
     screen.connect(roomId);
     s.getVideoTracks()[0].onended = () => screen.close();
   };

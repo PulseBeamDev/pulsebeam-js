@@ -17,6 +17,7 @@ declare global {
   interface RTCRtpEncodingParameters {
     active?: boolean;
     maxBitrate?: number;
+    maxFramerate?: number;
     scaleResolutionDownBy?: number;
     rid?: string;
     codec?: RTCRtpCodecParameters;

@@ -12,6 +12,7 @@ import {
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 import type { PlatformAdapter } from "./platform";
 import { EventEmitter } from "./event";
+import { mapPresetToInternal, PRESETS, type VideoPreset } from "./preset";
 
 const SIGNALING_LABEL = "__internal/v1/signaling";
 const SYNC_DEBOUNCE_MS = 300;
@@ -222,7 +223,11 @@ class Transport {
 
     this.videoSender = this.pc.addTransceiver("video", {
       direction: "sendonly",
-      sendEncodings: PRESET_CAMERA,
+      sendEncodings: [
+        { rid: "q", active: false },
+        { rid: "h", active: false },
+        { rid: "f", active: false },
+      ]
     }).sender;
 
     this.audioSender = this.pc.addTransceiver("audio", {
@@ -238,6 +243,31 @@ class Transport {
 
   async setAnswer(sdp: string) {
     await this.pc.setRemoteDescription({ type: "answer", sdp });
+  }
+
+  async applyVideoPreset(preset: VideoPreset) {
+    const { encodings, degradationPreference } = mapPresetToInternal(preset);
+    const params = this.videoSender.getParameters();
+
+    params.degradationPreference = degradationPreference;
+    params.encodings.forEach((slot, i) => {
+      const config = encodings[i];
+      if (!config) {
+        return;
+      }
+
+      if (config.maxBitrate) {
+        slot.maxBitrate = config.maxBitrate;
+      }
+
+      if (config.maxFramerate) {
+        slot.maxBitrate = config.maxFramerate;
+      }
+
+      slot.scaleResolutionDownBy = config.scaleResolutionDownBy;
+    });
+
+    await this.videoSender.setParameters(params);
   }
 
   updateLocalStream(local: LocalMediaStream | null) {
@@ -321,12 +351,24 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   /**
    * Replaces the current stream. Pass null to unpublish.
    */
-  publish(stream: MediaStream | null) {
-    if (this._localStream?.stream === stream) return;
+  publish(stream: MediaStream | null, preset: VideoPreset | "camera" | "screen" = "camera") {
+    const resolved = typeof preset === "string" ? PRESETS[preset] : preset;
+    const internal = mapPresetToInternal(resolved);
+
+    if (stream) {
+      const vTrack = stream.getVideoTracks()[0];
+      if (vTrack && "contentHint" in vTrack) {
+        vTrack.contentHint = internal.contentHint;
+      }
+    }
 
     this._localStream = stream ? new LocalMediaStream(stream) : null;
 
-    this.transport?.updateLocalStream(this._localStream);
+    if (this.transport) {
+      this.transport.applyVideoPreset(resolved);
+      this.transport.updateLocalStream(this._localStream);
+    }
+
     this.emit(ParticipantEvent.LocalStreamUpdate, this.local);
   }
 
@@ -581,12 +623,6 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     this.transport.dc.send(toBinary(ClientMessageSchema, msg));
   }
 }
-
-const PRESET_CAMERA: RTCRtpEncodingParameters[] = [
-  { rid: "q", scaleResolutionDownBy: 4, maxBitrate: 150_000, active: false },
-  { rid: "h", scaleResolutionDownBy: 2, maxBitrate: 400_000, active: false },
-  { rid: "f", scaleResolutionDownBy: 1, maxBitrate: 1_250_000, active: false },
-];
 
 function areRequestsEqual(a: VideoRequest[], b: VideoRequest[]): boolean {
   if (a.length !== b.length) return false;
