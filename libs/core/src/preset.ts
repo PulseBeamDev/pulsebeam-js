@@ -16,13 +16,13 @@ export const PRESETS: Record<"camera" | "screen", VideoPreset> = {
     layers: 3,
     mode: "motion",
     maxFps: 30,
-    baseBitrate: 1_500_000 // 1.5 Mbps for 720p/30
+    baseBitrate: 1_250_000
   },
   screen: {
     layers: 3,
     mode: "detail", // Forces clarity over smoothness
-    maxFps: 5,        // Drastically reduced for text sharpness
-    baseBitrate: 3_500_000 // 3.5 Mbps for crystal clear 1080p+ at low FPS
+    maxFps: 30,
+    baseBitrate: 2_500_000
   },
 };
 
@@ -31,22 +31,20 @@ export const PRESETS: Record<"camera" | "screen", VideoPreset> = {
  */
 export function mapPresetToInternal(preset: VideoPreset) {
   const rids = ["q", "h", "f"];
-  const scales = preset.layers === 3 ? [4, 2, 1] : preset.layers === 2 ? [2, 1] : [1];
+  const scales = [4, 2, 1];
 
   const encodings = scales.map((scale, i) => {
-    // Calculate bitrate based on pixel area (inverse square law)
-    // A scale of 2 means 1/4 the pixels, so we give it 1/4 the bitrate.
-    const areaReduction = Math.pow(scale, 2);
-    const calculatedBitrate = Math.floor(preset.baseBitrate / areaReduction);
+    const weight = scale === 4 ? 0.15 : scale === 2 ? 0.35 : 1.0;
+    const calculatedBitrate = Math.floor(preset.baseBitrate * weight);
 
     return {
-      rid: rids[3 - preset.layers + i],
+      rid: rids[i],
       scaleResolutionDownBy: scale,
       maxBitrate: calculatedBitrate,
       maxFramerate: preset.maxFps,
       active: true,
-      // For "detail" mode, we increase priority to prevent the browser from dropping it
-      priority: preset.mode === "detail" ? "high" : "low"
+      priority: preset.mode === "detail" ? "high" : "low",
+      networkPriority: preset.mode === "detail" ? "high" : "low"
     };
   });
 
