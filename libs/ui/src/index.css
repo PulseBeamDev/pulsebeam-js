@@ -2,15 +2,16 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import '@fontsource/manrope/index.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+@import '@fontsource/jetbrains-mono/600.css';
+/* @import "@fontsource/ibm-plex-sans/400.css"; */
+/* @import "@fontsource/ibm-plex-sans/700.css"; */
+/* @import "@fontsource/ibm-plex-mono/400.css"; */
+
 
 @custom-variant dark (&:is(.dark *));
-
-/* 
-  BRANDING STRATEGY:
-  - Primary: A vibrant Royal Blue/Indigo (matches the PulseBeam logo/buttons).
-  - Backgrounds: Clean white for cards/sidebar to differentiate from the light gray dashboard canvas.
-  - Vibe: Technical, precise, lightweight.
-*/
 
 :root {
     /* Pure White for the cleanest look */
@@ -52,8 +53,7 @@
     /* Focus ring matches primary blue */
     --ring: oklch(0.45 0.24 275);
     
-    /* Radius: 0.5rem is modern/professional (approx 8px) */
-    --radius: 0.5rem;
+    --radius: 0.2rem;
 
     /* Chart Colors based on mockup data lines */
     --chart-1: oklch(0.45 0.24 275); /* Primary Blue */
@@ -122,7 +122,9 @@
 }
 
 @theme inline {
-    --font-sans: 'Geist Variable', sans-serif;
+    /* --font-sans: 'Geist Variable', sans-serif; */
+    --font-sans: 'Manrope', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
     
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
@@ -173,11 +175,6 @@
   }
 }
 
-/* 
-   OPTIONAL: 
-   Add this utility class to your main dashboard wrapper to get that 
-   dot-pattern background seen in the mockup.
-*/
 @utility bg-dot-pattern {
   background-color: var(--secondary);
   background-image: radial-gradient(var(--border) 1px, transparent 1px);
