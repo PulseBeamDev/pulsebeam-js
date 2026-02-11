@@ -11,4 +11,23 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    lib: {
+      entry: path.resolve(__dirname, "src/index.ts"),
+      name: "PulseBeamUI",
+      fileName: (format) => `ui.${format === "es" ? "js" : "umd.cjs"}`,
+      formats: ["es", "umd"],
+    },
+    rollupOptions: {
+      external: ["react", "react-dom", "react/jsx-runtime", "tailwindcss"],
+      output: {
+        globals: {
+          react: "React",
+          "react-dom": "ReactDOM",
+          "react/jsx-runtime": "jsxRuntime",
+          tailwindcss: "tailwindcss",
+        },
+      },
+    },
+  },
 })

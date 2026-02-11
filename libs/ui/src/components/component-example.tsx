@@ -14,7 +14,7 @@ import {
 
 import {
   ExampleWrapper,
-} from "@/components/example"
+} from "./example"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,28 +25,37 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+} from "./ui/alert-dialog"
+import { Badge } from "./ui/badge"
+import { Button } from "./ui/button"
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+} from "./ui/card"
+import { Input } from "./ui/input"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "./ui/select"
 
 // --- Helper Components for the Mockup ---
 
-function StatCard({ title, value, trend, trendLabel, positive, icon: Icon }) {
+interface StatCardProps {
+  title: string
+  value: string
+  trend: "up" | "down" | "flat"
+  trendLabel: string
+  positive: boolean
+  icon?: React.ElementType
+}
+
+function StatCard({ title, value, trend, trendLabel, positive, icon: Icon }: StatCardProps) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -172,6 +181,7 @@ export function ComponentExample() {
               trend="up"
               trendLabel="+12%"
               positive={true}
+              icon={ActivityIcon}
             />
             <StatCard
               title="Egress Bandwidth"
@@ -179,6 +189,7 @@ export function ComponentExample() {
               trend="flat"
               trendLabel="Stable"
               positive={true}
+              icon={ServerIcon}
             />
             <StatCard
               title="Cluster Health"
@@ -186,6 +197,7 @@ export function ComponentExample() {
               trend="up"
               trendLabel="Optimal"
               positive={true}
+              icon={ActivityIcon}
             />
             <StatCard
               title="Latency P95"
@@ -193,6 +205,7 @@ export function ComponentExample() {
               trend="up"
               trendLabel="Global"
               positive={true}
+              icon={TrendingUpIcon}
             />
           </div>
 
