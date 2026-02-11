@@ -10,9 +10,15 @@ importers:
 
   apps/meet:
     dependencies:
+      '@pulsebeam/react':
+        specifier: workspace:*
+        version: link:../../libs/react
       '@pulsebeam/ui':
         specifier: workspace:*
         version: link:../../libs/ui
+      lucide-react:
+        specifier: ^0.309.0
+        version: 0.309.0(react@19.2.3)
       next:
         specifier: 16.1.6
         version: 16.1.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -3933,6 +3939,11 @@ packages:
   lru-cache@6.0.0:
     resolution: {integrity: sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA==}
     engines: {node: '>=10'}
+
+  lucide-react@0.309.0:
+    resolution: {integrity: sha512-zNVPczuwFrCfksZH3zbd1UDE6/WYhYAdbe2k7CImVyPAkXLgIwbs6eXQ4loigqDnUFjyFYCI5jZ1y10Kqal0dg==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0
 
   lucide-react@0.563.0:
     resolution: {integrity: sha512-8dXPB2GI4dI8jV4MgUDGBeLdGk8ekfqVZ0BdLcrRzocGgG75ltNEmWS+gE7uokKF/0oSUuczNDT+g9hFJ23FkA==}
@@ -8865,6 +8876,10 @@ snapshots:
   lru-cache@6.0.0:
     dependencies:
       yallist: 4.0.0
+
+  lucide-react@0.309.0(react@19.2.3):
+    dependencies:
+      react: 19.2.3
 
   lucide-react@0.563.0(react@19.2.4):
     dependencies:

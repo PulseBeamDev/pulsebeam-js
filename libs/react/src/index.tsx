@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 import { useStore } from "@nanostores/react";
 import {
   createParticipant,
@@ -26,6 +26,11 @@ export const Audio = ({ track, ...props }: any) => <audio ref={useBinder(track, 
 
 export function useParticipant(config: ParticipantConfig) {
   const $participant = useMemo(() => createParticipant(config), []);
+
+  // useEffect(() => {
+  //   $participant.get().reset(config);
+  // }, [config]);
+
   return useStore($participant);
 }
 

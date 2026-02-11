@@ -11,7 +11,12 @@ import adapter from "webrtc-adapter";
 export const BrowserAdapter: PlatformAdapter = {
   RTCPeerConnection: globalThis.RTCPeerConnection,
   MediaStream: globalThis.MediaStream,
-  getCapabilities: globalThis.RTCRtpSender.getCapabilities.bind(globalThis.RTCRtpSender),
+  getCapabilities: (kind) => {
+    if (globalThis.RTCRtpSender && globalThis.RTCRtpSender.getCapabilities) {
+      return globalThis.RTCRtpSender.getCapabilities(kind);
+    }
+    return null;
+  },
   fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
     if (init?.body && ['POST', 'PUT', 'PATCH'].includes(init.method || '')) {
       try {
@@ -38,7 +43,7 @@ export const BrowserAdapter: PlatformAdapter = {
   },
   setTimeout: globalThis.setTimeout.bind(globalThis),
   clearTimeout: globalThis.clearTimeout.bind(globalThis),
-  mediaDevices: globalThis.navigator.mediaDevices,
+  mediaDevices: globalThis.navigator?.mediaDevices,
 };
 
 export function createParticipant(config: ParticipantConfig) {

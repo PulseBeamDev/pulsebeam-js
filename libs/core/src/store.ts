@@ -26,6 +26,12 @@ export type ParticipantSnapshot = ParticipantState & {
 
 export type ParticipantManager = MapStore<ParticipantSnapshot>;
 
+function sameConfig(last: ParticipantConfig, cur: ParticipantConfig): boolean {
+  return last.videoSlots === cur.videoSlots &&
+    last.audioSlots === cur.audioSlots &&
+    last.baseUrl === cur.baseUrl;
+}
+
 export function createParticipant(
   adapter: PlatformAdapter,
   initialConfig: ParticipantConfig
@@ -43,7 +49,7 @@ export function createParticipant(
     connect: (...args) => participant.connect(...args),
     publish: (...args) => participant.publish(...args),
     mute: (...args) => participant.mute(...args),
-    close: () => reset(currentConfig),
+    close: () => reset(currentConfig, true),
   });
 
   const cleanup = () => {
@@ -52,7 +58,12 @@ export function createParticipant(
     unsubs = [];
   };
 
-  const reset = (config: ParticipantConfig) => {
+  const reset = (config: ParticipantConfig, force = false) => {
+    if (!force && sameConfig(currentConfig, config)) {
+      return;
+    }
+
+    console.error("resetting");
     cleanup();
     currentConfig = config;
     participant = new Participant(adapter, config);
@@ -66,7 +77,7 @@ export function createParticipant(
       connect: (...args) => participant.connect(...args),
       publish: (...args) => participant.publish(...args),
       mute: (...args) => participant.mute(...args),
-      close: () => reset(currentConfig),
+      close: () => reset(currentConfig, true),
     });
 
     bindEvents();

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParticipant, Video, Audio, type ParticipantConfig } from "./lib";
+import { useParticipant, Video, Audio, type ParticipantConfig } from "./index";
 
 const APP_CONFIG: ParticipantConfig = {
   videoSlots: 16, audioSlots: 8, // baseUrl: "http://localhost:3000/api/v1"

@@ -1,11 +1,21 @@
 {
-  "name": "react",
+  "name": "@pulsebeam/react",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "./dist/react.umd.cjs",
+  "module": "./dist/react.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/react.js",
+      "require": "./dist/react.umd.cjs"
+    }
+  },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build && tsc -p tsconfig.app.json",
     "lint": "eslint .",
     "preview": "vite preview"
   },
