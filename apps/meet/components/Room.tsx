@@ -157,7 +157,7 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
               <video
                 ref={localVideoRef}
                 autoPlay muted playsInline
-                className="w-full h-full object-cover mirror"
+                className="w-full h-full object-contain mirror"
               />
             ) : (
               spotlightTrack && <Video track={spotlightTrack} className="w-full h-full object-contain" />
