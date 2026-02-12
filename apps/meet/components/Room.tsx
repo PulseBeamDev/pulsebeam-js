@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useParticipant, Video, Audio } from "@pulsebeam/react";
 import {
   Button,
@@ -27,18 +27,24 @@ const API_URL = "http://localhost:3000/api/v1";
 
 export function Room({ roomId, localStream, onLeave }: RoomProps) {
   const [spotlightId, setSpotlightId] = useState<string | "local">("local");
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const sidebarLocalVideoRef = useRef<HTMLVideoElement>(null);
 
-  const client = useParticipant({
+  // Memoize configurations to prevent unnecessary resets
+  const clientConfig = useMemo(() => ({
     videoSlots: 16,
     audioSlots: 8,
     // baseUrl: API_URL,
-  });
+  }), []);
 
-  const screenClient = useParticipant({
+  const screenClientConfig = useMemo(() => ({
     videoSlots: 0,
     audioSlots: 0,
     // baseUrl: API_URL,
-  });
+  }), []);
+
+  const client = useParticipant(clientConfig);
+  const screenClient = useParticipant(screenClientConfig);
 
   const isSharing = screenClient.connectionState === "connected" || screenClient.connectionState === "connecting";
 
@@ -50,7 +56,6 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
     client.publish(localStream);
   }, [localStream]);
 
-  // Bug Fix: Reset spotlight to local if the spotlighted participant leaves
   useEffect(() => {
     if (spotlightId !== "local") {
       const isPresent = client.videoTracks.some((t: any) => t.id === spotlightId);
@@ -59,6 +64,22 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
       }
     }
   }, [client.videoTracks, spotlightId]);
+
+  useEffect(() => {
+    if (localVideoRef.current && localStream) {
+      if (localVideoRef.current.srcObject !== localStream) {
+        localVideoRef.current.srcObject = localStream;
+      }
+    }
+  }, [localStream, spotlightId]);
+
+  useEffect(() => {
+    if (sidebarLocalVideoRef.current && localStream) {
+      if (sidebarLocalVideoRef.current.srcObject !== localStream) {
+        sidebarLocalVideoRef.current.srcObject = localStream;
+      }
+    }
+  }, [localStream, spotlightId]);
 
   const startScreenShare = async () => {
     try {
@@ -134,7 +155,7 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
           <Card className="flex-[3] relative bg-black shadow-lg border-border/40 p-0 overflow-hidden group/spotlight ring-0">
             {spotlightId === "local" ? (
               <video
-                ref={(el) => { if (el) el.srcObject = localStream }}
+                ref={localVideoRef}
                 autoPlay muted playsInline
                 className="w-full h-full object-cover mirror"
               />
@@ -205,7 +226,7 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
                   >
                     <button onClick={() => setSpotlightId("local")}>
                       <video
-                        ref={(el) => { if (el) el.srcObject = localStream }}
+                        ref={sidebarLocalVideoRef}
                         autoPlay muted playsInline
                         className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-all"
                       />
