@@ -50,6 +50,16 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
     client.publish(localStream);
   }, [localStream]);
 
+  // Bug Fix: Reset spotlight to local if the spotlighted participant leaves
+  useEffect(() => {
+    if (spotlightId !== "local") {
+      const isPresent = client.videoTracks.some((t: any) => t.id === spotlightId);
+      if (!isPresent) {
+        setSpotlightId("local");
+      }
+    }
+  }, [client.videoTracks, spotlightId]);
+
   const startScreenShare = async () => {
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
