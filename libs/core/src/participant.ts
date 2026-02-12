@@ -26,7 +26,6 @@ export interface ParticipantConfig {
 export type ConnectionState = RTCPeerConnectionState;
 
 export interface LocalStreamState {
-  isPublishing: boolean;
   videoMuted: boolean;
   audioMuted: boolean;
 }
@@ -197,6 +196,8 @@ class Transport {
   private videoSender: RTCRtpSender;
   private audioSender: RTCRtpSender;
 
+  upstreamState = new UpstreamState();
+
   constructor(
     private adapter: PlatformAdapter,
     config: ParticipantConfig,
@@ -224,9 +225,9 @@ class Transport {
     this.videoSender = this.pc.addTransceiver("video", {
       direction: "sendonly",
       sendEncodings: [
-        { rid: "q", active: false },
-        { rid: "h", active: false },
-        { rid: "f", active: false },
+        { rid: "q", active: true },
+        { rid: "h", active: true },
+        { rid: "f", active: true },
       ]
     }).sender;
 
@@ -243,31 +244,6 @@ class Transport {
 
   async setAnswer(sdp: string) {
     await this.pc.setRemoteDescription({ type: "answer", sdp });
-  }
-
-  async applyVideoPreset(preset: VideoPreset) {
-    const { encodings, degradationPreference } = mapPresetToInternal(preset);
-    const params = this.videoSender.getParameters();
-
-    params.degradationPreference = degradationPreference;
-    params.encodings.forEach((slot, i) => {
-      const config = encodings[i];
-      if (!config) {
-        return;
-      }
-
-      if (config.maxBitrate) {
-        slot.maxBitrate = config.maxBitrate;
-      }
-
-      if (config.maxFramerate) {
-        slot.maxBitrate = config.maxFramerate;
-      }
-
-      slot.scaleResolutionDownBy = config.scaleResolutionDownBy;
-    });
-
-    await this.videoSender.setParameters(params);
   }
 
   updateLocalStream(local: LocalMediaStream | null) {
@@ -298,18 +274,87 @@ class Transport {
     this.pc.close();
     this.dc.close();
   }
+
+  sync(desired: UpstreamState) {
+    if (this.pc.signalingState === "closed") return;
+
+    const vTrack = desired.localStream?.video?.track ?? null;
+    const aTrack = desired.localStream?.audio?.track ?? null;
+
+    // 1. Reconcile Physical Tracks
+    if (this.videoSender.track !== vTrack) {
+      this.videoSender.replaceTrack(vTrack).catch(() => { });
+    }
+    if (this.audioSender.track !== aTrack) {
+      this.audioSender.replaceTrack(aTrack).catch(() => { });
+    }
+
+    // 2. Reconcile RtpParameters (Encodings & Bitrates)
+    try {
+      const params = this.videoSender.getParameters();
+      const internal = mapPresetToInternal(desired.preset);
+      const shouldBeActive = !!vTrack && !desired.localStream?.video?.muted;
+      let changed = false;
+
+      // Update contentHint if it has changed
+      if (vTrack && "contentHint" in vTrack && vTrack.contentHint !== internal.contentHint) {
+        vTrack.contentHint = internal.contentHint;
+      }
+
+      // Reconcile encodings
+      params.encodings.forEach((slot, i) => {
+        const config = internal.encodings[i];
+        if (!config) return;
+
+        if (slot.active !== shouldBeActive) {
+          slot.active = shouldBeActive;
+          changed = true;
+        }
+        if (slot.scaleResolutionDownBy !== config.scaleResolutionDownBy) {
+          slot.scaleResolutionDownBy = config.scaleResolutionDownBy;
+          changed = true;
+        }
+        if (slot.maxBitrate !== config.maxBitrate) {
+          slot.maxBitrate = config.maxBitrate;
+          changed = true;
+        }
+        if (slot.maxFramerate !== config.maxFramerate) {
+          slot.maxFramerate = config.maxFramerate;
+          changed = true;
+        }
+      });
+
+      // Reconcile degradation preference
+      if (params.degradationPreference !== internal.degradationPreference) {
+        params.degradationPreference = internal.degradationPreference;
+        changed = true;
+      }
+
+      if (changed) {
+        this.videoSender.setParameters(params).catch((e) => {
+          console.warn("setParameters failed, will retry on next sync", e);
+        });
+      }
+    } catch (e) {
+      // Common if the sender is not yet negotiated or parameters aren't available
+    }
+  }
+}
+
+class UpstreamState {
+  localStream: LocalMediaStream | null = null;
+  preset: VideoPreset = PRESETS["camera"];
 }
 
 export class Participant extends EventEmitter<ParticipantEvents> {
-  private _localStream: LocalMediaStream | null = null;
   private session: SessionState;
   private transport: Transport | null = null;
   private _state: ConnectionState = "new";
+  private upstreamState = new UpstreamState();
 
   private lastSentRequests: VideoRequest[] = [];
 
   private debounceTimer: any | null = null;
-  private isConnecting = false;
   private isReconnecting = false;
   private retryCount = 0;
   private reconnectTimer: any = null;
@@ -333,9 +378,8 @@ export class Participant extends EventEmitter<ParticipantEvents> {
    */
   get local(): LocalStreamState {
     return {
-      isPublishing: !!this._localStream,
-      audioMuted: this._localStream?.audio?.muted ?? false,
-      videoMuted: this._localStream?.video?.muted ?? false,
+      audioMuted: this.transport?.upstreamState.localStream?.audio?.muted ?? false,
+      videoMuted: this.transport?.upstreamState.localStream?.video?.muted ?? false,
     };
   }
 
@@ -365,26 +409,22 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       }
     }
 
-    this._localStream = stream ? new LocalMediaStream(stream) : null;
-
-    if (this.transport) {
-      this.transport.applyVideoPreset(resolved);
-      this.transport.updateLocalStream(this._localStream);
-    }
+    this.upstreamState.localStream = stream ? new LocalMediaStream(stream) : null;
+    this.transport?.sync(this.upstreamState);
 
     this.emit(ParticipantEvent.LocalStreamUpdate, this.local);
   }
 
   mute(options: { video?: boolean; audio?: boolean }) {
     if (options.video !== undefined) {
-      this._localStream?.video?.setMuted(options.video);
+      this.upstreamState.localStream?.video?.setMuted(options.video);
     }
     if (options.audio !== undefined) {
-      this._localStream?.audio?.setMuted(options.audio);
+      this.upstreamState.localStream?.audio?.setMuted(options.audio);
     }
 
     // Update transport flow and notify UI
-    this.transport?.updateLocalStream(this._localStream);
+    this.transport?.sync(this.upstreamState);
     this.emit(ParticipantEvent.LocalStreamUpdate, this.local);
   }
 
@@ -420,8 +460,6 @@ export class Participant extends EventEmitter<ParticipantEvents> {
         }
       }
     );
-
-    newTransport.updateLocalStream(this._localStream);
 
     try {
       const sdp = await newTransport.createOffer();
@@ -463,9 +501,19 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
       await newTransport.setAnswer(await res.text());
 
+      if (this.ac.signal.aborted || generation !== this.generation) {
+        this.adapter.fetch(location, { method: "DELETE" }).catch(() => { });
+        newTransport.close();
+        return;
+      }
+
       // ATOMIC SWAP: The new transport is ready.
       if (this.transport) this.transport.close();
       this.transport = newTransport;
+      newTransport.sync(this.upstreamState);
+
+      // Reset the sent requests cache, as we have a fresh transport/session context
+      this.lastSentRequests = [];
 
       // Sync the state immediately to the new transport's reality
       this.updateState(newTransport.pc.connectionState);
@@ -478,14 +526,15 @@ export class Participant extends EventEmitter<ParticipantEvents> {
         this.emit(ParticipantEvent.AudioTrackAdded, { track: new RemoteAudioTrack(stream) });
       });
 
+      // Immediately reconcile to ensure declarative state matches the new transport
+      this.reconcile(true);
+
     } catch (e) {
       newTransport.close();
       if (!this.isReconnecting) {
         this.updateState("failed");
       }
       throw e;
-    } finally {
-      this.isConnecting = false;
     }
   }
 
@@ -584,45 +633,62 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   private reconcile(force = false) {
     if (!this.transport || this.transport.dc.readyState !== "open") return;
 
+    // 1. Declarative State: What tracks do we want? (Sorted by priority)
     const desired = Array.from(this.session.remoteVideoTracks.values())
       .filter(v => v.height > 0)
       .sort((a, b) => b.height - a.height);
 
+    // 2. Resource State: What slots do we have?
     const nextAssignments = new Map<string, { trackId: string, height: number }>();
     const usedMids = new Set<string>();
 
+    // 3. Reconciliation Algorithm: Map Desired -> Resources
+
+    // Pass 1: Sticky Assignments.
+    // If a slot is currently assigned to a track we still want, keep it.
     for (const slot of this.transport.videoSlots) {
       const mid = slot.mid;
       if (!mid) continue;
-      const current = this.session.assignments.get(mid);
-      if (current) {
-        const vSlot = this.session.remoteVideoTracks.get(current.trackId);
+
+      const currentAssign = this.session.assignments.get(mid);
+      if (currentAssign) {
+        const vSlot = this.session.remoteVideoTracks.get(currentAssign.trackId);
+        // If this track is in our desired list, keep the assignment
         if (vSlot && desired.includes(vSlot)) {
           nextAssignments.set(mid, { trackId: vSlot.id, height: vSlot.height });
           usedMids.add(mid);
+          // Remove from desired list so we don't assign it again
           desired.splice(desired.indexOf(vSlot), 1);
         }
       }
     }
 
+    // Pass 2: New Assignments.
+    // For remaining desired tracks, find the first free slot.
     for (const vSlot of desired) {
-      const free = this.transport.videoSlots.find(s => s.mid && !usedMids.has(s.mid));
-      if (free) {
-        nextAssignments.set(free.mid!, { trackId: vSlot.id, height: vSlot.height });
-        usedMids.add(free.mid!);
+      const freeSlot = this.transport.videoSlots.find(s => s.mid && !usedMids.has(s.mid));
+      if (freeSlot) {
+        nextAssignments.set(freeSlot.mid!, { trackId: vSlot.id, height: vSlot.height });
+        usedMids.add(freeSlot.mid!);
+      } else {
+        // No more slots available. Stop assigning.
+        break;
       }
     }
 
+    // 4. Construct Intent
     const requests: VideoRequest[] = [];
     for (const slot of this.transport.videoSlots) {
       const mid = slot.mid;
       if (!mid) continue;
+
       const assign = nextAssignments.get(mid);
       if (assign) {
         requests.push(create(VideoRequestSchema, { mid, trackId: assign.trackId, height: assign.height }));
       }
     }
 
+    // 5. Differential Update
     if (!force && areRequestsEqual(this.lastSentRequests, requests)) return;
     this.lastSentRequests = requests;
 
@@ -647,6 +713,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
 function areRequestsEqual(a: VideoRequest[], b: VideoRequest[]): boolean {
   if (a.length !== b.length) return false;
+  // Sort by MID to ensure deterministic comparison
   const sA = [...a].sort((x, y) => x.mid.localeCompare(y.mid));
   const sB = [...b].sort((x, y) => x.mid.localeCompare(y.mid));
   for (let i = 0; i < sA.length; i++) {
