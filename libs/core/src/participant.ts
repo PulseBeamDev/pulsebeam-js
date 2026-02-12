@@ -1,4 +1,3 @@
-import { map, type MapStore } from "nanostores";
 import {
   ClientMessageSchema,
   ServerMessageSchema,
@@ -12,6 +11,7 @@ import {
 } from "./gen/signaling_pb";
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 import type { PlatformAdapter } from "./platform";
+import { EventEmitter } from "./event";
 import { mapPresetToInternal, PRESETS, type VideoPreset } from "./preset";
 
 const SIGNALING_LABEL = "__internal/v1/signaling";
@@ -31,11 +31,32 @@ export interface LocalStreamState {
   audioMuted: boolean;
 }
 
-export interface ParticipantState extends LocalStreamState {
-  connectionState: ConnectionState;
-  videoTracks: RemoteVideoTrack[];
-  audioTracks: RemoteAudioTrack[];
-  error: Error | null;
+// Public Events
+export const ParticipantEvent = {
+  State: "state",
+  VideoTrackAdded: "video_track_added",
+  VideoTrackRemoved: "video_track_removed",
+  AudioTrackAdded: "audio_track_added",
+  AudioTrackRemoved: "audio_track_removed",
+  LocalStreamUpdate: "local_stream_update",
+  Error: "error",
+} as const;
+
+export interface ParticipantEvents {
+  [ParticipantEvent.State]: ConnectionState;
+  [ParticipantEvent.VideoTrackAdded]: { track: RemoteVideoTrack };
+  [ParticipantEvent.VideoTrackRemoved]: { trackId: string };
+  [ParticipantEvent.AudioTrackAdded]: { track: RemoteAudioTrack };
+  [ParticipantEvent.AudioTrackRemoved]: { trackId: string };
+  [ParticipantEvent.LocalStreamUpdate]: LocalStreamState;
+  [ParticipantEvent.Error]: Error;
+}
+
+// Internal Session Events
+type SessionEvents = {
+  "track_added": { track: RemoteVideoTrack };
+  "track_removed": { trackId: string };
+  "update_needed": {};
 }
 
 export class LocalTrack {
@@ -106,7 +127,7 @@ export class RemoteVideoTrack {
   }
 }
 
-class SessionState {
+class SessionState extends EventEmitter<SessionEvents> {
   resourceUri: string | null = null;
   etag: string | null = null;
   seq: bigint = 0n;
@@ -114,22 +135,18 @@ class SessionState {
   assignments: Map<string, VideoAssignment> = new Map();
   remoteVideoTracks: Map<string, RemoteVideoTrack> = new Map();
 
-  constructor(
-    private adapter: PlatformAdapter,
-    private callbacks: {
-      onTrackChange: () => void;
-      onLayoutChange: () => void;
-    }
-  ) { }
+  constructor(private adapter: PlatformAdapter) {
+    super();
+  }
 
   getOrCreateVideoTrack(trackData: Track): RemoteVideoTrack {
     let remoteTrack = this.remoteVideoTracks.get(trackData.id);
     if (!remoteTrack) {
       const stream = new this.adapter.MediaStream();
       remoteTrack = new RemoteVideoTrack(trackData, stream);
-      remoteTrack.onLayoutChange = () => this.callbacks.onLayoutChange();
+      remoteTrack.onLayoutChange = () => this.emit("update_needed", {});
       this.remoteVideoTracks.set(remoteTrack.id, remoteTrack);
-      this.callbacks.onTrackChange();
+      this.emit("track_added", { track: remoteTrack });
     }
     return remoteTrack;
   }
@@ -139,7 +156,7 @@ class SessionState {
     if (track) {
       track.clearStream();
       this.remoteVideoTracks.delete(id);
-      this.callbacks.onTrackChange();
+      this.emit("track_removed", { trackId: id });
     }
     this.tracks.delete(id);
   }
@@ -283,12 +300,11 @@ class Transport {
   }
 }
 
-export class Participant {
-  public readonly state: MapStore<ParticipantState>;
-
+export class Participant extends EventEmitter<ParticipantEvents> {
   private _localStream: LocalMediaStream | null = null;
   private session: SessionState;
   private transport: Transport | null = null;
+  private _state: ConnectionState = "new";
 
   private lastSentRequests: VideoRequest[] = [];
 
@@ -298,30 +314,30 @@ export class Participant {
   private reconnectTimer: any = null;
 
   constructor(private adapter: PlatformAdapter, private config: ParticipantConfig) {
-    this.state = map<ParticipantState>({
-      connectionState: "new",
-      isPublishing: false,
-      videoMuted: false,
-      audioMuted: false,
-      videoTracks: [],
-      audioTracks: [],
-      error: null
-    });
+    super();
+    this.session = new SessionState(adapter);
 
-    this.session = new SessionState(adapter, {
-      onTrackChange: () => {
-        this.state.setKey("videoTracks", Array.from(this.session.remoteVideoTracks.values()));
-      },
-      onLayoutChange: () => {
-        this.scheduleReconcile();
-      }
-    });
+    this.session.on("track_added", (e) => this.emit(ParticipantEvent.VideoTrackAdded, e));
+    this.session.on("track_removed", (e) => this.emit(ParticipantEvent.VideoTrackRemoved, e));
+    this.session.on("update_needed", () => this.scheduleReconcile());
   }
 
+  get state() { return this._state; }
   get participantId() { return null; }
 
+  /**
+   * Snapshot of current local media state for UI binding.
+   */
+  get local(): LocalStreamState {
+    return {
+      isPublishing: !!this._localStream,
+      audioMuted: this._localStream?.audio?.muted ?? false,
+      videoMuted: this._localStream?.video?.muted ?? false,
+    };
+  }
+
   connect(room: string) {
-    if (this.state.get().connectionState === "closed") throw new Error("Participant closed");
+    if (this._state === "closed") throw new Error("Participant closed");
     if (this.session.resourceUri) {
       this.establishConnection("PATCH", this.session.resourceUri);
       return;
@@ -353,7 +369,7 @@ export class Participant {
       this.transport.updateLocalStream(this._localStream);
     }
 
-    this.updateLocalState();
+    this.emit(ParticipantEvent.LocalStreamUpdate, this.local);
   }
 
   mute(options: { video?: boolean; audio?: boolean }) {
@@ -366,7 +382,7 @@ export class Participant {
 
     // Update transport flow and notify UI
     this.transport?.updateLocalStream(this._localStream);
-    this.updateLocalState();
+    this.emit(ParticipantEvent.LocalStreamUpdate, this.local);
   }
 
   close() {
@@ -379,12 +395,6 @@ export class Participant {
 
     this.transport?.close();
     this.updateState("closed");
-  }
-
-  private updateLocalState() {
-    this.state.setKey("isPublishing", !!this._localStream);
-    this.state.setKey("audioMuted", this._localStream?.audio?.muted ?? false);
-    this.state.setKey("videoMuted", this._localStream?.video?.muted ?? false);
   }
 
   private async establishConnection(method: "POST" | "PATCH", uri: string) {
@@ -444,24 +454,24 @@ export class Participant {
       this.retryCount = 0;
       this.isReconnecting = false;
 
-      const audioTracks = this.transport.audioSlots.map(t => {
-        return new RemoteAudioTrack(new this.adapter.MediaStream([t.receiver.track]));
+      this.transport.audioSlots.forEach(t => {
+        const stream = new this.adapter.MediaStream([t.receiver.track]);
+        this.emit(ParticipantEvent.AudioTrackAdded, { track: new RemoteAudioTrack(stream) });
       });
-      this.state.setKey("audioTracks", audioTracks);
 
     } catch (e) {
       newTransport.close();
       if (!this.isReconnecting) {
         this.updateState("failed");
-        this.state.setKey("error", e instanceof Error ? e : new Error(String(e)));
       }
       throw e;
     }
   }
 
   private updateState(newState: ConnectionState) {
-    if (this.state.get().connectionState === newState) return;
-    this.state.setKey("connectionState", newState);
+    if (this._state === newState) return;
+    this._state = newState;
+    this.emit(ParticipantEvent.State, newState);
   }
 
   private handleTransportState(state: ConnectionState) {
@@ -471,7 +481,7 @@ export class Participant {
   }
 
   private scheduleReconnect() {
-    if (this.isReconnecting || this.state.get().connectionState === "closed") return;
+    if (this.isReconnecting || this._state === "closed") return;
 
     if (!this.session.resourceUri) {
       throw new Error("unexpected missing resourceUri");
@@ -490,7 +500,7 @@ export class Participant {
         console.warn("Reconnect attempt failed", e);
         this.isReconnecting = false;
         if (this.retryCount > 5) {
-          this.state.setKey("error", new Error("Reconnection exhausted"));
+          this.emit(ParticipantEvent.Error, new Error("Reconnection exhausted"));
           this.close();
         } else {
           this.scheduleReconnect();
