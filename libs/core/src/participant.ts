@@ -314,6 +314,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   private retryCount = 0;
   private reconnectTimer: any = null;
   private ac = new AbortController();
+  private generation = 0;
 
   constructor(private adapter: PlatformAdapter, private config: ParticipantConfig) {
     super();
@@ -402,11 +403,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   }
 
   private async establishConnection(method: "POST" | "PATCH", uri: string) {
-    if (this.isConnecting) {
-      console.warn("currently connecting, ignoring");
-      return;
-    }
-    this.isConnecting = true;
+    const generation = ++this.generation;
 
     // We do NOT update this.transport yet. We build the new one in isolation.
     const newTransport = new Transport(
@@ -446,17 +443,23 @@ export class Participant extends EventEmitter<ParticipantEvents> {
         throw new Error(`Connection failed: ${res.status}`);
       }
 
-      this.session.resourceUri = res.headers.get("Location");
-      if (!this.session.resourceUri) throw new Error("Missing Location header");
-
-      this.session.etag = res.headers.get("ETag");
-      if (!this.session.etag) throw new Error("Missing ETag header");
+      const location = res.headers.get("Location");
+      const etag = res.headers.get("ETag");
+      if (!location) {
+        throw new Error("Missing Location header");
+      }
+      if (!etag) {
+        throw new Error("Missing ETag header");
+      }
 
       // this can happen when close is called during the fetch.
-      if (this.ac.signal.aborted) {
-        this.close();
+      if (this.ac.signal.aborted || generation != this.generation) {
+        this.adapter.fetch(location, { method: "DELETE" }).catch(() => { });
         return;
       }
+
+      this.session.resourceUri = location;
+      this.session.etag = etag;
 
       await newTransport.setAnswer(await res.text());
 
