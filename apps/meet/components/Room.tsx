@@ -69,13 +69,13 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col h-screen bg-neutral-950 text-white overflow-hidden font-sans">
+      <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden font-sans transition-colors duration-300">
         {/* Sleek Top Bar */}
-        <nav className="h-16 px-6 border-b border-white/5 flex justify-between items-center bg-black/40 backdrop-blur-xl z-20">
+        <nav className="h-16 px-6 border-b border-border/40 flex justify-between items-center bg-card/40 backdrop-blur-xl z-20">
           <div className="flex items-center gap-4">
-            <Badge variant="outline" className="h-8 gap-2 bg-white/5 border-white/10 px-3 py-1 rounded-full">
+            <Badge variant="outline" className="h-8 gap-2 bg-accent/10 border-border/20 px-3 py-1 rounded-full">
               <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-sm font-medium tracking-tight text-neutral-300">Room: <span className="text-white">{roomId}</span></span>
+              <span className="text-sm font-medium tracking-tight text-muted-foreground">Room: <span className="text-foreground">{roomId}</span></span>
             </Badge>
           </div>
 
@@ -85,7 +85,7 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className={cn("rounded-full transition-all hover:bg-white/10", isSharing && "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30")}
+                  className={cn("rounded-full transition-all hover:bg-accent/20", isSharing && "bg-primary/20 text-primary hover:bg-primary/30")}
                   onClick={isSharing ? stopScreenShare : startScreenShare}
                 >
                   {isSharing ? <MonitorOff className="w-4 h-4 mr-2" /> : <Monitor className="w-4 h-4 mr-2" />}
@@ -97,19 +97,19 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
               </TooltipContent>
             </Tooltip>
 
-            <Separator orientation="vertical" className="h-6 bg-white/10 mx-2" />
+            <Separator orientation="vertical" className="h-6 bg-border/20 mx-2" />
 
-            <Button variant="destructive" size="sm" className="rounded-full px-6 shadow-lg shadow-red-900/20 font-semibold" onClick={onLeave}>
+            <Button variant="destructive" size="sm" className="rounded-full px-6 shadow-lg shadow-destructive/20 font-semibold text-white" onClick={onLeave}>
               <PhoneOff className="w-4 h-4 mr-2" /> End session
             </Button>
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-neutral-500 hover:text-white rounded-full" onClick={() => client.connect(roomId)}>
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground rounded-full" onClick={() => client.connect(roomId)}>
                   <RotateCcw className="w-4 h-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
+              <TooltipContent side="bottom" align="end">
                 <p>Reconnect</p>
               </TooltipContent>
             </Tooltip>
@@ -117,10 +117,10 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
         </nav>
 
         {/* Main Workspace */}
-        <main className="flex-1 flex overflow-hidden p-6 gap-6 bg-gradient-to-br from-neutral-950 to-neutral-900">
+        <main className="flex-1 flex overflow-hidden p-6 gap-6 bg-dot-pattern">
 
           {/* Spotlight Area (Large View) */}
-          <div className="flex-[3] relative rounded-[2rem] overflow-hidden bg-black shadow-2xl border border-white/5 ring-1 ring-white/10">
+          <div className="flex-[3] relative rounded-[2rem] overflow-hidden bg-black shadow-2xl border border-border/20 ring-1 ring-white/5 dark:ring-white/10 group/spotlight">
             {spotlightId === "local" ? (
               <video
                 ref={(el) => { if (el) el.srcObject = localStream }}
@@ -131,24 +131,24 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
               spotlightTrack && <Video track={spotlightTrack} className="w-full h-full object-contain" />
             )}
 
-            {/* Spotlight Label */}
-            <div className="absolute top-8 left-8">
-              <Badge className="bg-black/60 backdrop-blur-2xl border-white/10 px-4 py-2 h-10 rounded-2xl flex gap-3 shadow-2xl">
-                <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.8)]" />
-                <span className="text-xs font-bold uppercase tracking-[0.15em] text-white">
+            {/* Spotlight Label - Always Dark Style for Video Visibility */}
+            <div className="absolute top-8 left-8 transition-transform duration-300 group-hover/spotlight:translate-y-[-4px]">
+              <Badge className="bg-black/60 backdrop-blur-2xl border-white/10 px-4 py-2 h-10 rounded-2xl flex gap-3 shadow-2xl text-white">
+                <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_12px_rgba(59,130,246,0.8)]" />
+                <span className="text-xs font-bold uppercase tracking-[0.15em]">
                   {spotlightId === "local" ? "You (Spotlight)" : `Participant: ${spotlightTrack?.participantId}`}
                 </span>
               </Badge>
             </div>
 
-            {/* Floating Controls for Local User */}
+            {/* Floating Controls for Local User - Glassmorphic Dark */}
             <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-4 p-2.5 bg-black/60 backdrop-blur-2xl rounded-[2rem] border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.4)]">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     size="icon"
                     variant={client.audioMuted ? "destructive" : "secondary"}
-                    className="rounded-2xl h-14 w-14 transition-all hover:scale-105 active:scale-95"
+                    className="rounded-2xl h-14 w-14 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-black/20"
                     onClick={toggleMic}
                   >
                     {client.audioMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
@@ -164,7 +164,7 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
                   <Button
                     size="icon"
                     variant={client.videoMuted ? "destructive" : "secondary"}
-                    className="rounded-2xl h-14 w-14 transition-all hover:scale-105 active:scale-95"
+                    className="rounded-2xl h-14 w-14 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-black/20"
                     onClick={toggleCam}
                   >
                     {client.videoMuted ? <VideoOff className="w-6 h-6" /> : <VideoIcon className="w-6 h-6" />}
@@ -180,8 +180,8 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
           {/* Participant Sidebar */}
           <aside className="flex-1 flex flex-col gap-6 min-w-[280px]">
             <div className="flex items-center justify-between px-1">
-              <p className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.3em]">Participants</p>
-              <Badge variant="secondary" className="bg-neutral-800 text-neutral-400 text-[9px] px-2 py-0 h-4">
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">Participants</p>
+              <Badge variant="secondary" className="bg-secondary text-secondary-foreground text-[9px] px-2 py-0 h-4 border-none shadow-sm">
                 {client.videoTracks.length + 1}
               </Badge>
             </div>
@@ -192,16 +192,16 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
                 {spotlightId !== "local" && (
                   <button
                     onClick={() => setSpotlightId("local")}
-                    className="relative aspect-video rounded-3xl overflow-hidden group border-2 border-transparent hover:border-blue-500 transition-all shrink-0 bg-neutral-900 ring-1 ring-white/5"
+                    className="relative aspect-video rounded-3xl overflow-hidden group border-2 border-transparent hover:border-primary transition-all shrink-0 bg-card ring-1 ring-border/20 shadow-md hover:shadow-lg"
                   >
                     <video
                       ref={(el) => { if (el) el.srcObject = localStream }}
                       autoPlay muted playsInline
-                      className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all grayscale-[0.5] group-hover:grayscale-0"
+                      className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60 group-hover:opacity-20 transition-opacity" />
                     <div className="absolute bottom-3 left-3">
-                      <Badge variant="secondary" className="bg-black/40 backdrop-blur-md text-[10px] px-2 py-0 h-5 border-white/5">You</Badge>
+                      <Badge variant="secondary" className="bg-black/40 backdrop-blur-md text-white text-[10px] px-2 py-0 h-5 border-white/5 ring-1 ring-white/10">You</Badge>
                     </div>
                   </button>
                 )}
@@ -212,14 +212,16 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
                     <button
                       key={track.id}
                       onClick={() => setSpotlightId(track.id)}
-                      className="relative aspect-video rounded-3xl overflow-hidden group border-2 border-transparent hover:border-blue-500 transition-all shrink-0 bg-neutral-800 ring-1 ring-white/5"
+                      className="relative aspect-video rounded-3xl overflow-hidden group border-2 border-transparent hover:border-primary transition-all shrink-0 bg-card ring-1 ring-border/20 shadow-md hover:shadow-lg"
                     >
-                      <Video track={track} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all" />
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-black/40 backdrop-blur-[2px]">
-                        <Maximize2 className="w-8 h-8 text-white/80" />
+                      <Video track={track} className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-all group-hover:scale-105" />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-black/20 backdrop-blur-[1px]">
+                        <div className="bg-white/20 p-3 rounded-full backdrop-blur-md border border-white/30 shadow-2xl scale-75 group-hover:scale-100 transition-transform">
+                          <Maximize2 className="w-6 h-6 text-white" />
+                        </div>
                       </div>
                       <div className="absolute bottom-3 left-3">
-                        <Badge variant="secondary" className="bg-black/40 backdrop-blur-md text-[10px] px-2 py-0 h-5 border-white/5">
+                        <Badge variant="secondary" className="bg-black/40 backdrop-blur-md text-white text-[10px] px-2 py-0 h-5 border-white/5 ring-1 ring-white/10">
                           {track.participantId}
                         </Badge>
                       </div>
