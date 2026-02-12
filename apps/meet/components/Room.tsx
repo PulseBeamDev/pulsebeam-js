@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParticipant, Video, Audio } from "@pulsebeam/react";
 import {
   Button,
@@ -30,18 +30,17 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const sidebarLocalVideoRef = useRef<HTMLVideoElement>(null);
 
-  // Memoize configurations to prevent unnecessary resets
-  const clientConfig = useMemo(() => ({
+  const clientConfig = {
     videoSlots: 16,
     audioSlots: 8,
     // baseUrl: API_URL,
-  }), []);
+  };
 
-  const screenClientConfig = useMemo(() => ({
+  const screenClientConfig = {
     videoSlots: 0,
     audioSlots: 0,
     // baseUrl: API_URL,
-  }), []);
+  };
 
   const client = useParticipant(clientConfig);
   const screenClient = useParticipant(screenClientConfig);
@@ -151,64 +150,66 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
         {/* Main Content */}
         <main className="flex-1 flex overflow-hidden p-4 gap-4 bg-dot-pattern">
 
-          {/* Spotlight Area */}
-          <Card className="flex-[3] relative bg-black shadow-lg border-border/40 p-0 overflow-hidden group/spotlight ring-0">
-            {spotlightId === "local" ? (
-              <video
-                ref={localVideoRef}
-                autoPlay muted playsInline
-                className="w-full h-full object-contain mirror"
-              />
-            ) : (
-              spotlightTrack && <Video track={spotlightTrack} className="w-full h-full object-contain" />
-            )}
+          {/* Spotlight Area - Optimized for 16:9 camera resolution */}
+          <Card className="flex-[3] relative bg-black shadow-lg border-border/40 p-0 overflow-hidden group/spotlight ring-0 flex items-center justify-center">
+            <div className="w-full aspect-video max-h-full">
+              {spotlightId === "local" ? (
+                <video
+                  ref={localVideoRef}
+                  autoPlay muted playsInline
+                  className="w-full h-full object-contain mirror"
+                />
+              ) : (
+                spotlightTrack && <Video track={spotlightTrack} className="w-full h-full object-contain" />
+              )}
 
-            {/* Spotlight Status Label */}
-            <div className="absolute top-4 left-4">
-              <Badge className="bg-black/60 backdrop-blur-md border-white/10 px-3 py-1.5 h-8 rounded-lg flex gap-2 text-[10px] font-bold uppercase tracking-wider text-white shadow-xl">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                {spotlightId === "local" ? "You (Spotlight)" : `Participant: ${spotlightTrack?.participantId}`}
-              </Badge>
-            </div>
+              {/* Spotlight Status Label */}
+              <div className="absolute top-4 left-4">
+                <Badge className="bg-black/60 backdrop-blur-md border-white/10 px-3 py-1.5 h-8 rounded-lg flex gap-2 text-[10px] font-bold uppercase tracking-wider text-white shadow-xl">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  {spotlightId === "local" ? "You (Spotlight)" : `Participant: ${spotlightTrack?.participantId}`}
+                </Badge>
+              </div>
 
-            {/* Action Bar - Glassmorphic Dark */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 p-1.5 bg-black/60 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="icon"
-                    variant={client.audioMuted ? "destructive" : "secondary"}
-                    className="rounded-lg h-10 w-10 transition-transform active:scale-90"
-                    onClick={toggleMic}
-                  >
-                    {client.audioMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p>{client.audioMuted ? "Unmute" : "Mute"}</p>
-                </TooltipContent>
-              </Tooltip>
+              {/* Action Bar - Glassmorphic Dark */}
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 p-1.5 bg-black/60 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant={client.audioMuted ? "destructive" : "secondary"}
+                      className="rounded-lg h-10 w-10 transition-transform active:scale-90"
+                      onClick={toggleMic}
+                    >
+                      {client.audioMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>{client.audioMuted ? "Unmute" : "Mute"}</p>
+                  </TooltipContent>
+                </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="icon"
-                    variant={client.videoMuted ? "destructive" : "secondary"}
-                    className="rounded-lg h-10 w-10 transition-transform active:scale-90"
-                    onClick={toggleCam}
-                  >
-                    {client.videoMuted ? <VideoOff className="w-4 h-4" /> : <VideoIcon className="w-4 h-4" />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p>{client.videoMuted ? "Camera on" : "Camera off"}</p>
-                </TooltipContent>
-              </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant={client.videoMuted ? "destructive" : "secondary"}
+                      className="rounded-lg h-10 w-10 transition-transform active:scale-90"
+                      onClick={toggleCam}
+                    >
+                      {client.videoMuted ? <VideoOff className="w-4 h-4" /> : <VideoIcon className="w-4 h-4" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>{client.videoMuted ? "Camera on" : "Camera off"}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
             </div>
           </Card>
 
-          {/* Sidebar */}
-          <aside className="flex-1 flex flex-col gap-4 min-w-[240px]">
+          {/* Sidebar - Smaller participant thumbnails */}
+          <aside className="flex-1 flex flex-col gap-3 min-w-[200px] max-w-[280px]">
             <div className="flex items-center justify-between px-1">
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Participants</p>
               <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 rounded-sm border-none shadow-none">
@@ -217,12 +218,12 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
             </div>
 
             <ScrollArea className="flex-1 -mr-2 pr-2">
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
                 {/* Local Thumbnail */}
                 {spotlightId !== "local" && (
                   <Card
                     asChild
-                    className="relative aspect-video p-0 rounded-xl overflow-hidden group cursor-pointer border-transparent hover:border-primary transition-all ring-0"
+                    className="relative aspect-video p-0 rounded-lg overflow-hidden group cursor-pointer border-transparent hover:border-primary transition-all ring-0"
                   >
                     <button onClick={() => setSpotlightId("local")}>
                       <video
@@ -231,8 +232,11 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
                         className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-all"
                       />
                       <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent" />
-                      <div className="absolute bottom-2 left-2">
-                        <Badge variant="secondary" className="bg-black/40 text-white text-[9px] px-1.5 h-4 border-none backdrop-blur-sm">You</Badge>
+                      <div className="absolute bottom-1.5 left-1.5">
+                        <Badge variant="secondary" className="bg-black/40 text-white text-[8px] px-1.5 h-3.5 border-none backdrop-blur-sm">You</Badge>
+                      </div>
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-black/10">
+                        <Maximize2 className="w-4 h-4 text-white/80" />
                       </div>
                     </button>
                   </Card>
@@ -244,16 +248,16 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
                     <Card
                       key={track.id}
                       asChild
-                      className="relative aspect-video p-0 rounded-xl overflow-hidden group cursor-pointer border-transparent hover:border-primary transition-all bg-muted ring-0"
+                      className="relative aspect-video p-0 rounded-lg overflow-hidden group cursor-pointer border-transparent hover:border-primary transition-all bg-muted ring-0"
                     >
                       <button onClick={() => setSpotlightId(track.id)}>
                         <Video track={track} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-all" />
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-black/10">
-                          <Maximize2 className="w-6 h-6 text-white/80" />
+                          <Maximize2 className="w-4 h-4 text-white/80" />
                         </div>
                         <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent" />
-                        <div className="absolute bottom-2 left-2">
-                          <Badge variant="secondary" className="bg-black/40 text-white text-[9px] px-1.5 h-4 border-none backdrop-blur-sm">
+                        <div className="absolute bottom-1.5 left-1.5">
+                          <Badge variant="secondary" className="bg-black/40 text-white text-[8px] px-1.5 h-3.5 border-none backdrop-blur-sm">
                             {track.participantId}
                           </Badge>
                         </div>
