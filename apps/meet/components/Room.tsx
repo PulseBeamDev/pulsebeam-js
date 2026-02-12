@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParticipant, Video, Audio } from "@pulsebeam/react";
-import { Button } from "@pulsebeam/ui";
-import { Monitor, MonitorOff, Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, RotateCcw } from "lucide-react";
+import { Button, cn } from "@pulsebeam/ui";
+import {
+  Monitor, MonitorOff, Mic, MicOff, Video as VideoIcon,
+  VideoOff, PhoneOff, RotateCcw, Maximize2
+} from "lucide-react";
 
 interface RoomProps {
   roomId: string;
@@ -12,22 +15,22 @@ interface RoomProps {
 const API_URL = "http://localhost:3000/api/v1";
 
 export function Room({ roomId, localStream, onLeave }: RoomProps) {
+  const [spotlightId, setSpotlightId] = useState<string | "local">("local");
+
   const client = useParticipant({
     videoSlots: 16,
     audioSlots: 8,
-    baseUrl: API_URL,
+    // baseUrl: API_URL,
   });
 
   const screenClient = useParticipant({
     videoSlots: 0,
     audioSlots: 0,
-    baseUrl: API_URL,
+    // baseUrl: API_URL,
   });
 
-  // Derived state for screen sharing
   const isSharing = screenClient.connectionState === "connected" || screenClient.connectionState === "connecting";
 
-  // Initial connection
   useEffect(() => {
     client.connect(roomId);
   }, [roomId]);
@@ -47,77 +50,120 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
     }
   };
 
-  const stopScreenShare = () => {
-    screenClient.close();
-  };
+  const stopScreenShare = () => screenClient.close();
+  const toggleMic = () => client.mute({ audio: !client.audioMuted });
+  const toggleCam = () => client.mute({ video: !client.videoMuted });
 
-  const toggleMic = () => {
-    client.mute({ audio: !client.audioMuted });
-  };
-
-  const toggleCam = () => {
-    client.mute({ video: !client.videoMuted });
-  }
-
+  // Find the track currently in spotlight
+  const spotlightTrack = client.videoTracks.find(t => t.id === spotlightId);
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground">
-      {/* Header/Nav */}
-      <nav className="p-4 border-b flex justify-between items-center">
-        <div className="font-bold text-lg">Room: {roomId}</div>
-        <div className="flex gap-2">
-          <Button variant={isSharing ? "secondary" : "outline"} onClick={isSharing ? stopScreenShare : startScreenShare}>
+    <div className="flex flex-col h-screen bg-neutral-950 text-white overflow-hidden">
+      {/* Sleek Top Bar */}
+      <nav className="h-16 px-6 border-b border-white/10 flex justify-between items-center bg-black/20 backdrop-blur-md z-10">
+        <div className="flex items-center gap-4">
+          <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
+          <h1 className="font-medium tracking-tight">Room: <span className="text-neutral-400">{roomId}</span></h1>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            className={cn("rounded-full transition-all", isSharing && "bg-blue-500/10 text-blue-400 hover:bg-blue-500/20")}
+            onClick={isSharing ? stopScreenShare : startScreenShare}
+          >
             {isSharing ? <MonitorOff className="w-4 h-4 mr-2" /> : <Monitor className="w-4 h-4 mr-2" />}
-            {isSharing ? "Stop Sharing" : "Share Screen"}
+            {isSharing ? "Stop" : "Share"}
           </Button>
-          <Button variant="destructive" onClick={onLeave}><PhoneOff className="w-4 h-4 mr-2" /> Leave</Button>
-          {/* Reconnect button for robustness/debugging */}
-          <Button variant="ghost" size="icon" onClick={() => client.connect(roomId)} title="Reconnect"><RotateCcw className="w-4 h-4" /></Button>
+
+          <div className="h-6 w-[1px] bg-white/10 mx-2" />
+
+          <Button variant="destructive" className="rounded-full px-6 shadow-lg shadow-red-900/20" onClick={onLeave}>
+            <PhoneOff className="w-4 h-4 mr-2" /> End
+          </Button>
+
+          <Button variant="ghost" size="icon" className="text-neutral-500 hover:text-white" onClick={() => client.connect(roomId)}>
+            <RotateCcw className="w-4 h-4" />
+          </Button>
         </div>
       </nav>
 
-      {/* Connection Status Overlay */}
-      {client.connectionState !== "connected" && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm z-50">
-          Status: {client.connectionState}
-        </div>
-      )}
+      {/* Main Workspace */}
+      <main className="flex-1 flex overflow-hidden p-4 gap-4">
 
-
-      {/* Video Grid */}
-      <div className="flex-1 p-4 overflow-y-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Local User */}
-          <div className="relative aspect-video bg-muted rounded-lg overflow-hidden shadow-sm ring-1 ring-border">
+        {/* Spotlight Area (Large View) */}
+        <div className="flex-[3] relative rounded-3xl overflow-hidden bg-neutral-900 shadow-2xl border border-white/5">
+          {spotlightId === "local" ? (
             <video
               ref={(el) => { if (el) el.srcObject = localStream }}
-              autoPlay
-              muted
-              playsInline
-              className="w-full h-full object-cover"
+              autoPlay muted playsInline
+              className="w-full h-full object-cover mirror"
             />
-            <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">Me</div>
-            <div className="absolute bottom-2 right-2 flex gap-1">
-              <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full hover:bg-white/20 text-white" onClick={toggleMic}>
-                {client.audioMuted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
-              </Button>
-              <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full hover:bg-white/20 text-white" onClick={toggleCam}>
-                {client.videoMuted ? <VideoOff className="h-3 w-3" /> : <VideoIcon className="h-3 w-3" />}
-              </Button>
-            </div>
+          ) : (
+            spotlightTrack && <Video track={spotlightTrack} className="w-full h-full object-contain" />
+          )}
+
+          {/* Spotlight Label */}
+          <div className="absolute top-6 left-6 flex items-center gap-2 bg-black/40 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/10">
+            <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+            <span className="text-sm font-semibold uppercase tracking-wider">
+              {spotlightId === "local" ? "You (Spotlight)" : `Participant: ${spotlightTrack?.participantId}`}
+            </span>
           </div>
 
-          {/* Remote Users */}
-          {client.videoTracks.map((track: any) => (
-            <div key={track.id} className="relative aspect-video bg-muted rounded-lg overflow-hidden shadow-sm ring-1 ring-border">
-              <Video track={track} className="w-full h-full object-cover" />
-              <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">{track.participantId}</div>
-            </div>
-          ))}
+          {/* Floating Controls for Local User */}
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4 p-2 bg-black/60 backdrop-blur-2xl rounded-3xl border border-white/10 shadow-2xl">
+            <Button size="icon" variant={client.audioMuted ? "destructive" : "secondary"} className="rounded-2xl h-12 w-12" onClick={toggleMic}>
+              {client.audioMuted ? <MicOff /> : <Mic />}
+            </Button>
+            <Button size="icon" variant={client.videoMuted ? "destructive" : "secondary"} className="rounded-2xl h-12 w-12" onClick={toggleCam}>
+              {client.videoMuted ? <VideoOff /> : <VideoIcon />}
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {/* Audio Elements */}
+        {/* Participant Sidebar */}
+        <aside className="flex-1 flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar">
+          <p className="text-xs font-bold text-neutral-500 uppercase tracking-[0.2em] mb-1">Participants</p>
+
+          {/* Local Thumbnail (if not spotlighted) */}
+          {spotlightId !== "local" && (
+            <button
+              onClick={() => setSpotlightId("local")}
+              className="relative aspect-video rounded-2xl overflow-hidden group border-2 border-transparent hover:border-blue-500 transition-all shrink-0"
+            >
+              <video
+                ref={(el) => { if (el) el.srcObject = localStream }}
+                autoPlay muted playsInline
+                className="w-full h-full object-cover opacity-80 group-hover:opacity-100"
+              />
+              <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+              <div className="absolute bottom-2 left-2 text-[10px] bg-black/60 px-2 py-0.5 rounded-lg">You</div>
+            </button>
+          )}
+
+          {/* Remote Thumbnails */}
+          {client.videoTracks.map((track: any) => (
+            spotlightId !== track.id && (
+              <button
+                key={track.id}
+                onClick={() => setSpotlightId(track.id)}
+                className="relative aspect-video rounded-2xl overflow-hidden group border-2 border-transparent hover:border-blue-500 transition-all shrink-0 bg-neutral-800"
+              >
+                <Video track={track} className="w-full h-full object-cover opacity-80 group-hover:opacity-100" />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                  <Maximize2 className="w-6 h-6 text-white" />
+                </div>
+                <div className="absolute bottom-2 left-2 text-[10px] bg-black/60 px-2 py-0.5 rounded-lg">
+                  {track.participantId}
+                </div>
+              </button>
+            )
+          ))}
+        </aside>
+      </main>
+
+      {/* Background Audio */}
       {client.audioTracks.map((track: any) => (
         <Audio key={track.id} track={track} />
       ))}
