@@ -309,9 +309,11 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   private lastSentRequests: VideoRequest[] = [];
 
   private debounceTimer: any | null = null;
+  private isConnecting = false;
   private isReconnecting = false;
   private retryCount = 0;
   private reconnectTimer: any = null;
+  private ac = new AbortController();
 
   constructor(private adapter: PlatformAdapter, private config: ParticipantConfig) {
     super();
@@ -386,11 +388,13 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   }
 
   close() {
+    this.ac.abort();
+
     if (this.reconnectTimer) this.adapter.clearTimeout(this.reconnectTimer);
     if (this.debounceTimer) this.adapter.clearTimeout(this.debounceTimer);
-
     if (this.session.resourceUri) {
       this.adapter.fetch(this.session.resourceUri, { method: "DELETE" }).catch(() => { });
+      this.session.resourceUri = null;
     }
 
     this.transport?.close();
@@ -398,6 +402,12 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   }
 
   private async establishConnection(method: "POST" | "PATCH", uri: string) {
+    if (this.isConnecting) {
+      console.warn("currently connecting, ignoring");
+      return;
+    }
+    this.isConnecting = true;
+
     // We do NOT update this.transport yet. We build the new one in isolation.
     const newTransport = new Transport(
       this.adapter,
@@ -442,6 +452,12 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       this.session.etag = res.headers.get("ETag");
       if (!this.session.etag) throw new Error("Missing ETag header");
 
+      // this can happen when close is called during the fetch.
+      if (this.ac.signal.aborted) {
+        this.close();
+        return;
+      }
+
       await newTransport.setAnswer(await res.text());
 
       // ATOMIC SWAP: The new transport is ready.
@@ -465,6 +481,8 @@ export class Participant extends EventEmitter<ParticipantEvents> {
         this.updateState("failed");
       }
       throw e;
+    } finally {
+      this.isConnecting = false;
     }
   }
 
