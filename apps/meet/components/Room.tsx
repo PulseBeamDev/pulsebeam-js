@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useParticipant, Video, Audio } from "@pulsebeam/react";
 import {
   Button,
@@ -14,7 +14,7 @@ import {
 } from "@pulsebeam/ui";
 import {
   Monitor, MonitorOff, Mic, MicOff, Video as VideoIcon,
-  VideoOff, PhoneOff, RotateCcw, Maximize2
+  VideoOff, PhoneOff, RotateCcw, Maximize2, Loader2
 } from "lucide-react";
 
 interface RoomProps {
@@ -27,20 +27,22 @@ const API_URL = "http://localhost:3000/api/v1";
 
 export function Room({ roomId, localStream, onLeave }: RoomProps) {
   const [spotlightId, setSpotlightId] = useState<string | "local">("local");
+  const [isScreenShareLoading, setIsScreenShareLoading] = useState(false);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const sidebarLocalVideoRef = useRef<HTMLVideoElement>(null);
 
-  const clientConfig = {
+  // Memoize configurations to prevent unnecessary resets
+  const clientConfig = useMemo(() => ({
     videoSlots: 16,
     audioSlots: 8,
     // baseUrl: API_URL,
-  };
+  }), []);
 
-  const screenClientConfig = {
+  const screenClientConfig = useMemo(() => ({
     videoSlots: 0,
     audioSlots: 0,
     // baseUrl: API_URL,
-  };
+  }), []);
 
   const client = useParticipant(clientConfig);
   const screenClient = useParticipant(screenClientConfig);
@@ -82,16 +84,29 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
 
   const startScreenShare = async () => {
     try {
+      setIsScreenShareLoading(true);
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
       stream.getVideoTracks()[0].onended = () => stopScreenShare();
       screenClient.publish(stream);
       screenClient.connect(roomId);
     } catch (e) {
       console.error("Screen share failed:", e);
+      setIsScreenShareLoading(false);
     }
   };
 
-  const stopScreenShare = () => screenClient.close();
+  const stopScreenShare = () => {
+    screenClient.close();
+    setIsScreenShareLoading(false);
+  };
+
+  // Clear loading state when screen share connects
+  useEffect(() => {
+    if (screenClient.connectionState === "connected") {
+      setIsScreenShareLoading(false);
+    }
+  }, [screenClient.connectionState]);
+
   const toggleMic = () => client.mute({ audio: !client.audioMuted });
   const toggleCam = () => client.mute({ video: !client.videoMuted });
 
@@ -105,9 +120,30 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
         <header className="h-14 px-4 border-b flex justify-between items-center bg-card/50 backdrop-blur-md z-20">
           <div className="flex items-center gap-3">
             <Badge variant="outline" className="gap-2 px-2 py-0.5 rounded-md">
-              <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-medium text-muted-foreground">Room: <span className="text-foreground">{roomId}</span></span>
+              <div className={cn(
+                "h-1.5 w-1.5 rounded-full",
+                client.connectionState === "connected" ? "bg-emerald-500 animate-pulse" : "bg-amber-500 animate-pulse"
+              )} />
+              <span className="text-xs font-medium text-muted-foreground">
+                Room: <span className="text-foreground">{roomId}</span>
+              </span>
             </Badge>
+
+            {/* Connection Status */}
+            {client.connectionState === "connecting" && (
+              <Badge variant="secondary" className="gap-2 px-2 py-0.5 rounded-md animate-in fade-in slide-in-from-left-2">
+                <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                <span className="text-xs font-medium">Connecting...</span>
+              </Badge>
+            )}
+
+            {/* Screen Share Status */}
+            {isScreenShareLoading && (
+              <Badge variant="secondary" className="gap-2 px-2 py-0.5 rounded-md animate-in fade-in slide-in-from-left-2">
+                <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                <span className="text-xs font-medium">Starting screen share...</span>
+              </Badge>
+            )}
           </div>
 
           <div className="flex items-center gap-1">

@@ -1,4 +1,4 @@
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@pulsebeam/ui";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter, Spinner } from "@pulsebeam/ui";
 import { Button } from "@pulsebeam/ui";
 import { Input } from "@pulsebeam/ui";
 import { useEffect, useRef, useState } from "react";
@@ -12,6 +12,7 @@ interface LobbyProps {
 export function Lobby({ onJoin, localStream, setLocalStream }: LobbyProps) {
     const [roomId, setRoomId] = useState("");
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [isJoining, setIsJoining] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
 
     useEffect(() => {
@@ -32,10 +33,17 @@ export function Lobby({ onJoin, localStream, setLocalStream }: LobbyProps) {
         }
     }, [localStream]);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (roomId && localStream) {
-            onJoin(roomId);
+            setIsJoining(true);
+            try {
+                // Ensure room join feels responsive
+                await onJoin(roomId);
+            } catch (e) {
+                setErrorMsg("Failed to join room");
+                setIsJoining(false);
+            }
         }
     };
 
@@ -58,8 +66,9 @@ export function Lobby({ onJoin, localStream, setLocalStream }: LobbyProps) {
                                 className="w-full h-full object-cover"
                             />
                         ) : (
-                            <div className="flex items-center justify-center h-full text-muted-foreground">
-                                Requesting Camera...
+                            <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
+                                <Spinner className="w-8 h-8" />
+                                <span className="text-sm font-medium">Requesting Camera...</span>
                             </div>
                         )}
                     </div>
@@ -71,8 +80,14 @@ export function Lobby({ onJoin, localStream, setLocalStream }: LobbyProps) {
                             placeholder="Room ID"
                             required
                         />
-                        <Button type="submit" className="w-full" disabled={!localStream || !roomId}>
-                            Join
+                        <Button type="submit" className="w-full" disabled={!localStream || !roomId || isJoining}>
+                            {isJoining ? (
+                                <>
+                                    <Spinner className="w-4 h-4 mr-2" /> Joining...
+                                </>
+                            ) : (
+                                "Join"
+                            )}
                         </Button>
                     </form>
                 </CardContent>
