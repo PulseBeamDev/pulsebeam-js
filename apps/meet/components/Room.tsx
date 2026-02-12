@@ -9,6 +9,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
+  Card,
   cn
 } from "@pulsebeam/ui";
 import {
@@ -70,43 +71,43 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
   return (
     <TooltipProvider>
       <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden font-sans transition-colors duration-300">
-        {/* Sleek Top Bar */}
-        <nav className="h-16 px-6 border-b border-border/40 flex justify-between items-center bg-card/40 backdrop-blur-xl z-20">
-          <div className="flex items-center gap-4">
-            <Badge variant="outline" className="h-8 gap-2 bg-accent/10 border-border/20 px-3 py-1 rounded-full">
-              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-sm font-medium tracking-tight text-muted-foreground">Room: <span className="text-foreground">{roomId}</span></span>
+        {/* Header */}
+        <header className="h-14 px-4 border-b flex justify-between items-center bg-card/50 backdrop-blur-md z-20">
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="gap-2 px-2 py-0.5 rounded-md">
+              <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-xs font-medium text-muted-foreground">Room: <span className="text-foreground">{roomId}</span></span>
             </Badge>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className={cn("rounded-full transition-all hover:bg-accent/20", isSharing && "bg-primary/20 text-primary hover:bg-primary/30")}
+                  className={cn("rounded-md h-8 transition-all px-3", isSharing && "bg-primary/10 text-primary hover:bg-primary/20")}
                   onClick={isSharing ? stopScreenShare : startScreenShare}
                 >
                   {isSharing ? <MonitorOff className="w-4 h-4 mr-2" /> : <Monitor className="w-4 h-4 mr-2" />}
-                  {isSharing ? "Stop sharing" : "Share screen"}
+                  <span className="text-xs">{isSharing ? "Stop" : "Share"}</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{isSharing ? "Stop screen sharing" : "Share your screen with others"}</p>
+                <p>{isSharing ? "Stop screen sharing" : "Share your screen"}</p>
               </TooltipContent>
             </Tooltip>
 
-            <Separator orientation="vertical" className="h-6 bg-border/20 mx-2" />
+            <Separator orientation="vertical" className="h-4 bg-border mx-1" />
 
-            <Button variant="destructive" size="sm" className="rounded-full px-6 shadow-lg shadow-destructive/20 font-semibold text-white" onClick={onLeave}>
-              <PhoneOff className="w-4 h-4 mr-2" /> End session
+            <Button variant="destructive" size="sm" className="rounded-md h-8 px-4 font-medium text-xs shadow-sm" onClick={onLeave}>
+              <PhoneOff className="w-3.5 h-3.5 mr-1.5" /> End
             </Button>
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground rounded-full" onClick={() => client.connect(roomId)}>
-                  <RotateCcw className="w-4 h-4" />
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-md" onClick={() => client.connect(roomId)}>
+                  <RotateCcw className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" align="end">
@@ -114,13 +115,13 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
               </TooltipContent>
             </Tooltip>
           </div>
-        </nav>
+        </header>
 
-        {/* Main Workspace */}
-        <main className="flex-1 flex overflow-hidden p-6 gap-6 bg-dot-pattern">
+        {/* Main Content */}
+        <main className="flex-1 flex overflow-hidden p-4 gap-4 bg-dot-pattern">
 
-          {/* Spotlight Area (Large View) */}
-          <div className="flex-[3] relative rounded-[2rem] overflow-hidden bg-black shadow-2xl border border-border/20 ring-1 ring-white/5 dark:ring-white/10 group/spotlight">
+          {/* Spotlight Area */}
+          <Card className="flex-[3] relative bg-black shadow-lg border-border/40 p-0 overflow-hidden group/spotlight ring-0">
             {spotlightId === "local" ? (
               <video
                 ref={(el) => { if (el) el.srcObject = localStream }}
@@ -131,31 +132,29 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
               spotlightTrack && <Video track={spotlightTrack} className="w-full h-full object-contain" />
             )}
 
-            {/* Spotlight Label - Always Dark Style for Video Visibility */}
-            <div className="absolute top-8 left-8 transition-transform duration-300 group-hover/spotlight:translate-y-[-4px]">
-              <Badge className="bg-black/60 backdrop-blur-2xl border-white/10 px-4 py-2 h-10 rounded-2xl flex gap-3 shadow-2xl text-white">
-                <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_12px_rgba(59,130,246,0.8)]" />
-                <span className="text-xs font-bold uppercase tracking-[0.15em]">
-                  {spotlightId === "local" ? "You (Spotlight)" : `Participant: ${spotlightTrack?.participantId}`}
-                </span>
+            {/* Spotlight Status Label */}
+            <div className="absolute top-4 left-4">
+              <Badge className="bg-black/60 backdrop-blur-md border-white/10 px-3 py-1.5 h-8 rounded-lg flex gap-2 text-[10px] font-bold uppercase tracking-wider text-white shadow-xl">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                {spotlightId === "local" ? "You (Spotlight)" : `Participant: ${spotlightTrack?.participantId}`}
               </Badge>
             </div>
 
-            {/* Floating Controls for Local User - Glassmorphic Dark */}
-            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-4 p-2.5 bg-black/60 backdrop-blur-2xl rounded-[2rem] border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.4)]">
+            {/* Action Bar - Glassmorphic Dark */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 p-1.5 bg-black/60 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     size="icon"
                     variant={client.audioMuted ? "destructive" : "secondary"}
-                    className="rounded-2xl h-14 w-14 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-black/20"
+                    className="rounded-lg h-10 w-10 transition-transform active:scale-90"
                     onClick={toggleMic}
                   >
-                    {client.audioMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+                    {client.audioMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>{client.audioMuted ? "Unmute microphone" : "Mute microphone"}</p>
+                  <p>{client.audioMuted ? "Unmute" : "Mute"}</p>
                 </TooltipContent>
               </Tooltip>
 
@@ -164,68 +163,71 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
                   <Button
                     size="icon"
                     variant={client.videoMuted ? "destructive" : "secondary"}
-                    className="rounded-2xl h-14 w-14 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-black/20"
+                    className="rounded-lg h-10 w-10 transition-transform active:scale-90"
                     onClick={toggleCam}
                   >
-                    {client.videoMuted ? <VideoOff className="w-6 h-6" /> : <VideoIcon className="w-6 h-6" />}
+                    {client.videoMuted ? <VideoOff className="w-4 h-4" /> : <VideoIcon className="w-4 h-4" />}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>{client.videoMuted ? "Turn on camera" : "Turn off camera"}</p>
+                  <p>{client.videoMuted ? "Camera on" : "Camera off"}</p>
                 </TooltipContent>
               </Tooltip>
             </div>
-          </div>
+          </Card>
 
-          {/* Participant Sidebar */}
-          <aside className="flex-1 flex flex-col gap-6 min-w-[280px]">
+          {/* Sidebar */}
+          <aside className="flex-1 flex flex-col gap-4 min-w-[240px]">
             <div className="flex items-center justify-between px-1">
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">Participants</p>
-              <Badge variant="secondary" className="bg-secondary text-secondary-foreground text-[9px] px-2 py-0 h-4 border-none shadow-sm">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Participants</p>
+              <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 rounded-sm border-none shadow-none">
                 {client.videoTracks.length + 1}
               </Badge>
             </div>
 
-            <ScrollArea className="flex-1 -mr-4 pr-4">
-              <div className="flex flex-col gap-4">
-                {/* Local Thumbnail (if not spotlighted) */}
+            <ScrollArea className="flex-1 -mr-2 pr-2">
+              <div className="flex flex-col gap-3">
+                {/* Local Thumbnail */}
                 {spotlightId !== "local" && (
-                  <button
-                    onClick={() => setSpotlightId("local")}
-                    className="relative aspect-video rounded-3xl overflow-hidden group border-2 border-transparent hover:border-primary transition-all shrink-0 bg-card ring-1 ring-border/20 shadow-md hover:shadow-lg"
+                  <Card
+                    asChild
+                    className="relative aspect-video p-0 rounded-xl overflow-hidden group cursor-pointer border-transparent hover:border-primary transition-all ring-0"
                   >
-                    <video
-                      ref={(el) => { if (el) el.srcObject = localStream }}
-                      autoPlay muted playsInline
-                      className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60 group-hover:opacity-20 transition-opacity" />
-                    <div className="absolute bottom-3 left-3">
-                      <Badge variant="secondary" className="bg-black/40 backdrop-blur-md text-white text-[10px] px-2 py-0 h-5 border-white/5 ring-1 ring-white/10">You</Badge>
-                    </div>
-                  </button>
+                    <button onClick={() => setSpotlightId("local")}>
+                      <video
+                        ref={(el) => { if (el) el.srcObject = localStream }}
+                        autoPlay muted playsInline
+                        className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-all"
+                      />
+                      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent" />
+                      <div className="absolute bottom-2 left-2">
+                        <Badge variant="secondary" className="bg-black/40 text-white text-[9px] px-1.5 h-4 border-none backdrop-blur-sm">You</Badge>
+                      </div>
+                    </button>
+                  </Card>
                 )}
 
                 {/* Remote Thumbnails */}
                 {client.videoTracks.map((track: any) => (
                   spotlightId !== track.id && (
-                    <button
+                    <Card
                       key={track.id}
-                      onClick={() => setSpotlightId(track.id)}
-                      className="relative aspect-video rounded-3xl overflow-hidden group border-2 border-transparent hover:border-primary transition-all shrink-0 bg-card ring-1 ring-border/20 shadow-md hover:shadow-lg"
+                      asChild
+                      className="relative aspect-video p-0 rounded-xl overflow-hidden group cursor-pointer border-transparent hover:border-primary transition-all bg-muted ring-0"
                     >
-                      <Video track={track} className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-all group-hover:scale-105" />
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-black/20 backdrop-blur-[1px]">
-                        <div className="bg-white/20 p-3 rounded-full backdrop-blur-md border border-white/30 shadow-2xl scale-75 group-hover:scale-100 transition-transform">
-                          <Maximize2 className="w-6 h-6 text-white" />
+                      <button onClick={() => setSpotlightId(track.id)}>
+                        <Video track={track} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-all" />
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-black/10">
+                          <Maximize2 className="w-6 h-6 text-white/80" />
                         </div>
-                      </div>
-                      <div className="absolute bottom-3 left-3">
-                        <Badge variant="secondary" className="bg-black/40 backdrop-blur-md text-white text-[10px] px-2 py-0 h-5 border-white/5 ring-1 ring-white/10">
-                          {track.participantId}
-                        </Badge>
-                      </div>
-                    </button>
+                        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent" />
+                        <div className="absolute bottom-2 left-2">
+                          <Badge variant="secondary" className="bg-black/40 text-white text-[9px] px-1.5 h-4 border-none backdrop-blur-sm">
+                            {track.participantId}
+                          </Badge>
+                        </div>
+                      </button>
+                    </Card>
                   )
                 ))}
               </div>
