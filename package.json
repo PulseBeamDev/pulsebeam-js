@@ -13,5 +13,8 @@
   "workspaces": [
     "apps/*",
     "libs/*"
-  ]
+  ],
+  "scripts": {
+    "build:meet": "pnpm --filter meet build"
+  }
 }
