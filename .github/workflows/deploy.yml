@@ -1,41 +1,67 @@
-name: Deploy Next.js to GitHub Pages
+name: Deploy Next.js site to Pages
 
 on:
   push:
     branches: ["main"]
+  workflow_dispatch:
 
 permissions:
   contents: read
   pages: write
   id-token: write
 
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - uses: pnpm/action-setup@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 1. Setup pnpm (Essential for monorepos)
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
         with:
-          version: 9 # Use your pnpm version
-          
-      - uses: actions/setup-node@v4
+          version: 9 # Matches your local pnpm version
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "20"
           cache: 'pnpm'
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        with:
+          # This automatically attempts to configure next.config.js 
+          # but we point it to the specific app
+          static_site_generator: next
+          generator_config_file: apps/meet/next.config.js
+
+      # 2. Monorepo Caching
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            apps/meet/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ hashFiles('apps/meet/**.[jt]s', 'apps/meet/**.[jt]sx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-
 
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build Meet App
-        run: pnpm build:meet
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
+      # 3. Build only the specific app
+      - name: Build with Next.js
+        run: pnpm --filter meet build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
+          # Next.js 'export' creates an 'out' folder inside the app directory
           path: ./apps/meet/out
 
   deploy:
