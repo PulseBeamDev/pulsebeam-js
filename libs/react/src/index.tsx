@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef, useState } from "react";
+import { useMemo, useEffect, useRef } from "react";
 import { useStore } from "@nanostores/react";
 import {
   createParticipant,
@@ -7,7 +7,9 @@ import {
   VideoBinder,
   AudioBinder,
   type ParticipantConfig,
+  type ParticipantManager,
 } from "@pulsebeam/web";
+
 export * from "@pulsebeam/web";
 
 const useBinder = (track: any, Binder: any) => {
@@ -21,15 +23,20 @@ const useBinder = (track: any, Binder: any) => {
   return ref;
 };
 
-export const Video = ({ track, ...props }: any) => <video ref={useBinder(track, VideoBinder)} autoPlay playsInline muted {...props} />;
-export const Audio = ({ track, ...props }: any) => <audio ref={useBinder(track, AudioBinder)} autoPlay {...props} />;
+export const Video = ({ track, ...props }: any) => (
+  <video ref={useBinder(track, VideoBinder)} autoPlay playsInline muted {...props} />
+);
+
+export const Audio = ({ track, ...props }: any) => (
+  <audio ref={useBinder(track, AudioBinder)} autoPlay {...props} />
+);
 
 export function useParticipant(config: ParticipantConfig) {
-  const $participant = useMemo(() => createParticipant(config), []);
+  const $participant: ParticipantManager = useMemo(() => createParticipant(config), []);
 
-  // useEffect(() => {
-  //   $participant.get().reset(config);
-  // }, [config]);
+  useEffect(() => {
+    $participant.value?.reset(config, false);
+  }, [config]);
 
   return useStore($participant);
 }

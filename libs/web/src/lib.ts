@@ -1,6 +1,5 @@
 import type { PlatformAdapter, ParticipantConfig, RemoteVideoTrack, RemoteAudioTrack } from "@pulsebeam/core";
-export type * from "@pulsebeam/core";
-export { RemoteAudioTrack, RemoteVideoTrack, ParticipantEvent } from "@pulsebeam/core";
+export * from "@pulsebeam/core";
 import {
   createParticipant as createCoreParticipant,
   createDeviceManager as createCoreDeviceManager,

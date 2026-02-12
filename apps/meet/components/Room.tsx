@@ -29,14 +29,12 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
 
   // Initial connection
   useEffect(() => {
-    client.publish(localStream);
     client.connect(roomId);
-    return () => {
-      console.error("closing");
-      client.close();
-      screenClient.close();
-    }
-  }, [roomId, localStream]);
+  }, [roomId]);
+
+  useEffect(() => {
+    client.publish(localStream);
+  }, [localStream]);
 
   const startScreenShare = async () => {
     try {

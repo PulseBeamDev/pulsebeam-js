@@ -22,6 +22,7 @@ export type ParticipantSnapshot = ParticipantState & {
   publish: Participant["publish"];
   mute: Participant["mute"];
   close: () => void;
+  reset: (config: ParticipantConfig, force: boolean) => void;
 };
 
 export type ParticipantManager = MapStore<ParticipantSnapshot>;
@@ -36,98 +37,62 @@ export function createParticipant(
   adapter: PlatformAdapter,
   initialConfig: ParticipantConfig
 ): ParticipantManager {
-  let participant = new Participant(adapter, initialConfig);
-  let currentConfig = initialConfig;
+  let participant: Participant;
   let unsubs: Array<() => void> = [];
 
-  const $store = map<ParticipantSnapshot>({
-    ...participant.local,
-    connectionState: participant.state,
-    videoTracks: [],
-    audioTracks: [],
-    participant,
-    connect: (...args) => participant.connect(...args),
-    publish: (...args) => participant.publish(...args),
-    mute: (...args) => participant.mute(...args),
-    close: () => reset(currentConfig, true),
-  });
-
-  const cleanup = () => {
-    participant.close();
+  // Helper to clear existing listeners and close the current instance
+  const teardown = () => {
     unsubs.forEach((u) => u());
     unsubs = [];
+    if (participant) participant.close();
   };
 
-  const reset = (config: ParticipantConfig, force = false) => {
-    if (!force && sameConfig(currentConfig, config)) {
-      return;
-    }
+  const $store = map<ParticipantSnapshot>({} as any);
 
-    console.error("resetting");
-    cleanup();
-    currentConfig = config;
+  const setup = (config: ParticipantConfig) => {
+    teardown();
     participant = new Participant(adapter, config);
 
+    // Bind event listeners
+    unsubs = [
+      participant.on(ParticipantEvent.State, (s) => $store.setKey("connectionState", s)),
+      participant.on(ParticipantEvent.LocalStreamUpdate, (local) => {
+        for (const [key, value] of Object.entries(local)) {
+          $store.setKey(key as keyof ParticipantState, value);
+        }
+      }),
+      participant.on(ParticipantEvent.VideoTrackAdded, ({ track }) =>
+        $store.setKey("videoTracks", [...$store.get().videoTracks, track])),
+      participant.on(ParticipantEvent.VideoTrackRemoved, ({ trackId }) =>
+        $store.setKey("videoTracks", $store.get().videoTracks.filter(t => t.id !== trackId))),
+      participant.on(ParticipantEvent.AudioTrackAdded, ({ track }) =>
+        $store.setKey("audioTracks", [...$store.get().audioTracks, track])),
+      participant.on(ParticipantEvent.AudioTrackRemoved, ({ trackId }) =>
+        $store.setKey("audioTracks", $store.get().audioTracks.filter(t => t.id !== trackId))),
+    ];
+
+    // Update store with new instance and reset state
     $store.set({
       ...participant.local,
       connectionState: participant.state,
       videoTracks: [],
       audioTracks: [],
       participant,
+      // Proxies to the current instance variable
       connect: (...args) => participant.connect(...args),
       publish: (...args) => participant.publish(...args),
       mute: (...args) => participant.mute(...args),
-      close: () => reset(currentConfig, true),
+      close: () => setup(config),
+      reset: (newConfig, force) => {
+        if (force || !sameConfig(config, newConfig)) setup(newConfig);
+      },
     });
-
-    bindEvents();
   };
 
-  const bindEvents = () => {
-    unsubs = [
-      participant.on(ParticipantEvent.State, (s) => {
-        if ($store.get().connectionState !== s) $store.setKey("connectionState", s);
-      }),
-
-      participant.on(ParticipantEvent.LocalStreamUpdate, (local) => {
-        const current = $store.get();
-        Object.entries(local).forEach(([key, value]) => {
-          if ((current as any)[key] !== value) {
-            $store.setKey(key as keyof ParticipantState, value);
-          }
-        });
-      }),
-
-      participant.on(ParticipantEvent.VideoTrackAdded, ({ track }) => {
-        const current = $store.get().videoTracks;
-        if (!current.some((t) => t.id === track.id)) {
-          $store.setKey("videoTracks", [...current, track]);
-        }
-      }),
-
-      participant.on(ParticipantEvent.VideoTrackRemoved, ({ trackId }) => {
-        const current = $store.get().videoTracks;
-        const next = current.filter((t) => t.id !== trackId);
-        if (next.length !== current.length) $store.setKey("videoTracks", next);
-      }),
-
-      participant.on(ParticipantEvent.AudioTrackAdded, ({ track }) => {
-        const current = $store.get().audioTracks;
-        if (!current.some((t) => t.id === track.id)) {
-          $store.setKey("audioTracks", [...current, track]);
-        }
-      }),
-
-      participant.on(ParticipantEvent.AudioTrackRemoved, ({ trackId }) => {
-        const current = $store.get().audioTracks;
-        const next = current.filter((t) => t.id !== trackId);
-        if (next.length !== current.length) $store.setKey("audioTracks", next);
-      }),
-    ];
-  };
-
-  bindEvents();
-  onMount($store, () => cleanup);
+  onMount($store, () => {
+    setup(initialConfig);
+    return teardown;
+  });
 
   return $store;
 }
