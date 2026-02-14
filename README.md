@@ -5,13 +5,6 @@ A lightweight, optional SDK for connecting to the [PulseBeam WebRTC SFU server](
 
 [Report a Bug](https://github.com/pulsebeamdev/pulsebeam-js/issues) · [Request a Feature](https://github.com/pulsebeamdev/pulsebeam-js/issues) · [Discord](https://discord.gg/Bhd3t9afuB)
 
-## Planned Framework Support
-
-| Platform       | Framework      | Status  |
-|----------------|----------------|---------|
-| **Browser**    | Svelte          | In-pogress |
-| **Browser**    | React          | Planned |
-
 ## License
 
 Apache-2.0
