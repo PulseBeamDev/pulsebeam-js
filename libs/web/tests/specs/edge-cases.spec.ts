@@ -1,6 +1,4 @@
 import { test, expect } from '../fixtures';
-import { ParticipantDriver } from '../utils/participant-driver';
-import { NetworkSimulator } from '../utils/network-simulator';
 
 test.describe('Edge Cases and Error Handling', () => {
   test('should handle network offline during join', async ({ driver, network }) => {

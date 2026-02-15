@@ -1,5 +1,3 @@
-import { ParticipantDriver } from '../utils/participant-driver';
-import { NetworkSimulator } from '../utils/network-simulator';
 import { test, expect, TEST_ROOMS, TEST_TIMEOUTS } from '../fixtures';
 
 test.describe('Connection Lifecycle', () => {

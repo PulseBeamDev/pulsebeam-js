@@ -9,6 +9,7 @@ export interface NetworkConditions {
 }
 
 export class NetworkSimulator {
+  // @ts-ignore
   private context: BrowserContext;
   private interface: string;
   private isThrottled: boolean = false;
