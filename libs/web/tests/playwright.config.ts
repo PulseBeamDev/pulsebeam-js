@@ -1,4 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
+const imageTag = process.env.IMAGE_TAG || 'latest';
+const imageName = `ghcr.io/pulsebeamdev/pulsebeam:${imageTag}`;
 
 export default defineConfig({
   testDir: './specs',
@@ -32,10 +34,18 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
-    command: 'npm run dev -- --port 5175',
-    url: 'http://localhost:5175',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  },
+  webServer: [
+    {
+      command: 'npm run dev -- --port 5175',
+      url: 'http://localhost:5175',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+    },
+    {
+      command: `podman run --rm --name sfu-test --net=host ${imageName} --dev`,
+      url: 'http://localhost:6060/healthz',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+    }
+  ],
 });
