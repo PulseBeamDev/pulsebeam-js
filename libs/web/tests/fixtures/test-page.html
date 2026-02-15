@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PulseBeam Web E2E Tests</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .debug-panel {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .debug-panel h3 {
+            margin-top: 0;
+        }
+        .debug-item {
+            margin: 5px 0;
+            font-family: monospace;
+        }
+        .controls {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .controls input, .controls button {
+            padding: 8px 12px;
+            margin: 5px;
+            border-radius: 4px;
+            border: 1px solid #444;
+            background: #333;
+            color: #fff;
+        }
+        .controls button {
+            cursor: pointer;
+        }
+        .controls button:hover {
+            background: #444;
+        }
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .video-container {
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        .video-container video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .participant-label {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .audio-tracks {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" data-testid="test-app">
+        <div class="debug-panel" data-testid="debug-panel">
+            <h3>Debug Info</h3>
+            <div class="debug-item">Connection State: <span data-testid="connection-state" id="connection-state">new</span></div>
+            <div class="debug-item">Video Tracks: <span data-testid="video-track-count" id="video-track-count">0</span></div>
+            <div class="debug-item">Audio Tracks: <span data-testid="audio-track-count" id="audio-track-count">0</span></div>
+            <div class="debug-item">Video Muted: <span data-testid="video-muted" id="video-muted">false</span></div>
+            <div class="debug-item">Audio Muted: <span data-testid="audio-muted" id="audio-muted">false</span></div>
+        </div>
+
+        <div class="controls" data-testid="controls">
+            <input 
+                type="text" 
+                data-testid="room-input" 
+                id="room-input" 
+                placeholder="Room ID" 
+                value="test-room"
+            />
+            <button data-testid="join-button" id="join-button">Join</button>
+            <button data-testid="leave-button" id="leave-button" style="display:none;">Leave</button>
+            <button data-testid="toggle-video-button" id="toggle-video-button" style="display:none;">Mute Video</button>
+            <button data-testid="toggle-audio-button" id="toggle-audio-button" style="display:none;">Mute Audio</button>
+            <button data-testid="share-screen-button" id="share-screen-button" style="display:none;">Share Screen</button>
+        </div>
+
+        <div class="video-grid" data-testid="video-grid" id="video-grid"></div>
+        <div class="audio-tracks" data-testid="audio-tracks" id="audio-tracks"></div>
+    </div>
+
+    <script type="module" src="/tests/fixtures/test-app.ts"></script>
+</body>
+</html>
