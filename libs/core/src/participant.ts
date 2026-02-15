@@ -377,7 +377,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
    * Snapshot of current local media state for UI binding.
    */
   get local(): LocalStreamState {
-    const s = this.transport?.upstreamState.localStream || this.upstreamState.localStream;
+    const s = this.upstreamState.localStream;
     return {
       audioMuted: s?.audio?.muted ?? false,
       videoMuted: s?.video?.muted ?? false,

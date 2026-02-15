@@ -12,16 +12,15 @@ test.describe('Device and Display Managers', () => {
     test('DeviceManager should enumerate devices', async () => {
         const devices = await driver.page.evaluate(async () => {
             const dm = (window as any).__testState.deviceManager;
-            // deviceManager is a store, so we need to wait for it or get its value
             return dm.get();
         });
 
-        expect(devices.videoInputs).toBeDefined();
-        expect(devices.audioInputs).toBeDefined();
-        expect(devices.audioOutputs).toBeDefined();
+        expect(devices.cameras).toBeDefined();
+        expect(devices.microphones).toBeDefined();
+        expect(devices.speakers).toBeDefined();
 
         // With fake-device flag in Playwright, we should see at least one
-        expect(devices.videoInputs.length).toBeGreaterThan(0);
+        expect(devices.cameras.length).toBeGreaterThan(0);
     });
 
     test('DeviceManager should handle permission state', async () => {

@@ -24,9 +24,7 @@ export class ParticipantDriver {
   constructor(page: Page) {
     this.page = page;
     this.page.on('console', msg => {
-      if (msg.type() === 'error' || msg.type() === 'warning') {
-        console.log(`[Browser ${msg.type()}] ${msg.text()}`);
-      }
+      console.log(`[Browser ${msg.type()}] ${msg.text()}`);
     });
     this.joinButton = page.getByTestId('join-button');
     this.leaveButton = page.getByTestId('leave-button');

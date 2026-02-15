@@ -27,6 +27,7 @@ test.describe('Track Management', () => {
                 kind: 'video',
                 participantId: 'peer-1',
                 stream: new MediaStream(),
+                setHeight: () => { }
             };
             // Mocking internal store update for E2E verification
             p.set({
@@ -91,8 +92,8 @@ test.describe('Track Management', () => {
         await driver.page.evaluate(() => {
             const p = (window as any).__testState.participant;
             const videoTracks = [
-                { id: 'v1', kind: 'video', participantId: 'p1', stream: new MediaStream() },
-                { id: 'v2', kind: 'video', participantId: 'p2', stream: new MediaStream() }
+                { id: 'v1', kind: 'video', participantId: 'p1', stream: new MediaStream(), setHeight: () => { } },
+                { id: 'v2', kind: 'video', participantId: 'p2', stream: new MediaStream(), setHeight: () => { } }
             ];
             const audioTracks = [
                 { id: 'a1', kind: 'audio', participantId: 'p1', stream: new MediaStream() }

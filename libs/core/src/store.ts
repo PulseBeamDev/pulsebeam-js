@@ -47,7 +47,13 @@ export function createParticipant(
     if (participant) participant.close();
   };
 
-  const $store = map<ParticipantSnapshot>({} as any);
+  const $store = map<ParticipantSnapshot>({
+    connectionState: "new",
+    videoTracks: [],
+    audioTracks: [],
+    audioMuted: false,
+    videoMuted: false,
+  } as any);
 
   const setup = (config: ParticipantConfig) => {
     teardown();
