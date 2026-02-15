@@ -1,68 +1,99 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParticipant, Video, Audio, type ParticipantConfig } from "./index";
 
 const APP_CONFIG: ParticipantConfig = {
-  videoSlots: 16, audioSlots: 8, baseUrl: "http://localhost:3000/api/v1"
+  videoSlots: 16,
+  audioSlots: 8,
+  baseUrl: "http://localhost:9999/api/v1"
 };
 
 export default function MeetingRoom() {
+  const [instanceId] = useState(() => Math.random().toString(36).slice(2));
   const [roomId, setRoomId] = useState("demo-room");
   const main = useParticipant(APP_CONFIG);
   const screen = useParticipant({ ...APP_CONFIG, videoSlots: 0, audioSlots: 0 });
 
+  useEffect(() => {
+    console.log(`App [${instanceId}]: connectionState:`, main.connectionState);
+  }, [main.connectionState, instanceId]);
+
   const join = async () => {
-    const s = await navigator.mediaDevices.getUserMedia({ video: { height: 720 }, audio: true });
-    main.publish(s);
-    main.connect(roomId);
+    console.log(`App [${instanceId}]: Joining room:`, roomId);
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: { height: 720 }, audio: true });
+      main.publish(s);
+      main.connect(roomId);
+    } catch (e) {
+      console.error(`App [${instanceId}]: Join failed:`, e);
+    }
   };
 
-  const toggleScreen = async () => {
-    if (screen.connectionState === "connected") return screen.close();
-    const s = await navigator.mediaDevices.getDisplayMedia({ video: { height: 1080 }, audio: true });
-    screen.publish(s, "screen");
-    screen.connect(roomId);
-    s.getVideoTracks()[0].onended = () => screen.close();
+  const leave = () => {
+    console.log(`App [${instanceId}]: Leaving room`);
+    main.close();
+    screen.close();
   };
 
-  const isLive = main.connectionState === "connected";
+  // 'new' is the initial WebRTC state, before any join/connect action.
+  // We treat it as decoupled from any room.
+  const isLive = ["connected", "connecting", "joining", "failed", "closed"].includes(main.connectionState);
+  const status = main.connectionState;
 
   return (
-    <main className="container">
-      <hgroup>
-        <h1>Pulsebeam</h1>
-        <p>Status: <mark>{main.connectionState}</mark></p>
-      </hgroup>
+    <div data-testid="meeting-container" data-instance-id={instanceId} className="test-app">
+      <h1>Pulsebeam Test App</h1>
 
-      <article>
-        <fieldset role="group">
-          <input value={roomId} onChange={e => setRoomId(e.target.value)} disabled={isLive} />
-          <button onClick={() => isLive ? (main.close(), screen.close()) : join()} className={isLive ? "secondary" : ""}>
-            {isLive ? "Leave" : "Join"}
+      <div className="status-box">
+        Connection Status: <span data-testid="connection-status">{status}</span>
+      </div>
+
+      <div className="controls">
+        <input
+          data-testid="room-id-input"
+          value={roomId}
+          onChange={e => setRoomId(e.target.value)}
+          disabled={isLive}
+          placeholder="Room ID"
+        />
+
+        <button
+          data-testid="join-leave-button"
+          data-live={isLive}
+          onClick={isLive ? leave : join}
+        >
+          {isLive ? "Leave" : "Join"}
+        </button>
+      </div>
+
+      {isLive && (
+        <div className="media-controls" data-testid="media-controls">
+          <button
+            data-testid="cam-mute-button"
+            data-muted={main.videoMuted}
+            onClick={() => main.mute({ video: !main.videoMuted })}
+          >
+            {main.videoMuted ? "Unmute Cam" : "Mute Cam"}
           </button>
-        </fieldset>
 
-        {isLive && (
-          <nav>
-            <ul>
-              <li><button className={main.videoMuted ? "outline" : ""} onClick={() => main.mute({ video: !main.videoMuted })}>Cam</button></li>
-              <li><button className={main.audioMuted ? "outline" : ""} onClick={() => main.mute({ audio: !main.audioMuted })}>Mic</button></li>
-            </ul>
-            <ul>
-              <li><button className="contrast" onClick={toggleScreen}>{screen.connectionState === "connected" ? "Stop Share" : "Share"}</button></li>
-            </ul>
-          </nav>
-        )}
-      </article>
+          <button
+            data-testid="mic-mute-button"
+            data-muted={main.audioMuted}
+            onClick={() => main.mute({ audio: !main.audioMuted })}
+          >
+            {main.audioMuted ? "Unmute Mic" : "Mute Mic"}
+          </button>
+        </div>
+      )}
 
-      <div className="grid">
+      <div data-testid="video-grid" className="video-grid">
         {main.videoTracks.map(t => (
-          <article key={t.id} style={{ padding: 0, overflow: "hidden", background: "#000" }}>
-            <Video track={t} style={{ width: "100%", objectFit: "cover" }} />
-            <footer><small>{t.participantId}</small></footer>
-          </article>
+          <div key={t.id} data-testid={`video-slot-${t.participantId}`}>
+            <Video track={t} />
+            <span>{t.participantId}</span>
+          </div>
         ))}
       </div>
       {main.audioTracks.map(t => <Audio key={t.id} track={t} />)}
-    </main>
+    </div>
   );
 }
