@@ -1,0 +1,42 @@
+name: Playwright Tests
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9 
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run Playwright tests
+        run: pnpm test
+
+      - name: Run Playwright tests e2e
+        run: pnpm test:e2e
+        env:
+          IMAGE_TAG: latest
+
+      - name: Upload All Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: all-playwright-reports
+          path: libs/**/playwright-report/
+          retention-days: 30

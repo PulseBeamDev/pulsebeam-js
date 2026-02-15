@@ -18,7 +18,7 @@
     "prepare": "vite build && tsc -p tsconfig.app.json",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "playwright test"
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@nanostores/react": "^1.0.0",
