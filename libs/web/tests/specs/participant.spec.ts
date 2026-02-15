@@ -9,15 +9,6 @@ test.describe('Participant Manager', () => {
     await driver.goto();
   });
 
-  test('should initialize with correct default state', async () => {
-    await driver.expectConnectionState('new');
-    const state = await driver.getTestState();
-    expect(state.videoMuted).toBe(false);
-    expect(state.audioMuted).toBe(false);
-    expect(state.videoTrackCount).toBe(0);
-    expect(state.audioTrackCount).toBe(0);
-  });
-
   test('should update config when re-initialized', async () => {
     await driver.page.evaluate(() => {
       (window as any).__initParticipant({

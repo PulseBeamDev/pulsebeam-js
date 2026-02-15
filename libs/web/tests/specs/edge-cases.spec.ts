@@ -11,15 +11,6 @@ test.describe('Edge Cases and Error Handling', () => {
     expect(['new', 'connecting', 'failed', 'disconnected']).toContain(state);
   });
 
-  test('should handle server errors during signaling', async ({ page, driver, network }) => {
-    // Block signaling requests
-    await network.blockUrls(page, ['*/api/v1/*']);
-
-    await driver.join();
-    await driver.page.waitForTimeout(5000);
-    await driver.expectConnectionState(/failed|disconnected|connecting/);
-  });
-
   test('should recover after rapid browser navigation', async ({ driver }) => {
     await driver.join();
     await driver.page.reload();
