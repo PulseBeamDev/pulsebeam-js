@@ -1,0 +1,40 @@
+{
+    "$schema": "https://turbo.build/schema.json",
+    "ui": "tui",
+    "tasks": {
+        "prepare": {
+            "dependsOn": [
+                "^prepare"
+            ],
+            "outputs": [
+                "dist/**"
+            ],
+            "cache": true
+        },
+        "build": {
+            "dependsOn": [
+                "^prepare",
+                "prepare"
+            ],
+            "outputs": [
+                ".next/**",
+                "!.next/cache/**",
+                "dist/**"
+            ],
+            "cache": true
+        },
+        "dev": {
+            "cache": false,
+            "persistent": true
+        },
+        "lint": {
+            "cache": true
+        },
+        "test": {
+            "cache": true
+        },
+        "test:e2e": {
+            "cache": false
+        }
+    }
+}
