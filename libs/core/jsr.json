@@ -1,0 +1,4 @@
+{
+  "name": "@pulsebeam/core",
+  "exports": "./src/index.ts"
+}

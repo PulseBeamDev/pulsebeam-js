@@ -1,0 +1,4 @@
+{
+  "name": "@pulsebeam/svelte",
+  "exports": "./src/lib/index.ts"
+}

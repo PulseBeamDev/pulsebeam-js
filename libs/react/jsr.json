@@ -1,0 +1,4 @@
+{
+  "name": "@pulsebeam/react",
+  "exports": "./src/index.tsx"
+}

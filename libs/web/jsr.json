@@ -1,0 +1,4 @@
+{
+  "name": "@pulsebeam/web",
+  "exports": "./src/lib.ts"
+}
