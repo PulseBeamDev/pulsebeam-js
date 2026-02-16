@@ -51,6 +51,10 @@ jobs:
       - name: Create Release (Changesets)
         uses: changesets/action@v1
         with:
-          publish: pnpm
+          publish: pnpm publish --access public --provenance
           github-token: ${{ secrets.GITHUB_TOKEN }}
           createGithubReleases: true
+          setupGitUser: true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
