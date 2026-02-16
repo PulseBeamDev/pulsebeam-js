@@ -1,5 +1,0 @@
-{
-  "name": "@pulsebeam/ui",
-  "exports": "./src/index.ts"
-}
-
