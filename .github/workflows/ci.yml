@@ -52,6 +52,7 @@ jobs:
         uses: changesets/action@v1
         with:
           publish: pnpm
-          access: public
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          createGithubReleases: true
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
