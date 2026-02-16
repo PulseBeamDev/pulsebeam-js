@@ -18,9 +18,13 @@
     "test": "turbo run test",
     "test:e2e": "turbo run test:e2e",
     "prepare": "turbo run prepare",
-    "build:meet": "pnpm --filter meet build"
+    "build:meet": "pnpm --filter meet build",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "publish": "changeset publish"
   },
   "devDependencies": {
-    "turbo": "^2.8.9"
+    "turbo": "^2.8.9",
+    "@changesets/cli": "^2.26.0"
   }
 }
