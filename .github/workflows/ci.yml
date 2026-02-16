@@ -1,4 +1,4 @@
-name: Playwright Tests
+name: CI
 on:
   push:
     branches: [ main ]
@@ -6,9 +6,13 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  ci:
     timeout-minutes: 15
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -22,7 +26,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Install Playwright Browsers
         run: pnpm dlx playwright install --with-deps chromium
@@ -42,3 +46,11 @@ jobs:
           name: all-playwright-reports
           path: libs/**/playwright-report/
           retention-days: 30
+
+      - name: Create Release (Changesets)
+        uses: changesets/action@v1
+        with:
+          publish: pnpm
+          access: public
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
