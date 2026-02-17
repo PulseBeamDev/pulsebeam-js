@@ -21,7 +21,9 @@
   },
   "dependencies": {
     "@nanostores/react": "^1.0.0",
-    "@pulsebeam/web": "workspace:*",
+    "@pulsebeam/web": "workspace:*"
+  },
+  "peerDependencies": {
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
@@ -33,6 +35,8 @@
     "@types/react": "^19.2.11",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react-swc": "^4.2.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
