@@ -1,111 +1,67 @@
-import { test, expect } from '@playwright/test';
-import { ParticipantDriver } from '../utils/participant-driver';
-import { TEST_ROOMS } from '../fixtures/test-data';
+import { test, expect, TEST_TIMEOUTS } from '../fixtures';
+import fc from 'fast-check';
+
+const JOIN_TIMEOUT = TEST_TIMEOUTS.CONNECTION;
 
 test.describe('Track Management', () => {
-  let driver: ParticipantDriver;
+  test('tracks appear on join and reset on leave', async ({ driver, createDriver }) => {
+    const roomId = `tracks-test-${Math.random().toString(36).substring(7)}`;
 
-  test.beforeEach(async ({ page }) => {
-    driver = new ParticipantDriver(page);
-    await driver.goto();
-  });
+    // Create a second participant to publish media
+    const driver2 = await createDriver();
+    await driver2.setRoomId(roomId);
+    await driver2.join();
+    await driver2.waitForConnectionState(/connected/);
 
-  test('should handle video track appearance and removal', async () => {
-    await driver.setRoomId(TEST_ROOMS.TRACKS);
+    await driver.setRoomId(roomId);
     await driver.join();
+    await driver.waitForConnectionState(/connecting|connected|failed/, JOIN_TIMEOUT);
 
-    // In a mock environment, we might need to manually trigger tracks if the mock server doesn't
-    // For this test, we verify the UI components for tracks are ready
     await expect(driver.videoGrid).toBeVisible();
-    await driver.expectVideoTrackCount(0); // Initially empty
+    await expect
+      .poll(async () => driver.getVideoTrackCount(), { timeout: TEST_TIMEOUTS.MEDIA_READY })
+      .toBeGreaterThan(0);
+    await expect
+      .poll(async () => driver.getAudioTrackCount(), { timeout: TEST_TIMEOUTS.MEDIA_READY })
+      .toBeGreaterThan(0);
 
-    // We can simulate track arrival by evaluating against the participant store
-    await driver.page.evaluate(() => {
-      const p = (window as any).__testState.participant;
-      const track = {
-        id: 'test-video-track',
-        kind: 'video',
-        participantId: 'peer-1',
-        stream: new MediaStream(),
-        setHeight: () => { }
-      };
-      // Mocking internal store update for E2E verification
-      p.set({
-        ...p.get(),
-        videoTracks: [track]
-      });
-    });
-
-    await driver.expectVideoTrackCount(1);
-    await expect(driver.page.locator('[data-track-id="test-video-track"]')).toBeVisible();
-
-    // Remove track
-    await driver.page.evaluate(() => {
-      const p = (window as any).__testState.participant;
-      p.set({
-        ...p.get(),
-        videoTracks: []
-      });
-    });
-
+    await driver.leave();
+    await expect(driver.joinButton).toBeVisible({ timeout: JOIN_TIMEOUT });
     await driver.expectVideoTrackCount(0);
-    await expect(driver.page.locator('[data-track-id="test-video-track"]')).not.toBeVisible();
-  });
-
-  test('should handle audio track appearance and removal', async () => {
-    await driver.setRoomId(TEST_ROOMS.TRACKS);
-    await driver.join();
-
-    await driver.page.evaluate(() => {
-      const p = (window as any).__testState.participant;
-      const track = {
-        id: 'test-audio-track',
-        kind: 'audio',
-        participantId: 'peer-1',
-        stream: new MediaStream(),
-      };
-      p.set({
-        ...p.get(),
-        audioTracks: [track]
-      });
-    });
-
-    await driver.expectAudioTrackCount(1);
-    await expect(driver.page.locator('[data-audio-id="test-audio-track"]')).toBeAttached();
-
-    // Remove track
-    await driver.page.evaluate(() => {
-      const p = (window as any).__testState.participant;
-      p.set({
-        ...p.get(),
-        audioTracks: []
-      });
-    });
-
     await driver.expectAudioTrackCount(0);
   });
 
-  test('should manage multiple simultaneous tracks', async () => {
-    await driver.setRoomId(TEST_ROOMS.TRACKS);
-    await driver.join();
+  test('multiple join/leave cycles keep track counts sane', async ({ createDriver }) => {
+    const roomId = `tracks-cycle-${Math.random().toString(36).substring(7)}`;
 
-    await driver.page.evaluate(() => {
-      const p = (window as any).__testState.participant;
-      const videoTracks = [
-        { id: 'v1', kind: 'video', participantId: 'p1', stream: new MediaStream(), setHeight: () => { } },
-        { id: 'v2', kind: 'video', participantId: 'p2', stream: new MediaStream(), setHeight: () => { } }
-      ];
-      const audioTracks = [
-        { id: 'a1', kind: 'audio', participantId: 'p1', stream: new MediaStream() }
-      ];
-      p.set({
-        ...p.get(),
-        videoTracks,
-        audioTracks
-      });
-    });
+    // Remote publisher
+    const driver2 = await createDriver();
+    await driver2.setRoomId(roomId);
+    await driver2.join();
+    await driver2.waitForConnectionState(/connected/);
 
-    await driver.expectVideoTrackCount(2);
-    await driver.expectAudioTrackCount(1);
+    await fc.assert(
+      fc.asyncProperty(fc.integer({ min: 1, max: 3 }), async cycles => {
+        const driver = await createDriver();
+        await driver.setRoomId(roomId);
+
+        for (let i = 0; i < cycles; i += 1) {
+          await driver.join();
+          await driver.waitForConnectionState(/connecting|connected|failed/, JOIN_TIMEOUT);
+          await expect
+            .poll(async () => driver.getVideoTrackCount(), { timeout: TEST_TIMEOUTS.MEDIA_READY })
+            .toBeGreaterThan(0);
+          await expect
+            .poll(async () => driver.getAudioTrackCount(), { timeout: TEST_TIMEOUTS.MEDIA_READY })
+            .toBeGreaterThan(0);
+
+          await driver.leave();
+          await expect(driver.joinButton).toBeVisible({ timeout: JOIN_TIMEOUT });
+          await driver.expectVideoTrackCount(0);
+          await driver.expectAudioTrackCount(0);
+        }
+      }),
+      { numRuns: 2 }
+    );
   });
 });

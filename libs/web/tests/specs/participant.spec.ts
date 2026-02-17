@@ -1,73 +1,141 @@
-import { test, expect } from '@playwright/test';
-import { ParticipantDriver } from '../utils/participant-driver';
+import { test, expect, TEST_TIMEOUTS } from '../fixtures';
+import fc from 'fast-check';
+import type { ParticipantDriver } from '../utils/participant-driver';
+
+type Action =
+  | { type: 'setRoom'; value: string }
+  | { type: 'join' }
+  | { type: 'leave' }
+  | { type: 'toggleVideo' }
+  | { type: 'toggleAudio' };
+
+const ROOM_ID_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789-'.split('');
+const roomIdArb = fc
+  .stringOf(fc.constantFrom(...ROOM_ID_CHARS), { minLength: 3, maxLength: 16 })
+  .map(value => `room-${value}`);
+const actionArb = fc.oneof<Action>(
+  fc.record({ type: fc.constant('setRoom'), value: roomIdArb }),
+  fc.constant({ type: 'join' }),
+  fc.constant({ type: 'leave' }),
+  fc.constant({ type: 'toggleVideo' }),
+  fc.constant({ type: 'toggleAudio' })
+);
+
+const JOIN_TIMEOUT = TEST_TIMEOUTS.CONNECTION;
+const TOGGLE_TIMEOUT = TEST_TIMEOUTS.STATE_CHANGE;
+
+function oppositeVideoLabel(label: string) {
+  return label === 'Mute Video' ? 'Unmute Video' : 'Mute Video';
+}
+
+function oppositeAudioLabel(label: string) {
+  return label === 'Mute Audio' ? 'Unmute Audio' : 'Mute Audio';
+}
+
+async function assertUiInvariants(driver: ParticipantDriver) {
+  const joinVisible = await driver.isJoinVisible();
+  const leaveVisible = await driver.isLeaveVisible();
+  expect(joinVisible || leaveVisible).toBe(true);
+  expect(joinVisible && leaveVisible).toBe(false);
+
+  const roomEnabled = await driver.isRoomInputEnabled();
+  if (joinVisible) {
+    expect(roomEnabled).toBe(true);
+    await expect(driver.toggleVideoButton).toBeHidden();
+    await expect(driver.toggleAudioButton).toBeHidden();
+    await expect(driver.shareScreenButton).toBeHidden();
+  } else {
+    expect(roomEnabled).toBe(false);
+    await expect(driver.toggleVideoButton).toBeVisible();
+    await expect(driver.toggleAudioButton).toBeVisible();
+    await expect(driver.shareScreenButton).toBeVisible();
+  }
+}
+
+async function waitForJoinReady(driver: ParticipantDriver) {
+  await expect(driver.joinButton).toBeVisible({ timeout: JOIN_TIMEOUT });
+  await expect(driver.connectionState).toHaveText(/new|disconnected|closed|failed/);
+}
+
+async function waitForLeaveReady(driver: ParticipantDriver) {
+  await expect(driver.leaveButton).toBeVisible({ timeout: JOIN_TIMEOUT });
+  await expect(driver.connectionState).toHaveText(/connecting|connected|failed/);
+}
 
 test.describe('Participant Manager', () => {
-  let driver: ParticipantDriver;
+  test('randomized UI actions remain consistent', async ({ driver, page }) => {
+    const pageErrors: string[] = [];
+    page.on('pageerror', err => pageErrors.push(err.message));
 
-  test.beforeEach(async ({ page }) => {
-    driver = new ParticipantDriver(page);
-    await driver.goto();
+    await fc.assert(
+      fc.asyncProperty(fc.array(actionArb, { minLength: 8, maxLength: 20 }), async actions => {
+        await driver.goto();
+        await assertUiInvariants(driver);
+
+        for (const action of actions) {
+          if (action.type === 'setRoom') {
+            if (await driver.isRoomInputEnabled()) {
+              await driver.setRoomId(action.value);
+              await expect(driver.roomInput).toHaveValue(action.value);
+            }
+          }
+
+          if (action.type === 'join') {
+            if (await driver.isJoinVisible()) {
+              await driver.join();
+              await waitForLeaveReady(driver);
+            }
+          }
+
+          if (action.type === 'leave') {
+            if (await driver.isLeaveVisible()) {
+              await driver.leave();
+              await waitForJoinReady(driver);
+            }
+          }
+
+          if (action.type === 'toggleVideo') {
+            if (await driver.isLeaveVisible()) {
+              const before = await driver.getVideoToggleLabel();
+              await driver.toggleVideo();
+              await expect
+                .poll(async () => driver.getVideoToggleLabel(), { timeout: TOGGLE_TIMEOUT })
+                .toBe(oppositeVideoLabel(before));
+            }
+          }
+
+          if (action.type === 'toggleAudio') {
+            if (await driver.isLeaveVisible()) {
+              const before = await driver.getAudioToggleLabel();
+              await driver.toggleAudio();
+              await expect
+                .poll(async () => driver.getAudioToggleLabel(), { timeout: TOGGLE_TIMEOUT })
+                .toBe(oppositeAudioLabel(before));
+            }
+          }
+
+          await assertUiInvariants(driver);
+        }
+      }),
+      { numRuns: process.env.CI ? 10 : 16 }
+    );
+
+    expect(pageErrors).toHaveLength(0);
   });
 
-  test('should update config when re-initialized', async () => {
-    await driver.page.evaluate(() => {
-      (window as any).__initParticipant({
-        videoSlots: 8,
-        audioSlots: 4,
-        baseUrl: 'http://localhost:8888/api/v1'
-      });
-    });
-
-    const state = await driver.getTestState();
-    // We can't easily check internal config properties unless we expose them,
-    // but we can verify the participant instance is still functional.
-    expect(state.participant).toBeDefined();
-  });
-
-  test('should publish local media stream', async () => {
-    await driver.join();
-    await driver.page.waitForTimeout(1000);
-
-    const state = await driver.getTestState();
-    expect(state.publishedStream).toBeDefined();
-
-    const tracks = await driver.page.evaluate(() => {
-      const stream = (window as any).__testState.getPublishedStream();
-      return {
-        video: stream.getVideoTracks().length,
-        audio: stream.getAudioTracks().length
-      };
-    });
-
-    expect(tracks.video).toBeGreaterThan(0);
-    expect(tracks.audio).toBeGreaterThan(0);
-  });
-
-  test('should handle mute and unmute controls', async () => {
+  test('publishing local media yields tracks and cleans up on leave', async ({ driver }) => {
     await driver.join();
     await driver.waitForConnectionState(/connecting|connected|failed/);
 
-    // Mute video
-    await driver.toggleVideo();
-    await expect(driver.videoMutedState).toHaveText('true');
+    await expect
+      .poll(async () => driver.getVideoTrackCount(), { timeout: TEST_TIMEOUTS.MEDIA_READY })
+      .toBeGreaterThan(0);
+    await expect
+      .poll(async () => driver.getAudioTrackCount(), { timeout: TEST_TIMEOUTS.MEDIA_READY })
+      .toBeGreaterThan(0);
 
-    // Mute audio
-    await driver.toggleAudio();
-    await expect(driver.audioMutedState).toHaveText('true');
-
-    // Unmute both
-    await driver.toggleVideo();
-    await driver.toggleAudio();
-    await expect(driver.videoMutedState).toHaveText('false');
-    await expect(driver.audioMutedState).toHaveText('false');
-  });
-
-  test('should clean up on close', async () => {
-    await driver.join();
-    await driver.waitForConnectionState(/connecting|connected|failed/);
     await driver.leave();
-
-    await driver.expectConnectionState(/new|disconnected|closed/);
+    await waitForJoinReady(driver);
     await driver.expectVideoTrackCount(0);
     await driver.expectAudioTrackCount(0);
   });

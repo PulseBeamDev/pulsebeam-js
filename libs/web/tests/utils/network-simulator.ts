@@ -13,11 +13,27 @@ export class NetworkSimulator {
   private context: BrowserContext;
   private interface: string;
   private isThrottled: boolean = false;
+  private _isFunctional: boolean = true;
 
   constructor(context: BrowserContext, networkInterface: string = 'lo') {
     this.context = context;
     this.interface = networkInterface;
+    this.checkFunctional();
     this.setupEmergencyCleanup();
+  }
+
+  private checkFunctional() {
+    try {
+      execSync(`sudo -n tc qdisc show dev ${this.interface}`, { stdio: 'ignore' });
+      this._isFunctional = true;
+    } catch {
+      this._isFunctional = false;
+      console.warn(`📡 NetworkSimulator: 'tc' is not functional (sudo -n failed). Some tests may be skipped or use fallbacks.`);
+    }
+  }
+
+  get isFunctional() {
+    return this._isFunctional;
   }
 
   async blockUrls(page: Page, patterns: string[]) {
@@ -27,11 +43,14 @@ export class NetworkSimulator {
   /**
    * Applies specific constraints or 100% packet loss (shutdown).
    */
-  apply(conditions: NetworkConditions | 'SHUTDOWN') {
+  async apply(conditions: NetworkConditions | 'SHUTDOWN') {
     let netemCmd = 'netem';
 
     if (conditions === 'SHUTDOWN') {
       netemCmd += ' loss 100%';
+      // Fallback/Parallel: Use browser-level offline
+      await this.context.setOffline(true);
+      await this.context.route('**/*', route => route.abort());
     } else {
       const { delay, jitter, loss, rate } = conditions;
       if (delay) netemCmd += ` delay ${delay} ${jitter || ''}`;
@@ -39,37 +58,43 @@ export class NetworkSimulator {
       if (rate) netemCmd += ` rate ${rate}`;
     }
 
-    try {
-      // Try 'add' first, if rule exists, 'change' it
+    if (this._isFunctional) {
       try {
-        execSync(`sudo tc qdisc add dev ${this.interface} root handle 1: ${netemCmd}`);
-      } catch {
-        execSync(`sudo tc qdisc change dev ${this.interface} root handle 1: ${netemCmd}`);
+        // Try 'add' first, if rule exists, 'change' it
+        try {
+          execSync(`sudo -n tc qdisc add dev ${this.interface} root handle 1: ${netemCmd}`, { stdio: 'ignore' });
+        } catch {
+          execSync(`sudo -n tc qdisc change dev ${this.interface} root handle 1: ${netemCmd}`, { stdio: 'ignore' });
+        }
+        this.isThrottled = true;
+        console.log(`📡 Network Condition Applied: ${netemCmd}`);
+      } catch (error: any) {
+        console.warn(`⚠️ TC Warning: Could not apply network conditions (${error.message}).`);
       }
-      this.isThrottled = true;
-      console.log(`📡 Network Condition Applied: ${netemCmd}`);
-    } catch (error: any) {
-      console.error(`❌ TC Error: ${error.message}. Ensure you have sudo/CAP_NET_ADMIN.`);
     }
   }
 
   /**
    * Utility for a clean "Turn off everything"
    */
-  shutdown() {
-    this.apply('SHUTDOWN');
+  async shutdown() {
+    await this.apply('SHUTDOWN');
   }
 
   /**
    * Resets the interface to normal (Deletes the qdisc)
    */
-  reset() {
-    try {
-      execSync(`sudo tc qdisc del dev ${this.interface} root`);
-      this.isThrottled = false;
-      console.log('✅ Network restored to hardware default.');
-    } catch (e) {
-      // Silent fail if already deleted
+  async reset() {
+    await this.context.setOffline(false);
+    await this.context.unroute('**/*');
+    if (this._isFunctional) {
+      try {
+        execSync(`sudo -n tc qdisc del dev ${this.interface} root`, { stdio: 'ignore' });
+        this.isThrottled = false;
+        console.log('✅ Network restored to hardware default.');
+      } catch (e) {
+        // Silent fail if already deleted
+      }
     }
   }
 
@@ -80,7 +105,7 @@ export class NetworkSimulator {
     const cleanup = () => {
       if (this.isThrottled) {
         console.log('\n🚨 Emergency Network Reset...');
-        try { execSync(`sudo tc qdisc del dev ${this.interface} root`); } catch { }
+        try { execSync(`sudo -n tc qdisc del dev ${this.interface} root`, { stdio: 'ignore' }); } catch { }
         process.exit();
       }
     };

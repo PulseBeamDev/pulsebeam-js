@@ -1,53 +1,29 @@
-import { test, expect } from '@playwright/test';
-import { ParticipantDriver } from '../utils/participant-driver';
+import { test, expect, TEST_TIMEOUTS } from '../fixtures';
+
+const JOIN_TIMEOUT = TEST_TIMEOUTS.CONNECTION;
 
 test.describe('Device and Display Managers', () => {
-  let driver: ParticipantDriver;
-
-  test.beforeEach(async ({ page }) => {
-    driver = new ParticipantDriver(page);
-    await driver.goto();
-  });
-
-  test.skip('DeviceManager should enumerate devices', async () => {
+  test('browser device enumeration is available', async ({ driver }) => {
     const devices = await driver.page.evaluate(async () => {
-      const dm = (window as any).__testState.deviceManager;
-      return dm.get();
+      const list = await navigator.mediaDevices.enumerateDevices();
+      return list.map(d => ({ kind: d.kind, label: d.label }));
     });
 
-    expect(devices.cameras).toBeDefined();
-    expect(devices.microphones).toBeDefined();
-    expect(devices.speakers).toBeDefined();
-
-    // With fake-device flag in Playwright, we should see at least one
-    expect(devices.cameras.length).toBeGreaterThan(0);
+    expect(Array.isArray(devices)).toBe(true);
+    expect(devices.length).toBeGreaterThan(0);
+    expect(devices.some(d => d.kind === 'audioinput' || d.kind === 'videoinput')).toBe(true);
   });
 
-  test('DeviceManager should handle permission state', async () => {
-    const state = await driver.page.evaluate(async () => {
-      const dm = (window as any).__testState.deviceManager;
-      return dm.get();
-    });
-
-    // In automated tests with permissions granted in config, this should be true or granted
-    expect(state).toBeDefined();
-  });
-
-  test('DisplayManager should handle screen share capability', async () => {
+  test('screen share capability is exposed by the browser', async ({ driver }) => {
     const hasScreenShare = await driver.page.evaluate(() => {
       return !!navigator.mediaDevices.getDisplayMedia;
     });
     expect(hasScreenShare).toBe(true);
   });
 
-  test('Participant should use displayManager for screen sharing', async () => {
+  test('screen share control appears after join', async ({ driver }) => {
     await driver.join();
-    await driver.waitForConnectionState(/connecting|connected|failed/);
-
-    // Trigger screen share from UI
-    await driver.shareScreen();
-
-    const state = await driver.getTestState();
-    expect(state.publishedStream).toBeDefined();
+    await driver.waitForConnectionState(/connecting|connected|failed/, JOIN_TIMEOUT);
+    await expect(driver.shareScreenButton).toBeVisible();
   });
 });

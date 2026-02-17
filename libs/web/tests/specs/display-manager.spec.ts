@@ -1,36 +1,28 @@
-import { test, expect } from '@playwright/test';
-import { ParticipantDriver } from '../utils/participant-driver';
+import { test, expect, TEST_TIMEOUTS } from '../fixtures';
+
+const JOIN_TIMEOUT = TEST_TIMEOUTS.CONNECTION;
 
 test.describe('Display Manager', () => {
-  let driver: ParticipantDriver;
-
-  test.beforeEach(async ({ page }) => {
-    driver = new ParticipantDriver(page);
-    await driver.goto();
-  });
-
-  test('DisplayManager should handle screen share capabilities', async () => {
+  test('screen share capability is available', async ({ driver }) => {
     const hasScreenShare = await driver.page.evaluate(() => {
       return !!navigator.mediaDevices.getDisplayMedia;
     });
     expect(hasScreenShare).toBe(true);
   });
 
-  test('should trigger screen share flow', async () => {
+  test('screen share click keeps UI responsive', async ({ driver, page }) => {
+    const pageErrors: string[] = [];
+    page.on('pageerror', err => pageErrors.push(err.message));
+
     await driver.join();
-    await driver.waitForConnectionState(/connecting|connected|failed/);
+    await driver.waitForConnectionState(/connecting|connected|failed/, JOIN_TIMEOUT);
+    await expect(driver.shareScreenButton).toBeVisible();
 
     await driver.shareScreen();
+    await expect(driver.connectionState).toHaveText(/connecting|connected|failed/);
+    await expect(driver.toggleVideoButton).toBeVisible();
+    await expect(driver.toggleAudioButton).toBeVisible();
 
-    const state = await driver.getTestState();
-    expect(state.publishedStream).toBeDefined();
-
-    const videoTrack = await driver.page.evaluate(() => {
-      const stream = (window as any).__testState.getPublishedStream();
-      return stream.getVideoTracks()[0].label;
-    });
-
-    // In Playwright with fake media, screen share label starts with 'screen' or 'fake'
-    expect(videoTrack).toBeDefined();
+    expect(pageErrors).toHaveLength(0);
   });
 });

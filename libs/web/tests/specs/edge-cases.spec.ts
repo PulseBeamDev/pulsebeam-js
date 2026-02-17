@@ -2,7 +2,7 @@ import { test, expect } from '../fixtures';
 
 test.describe('Edge Cases and Error Handling', () => {
   test('should handle network offline during join', async ({ driver, network }) => {
-    network.shutdown();
+    await network.shutdown();
     await driver.join();
 
     // Should enter failed or stay in connecting

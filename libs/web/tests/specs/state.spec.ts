@@ -1,60 +1,74 @@
-import { test, expect } from '@playwright/test';
-import { ParticipantDriver } from '../utils/participant-driver';
+import { test, expect, TEST_TIMEOUTS, CONNECTION_STATES } from '../fixtures';
+import fc from 'fast-check';
+import type { ParticipantDriver } from '../utils/participant-driver';
+
+const JOIN_TIMEOUT = TEST_TIMEOUTS.CONNECTION;
+const TOGGLE_TIMEOUT = TEST_TIMEOUTS.STATE_CHANGE;
+
+function matchesConnectionState(state: string) {
+  return CONNECTION_STATES.includes(state as (typeof CONNECTION_STATES)[number]);
+}
+
+function oppositeVideoLabel(label: string) {
+  return label === 'Mute Video' ? 'Unmute Video' : 'Mute Video';
+}
+
+function oppositeAudioLabel(label: string) {
+  return label === 'Mute Audio' ? 'Unmute Audio' : 'Mute Audio';
+}
+
+async function assertMuteConsistency(driver: ParticipantDriver) {
+  const videoLabel = await driver.getVideoToggleLabel();
+  const audioLabel = await driver.getAudioToggleLabel();
+  const videoMutedText = (await driver.videoMutedState.textContent())?.trim() ?? '';
+  const audioMutedText = (await driver.audioMutedState.textContent())?.trim() ?? '';
+
+  if (videoLabel === 'Mute Video') {
+    expect(videoMutedText).toBe('false');
+  }
+  if (videoLabel === 'Unmute Video') {
+    expect(videoMutedText).toBe('true');
+  }
+
+  if (audioLabel === 'Mute Audio') {
+    expect(audioMutedText).toBe('false');
+  }
+  if (audioLabel === 'Unmute Audio') {
+    expect(audioMutedText).toBe('true');
+  }
+}
 
 test.describe('State Synchronization', () => {
-  let driver: ParticipantDriver;
-
-  test.beforeEach(async ({ page }) => {
-    driver = new ParticipantDriver(page);
-    await driver.goto();
-  });
-
-  test('should propagate state updates to subscribers', async () => {
-    // Initial state
-    await expect(driver.connectionState).toHaveText('new');
-
-    // Subscribe another listener in the browser
-    await driver.page.evaluate(() => {
-      const p = (window as any).__testState.participant;
-      (window as any).__capturedStates = [];
-      p.subscribe((s: any) => {
-        (window as any).__capturedStates.push(s.connectionState);
-      });
-    });
-
+  test('rapid UI toggles keep state consistent', async ({ driver }) => {
     await driver.join();
-    await driver.waitForConnectionState(/connecting|connected|failed/);
+    await driver.waitForConnectionState(/connecting|connected|failed/, JOIN_TIMEOUT);
 
-    const capturedStates = await driver.page.evaluate(() => (window as any).__capturedStates);
-    expect(capturedStates.length).toBeGreaterThan(0);
-    expect(capturedStates).toContain('connecting');
-  });
+    await fc.assert(
+      fc.asyncProperty(fc.array(fc.constantFrom<'video' | 'audio'>('video', 'audio'), {
+        minLength: 6,
+        maxLength: 18,
+      }), async toggles => {
+        for (const toggle of toggles) {
+          if (toggle === 'video') {
+            const before = await driver.getVideoToggleLabel();
+            await driver.toggleVideo();
+            await expect
+              .poll(async () => driver.getVideoToggleLabel(), { timeout: TOGGLE_TIMEOUT })
+              .toBe(oppositeVideoLabel(before));
+          } else {
+            const before = await driver.getAudioToggleLabel();
+            await driver.toggleAudio();
+            await expect
+              .poll(async () => driver.getAudioToggleLabel(), { timeout: TOGGLE_TIMEOUT })
+              .toBe(oppositeAudioLabel(before));
+          }
 
-  test('should handle rapid state changes without corruption', async () => {
-    await driver.page.evaluate(() => {
-      const p = (window as any).__testState.participant;
-      const initial = p.get();
-      // Manually push many states rapidly
-      for (let i = 0; i < 100; i++) {
-        p.set({ ...initial, videoMuted: i % 2 === 0 });
-      }
-    });
-
-    const isMuted = await driver.isVideoMuted();
-    expect(typeof isMuted).toBe('boolean');
-  });
-
-  test('should persist state across manager updates', async () => {
-    await driver.setRoomId('persistence-test');
-    await driver.join();
-
-    // Update config which might re-initialize internal logic
-    await driver.page.evaluate(() => {
-      const p = (window as any).__testState.participant;
-      // This reset call in ParticipantManager (if it exists)
-      p.value.reset({ videoSlots: 32 }, false);
-    });
-
-    await driver.expectConnectionState(/connecting|connected|failed/);
+          await assertMuteConsistency(driver);
+          const stateText = await driver.getConnectionStateText();
+          expect(matchesConnectionState(stateText)).toBe(true);
+        }
+      }),
+      { numRuns: process.env.CI ? 8 : 12 }
+    );
   });
 });

@@ -71,6 +71,43 @@ export class ParticipantDriver {
     await this.shareScreenButton.click();
   }
 
+  async getConnectionStateText(): Promise<string> {
+    const text = await this.connectionState.textContent();
+    return (text ?? '').trim();
+  }
+
+  async isJoinVisible(): Promise<boolean> {
+    return this.joinButton.isVisible();
+  }
+
+  async isLeaveVisible(): Promise<boolean> {
+    return this.leaveButton.isVisible();
+  }
+
+  async isRoomInputEnabled(): Promise<boolean> {
+    return this.roomInput.isEnabled();
+  }
+
+  async getVideoToggleLabel(): Promise<string> {
+    const text = await this.toggleVideoButton.textContent();
+    return (text ?? '').trim();
+  }
+
+  async getAudioToggleLabel(): Promise<string> {
+    const text = await this.toggleAudioButton.textContent();
+    return (text ?? '').trim();
+  }
+
+  async getVideoTrackCount(): Promise<number> {
+    const text = await this.videoTrackCount.textContent();
+    return Number(text ?? '0');
+  }
+
+  async getAudioTrackCount(): Promise<number> {
+    const text = await this.audioTrackCount.textContent();
+    return Number(text ?? '0');
+  }
+
   async waitForConnectionState(state: string | RegExp, timeout: number = TEST_TIMEOUTS.CONNECTION) {
     await expect(this.connectionState).toHaveText(state, { timeout });
   }
@@ -101,16 +138,6 @@ export class ParticipantDriver {
     return text === 'true';
   }
 
-  /**
-   * Get internal test state exposed by the test app
-   */
-  async getTestState() {
-    return this.page.evaluate(() => (window as any).__testState);
-  }
-
-  /**
-   * Helper to perform actions on a specific participant track container
-   */
   async getTrackContainer(participantId: string) {
     return this.page.locator(`[data-participant-id="${participantId}"]`);
   }
