@@ -13,12 +13,12 @@ const ROOM_ID_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789-'.split('');
 const roomIdArb = fc
   .stringOf(fc.constantFrom(...ROOM_ID_CHARS), { minLength: 3, maxLength: 16 })
   .map(value => `room-${value}`);
-const actionArb = fc.oneof<Action>(
-  fc.record({ type: fc.constant('setRoom'), value: roomIdArb }),
-  fc.constant({ type: 'join' }),
-  fc.constant({ type: 'leave' }),
-  fc.constant({ type: 'toggleVideo' }),
-  fc.constant({ type: 'toggleAudio' })
+const actionArb: fc.Arbitrary<Action> = fc.oneof(
+  fc.record({ type: fc.constant('setRoom' as const), value: roomIdArb }),
+  fc.constant({ type: 'join' as const }),
+  fc.constant({ type: 'leave' as const }),
+  fc.constant({ type: 'toggleVideo' as const }),
+  fc.constant({ type: 'toggleAudio' as const })
 );
 
 const JOIN_TIMEOUT = TEST_TIMEOUTS.CONNECTION;
@@ -68,7 +68,7 @@ test.describe('Participant Manager', () => {
     page.on('pageerror', err => pageErrors.push(err.message));
 
     await fc.assert(
-      fc.asyncProperty(fc.array(actionArb, { minLength: 8, maxLength: 20 }), async actions => {
+      fc.asyncProperty(fc.array(actionArb, { minLength: 8, maxLength: 20 }), async (actions: Action[]) => {
         await driver.goto();
         await assertUiInvariants(driver);
 
