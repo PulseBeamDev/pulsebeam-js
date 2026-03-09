@@ -4,13 +4,14 @@ import { Input } from "@pulsebeam/ui";
 import { useEffect, useRef, useState } from "react";
 
 interface LobbyProps {
-    onJoin: (roomId: string) => void;
+    onJoin: (roomId: string, apiURL?: string) => void;
     localStream: MediaStream | null;
     setLocalStream: (stream: MediaStream) => void;
 }
 
 export function Lobby({ onJoin, localStream, setLocalStream }: LobbyProps) {
     const [roomId, setRoomId] = useState("");
+    const [apiURL, setApiURL] = useState("");
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [isJoining, setIsJoining] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -39,7 +40,7 @@ export function Lobby({ onJoin, localStream, setLocalStream }: LobbyProps) {
             setIsJoining(true);
             try {
                 // Ensure room join feels responsive
-                await onJoin(roomId);
+                await onJoin(roomId, apiURL || undefined);
             } catch (e) {
                 setErrorMsg("Failed to join room");
                 setIsJoining(false);
@@ -79,6 +80,11 @@ export function Lobby({ onJoin, localStream, setLocalStream }: LobbyProps) {
                             onChange={(e) => setRoomId(e.target.value)}
                             placeholder="Room ID"
                             required
+                        />
+                        <Input
+                            value={apiURL}
+                            onChange={(e) => setApiURL(e.target.value)}
+                            placeholder="ApiURL (Optional)"
                         />
                         <Button type="submit" className="w-full" disabled={!localStream || !roomId || isJoining}>
                             {isJoining ? (

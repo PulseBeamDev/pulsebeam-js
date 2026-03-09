@@ -6,11 +6,13 @@ import { Room } from "../components/Room";
 
 export default function Home() {
   const [roomId, setRoomId] = useState("");
+  const [apiURL, setApiURL] = useState<string | undefined>(undefined);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [page, setPage] = useState<"lobby" | "room">("lobby");
 
-  const handleJoin = (id: string) => {
+  const handleJoin = (id: string, url?: string) => {
     setRoomId(id);
+    setApiURL(url);
     setPage("room");
   };
 
@@ -29,5 +31,5 @@ export default function Home() {
     );
   }
 
-  return <Room roomId={roomId} localStream={localStream} onLeave={handleLeave} />;
+  return <Room roomId={roomId} apiURL={apiURL} localStream={localStream} onLeave={handleLeave} />;
 }

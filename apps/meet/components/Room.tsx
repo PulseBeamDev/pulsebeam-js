@@ -19,13 +19,12 @@ import {
 
 interface RoomProps {
   roomId: string;
+  apiURL?: string;
   localStream: MediaStream;
   onLeave: () => void;
 }
 
-const API_URL = "http://localhost:3000/api/v1";
-
-export function Room({ roomId, localStream, onLeave }: RoomProps) {
+export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
   const [spotlightId, setSpotlightId] = useState<string | "local">("local");
   const [isScreenShareLoading, setIsScreenShareLoading] = useState(false);
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -35,14 +34,14 @@ export function Room({ roomId, localStream, onLeave }: RoomProps) {
   const clientConfig = useMemo(() => ({
     videoSlots: 16,
     audioSlots: 8,
-    // baseUrl: API_URL,
-  }), []);
+    baseUrl: apiURL,
+  }), [apiURL]);
 
   const screenClientConfig = useMemo(() => ({
     videoSlots: 0,
     audioSlots: 0,
-    // baseUrl: API_URL,
-  }), []);
+    baseUrl: apiURL,
+  }), [apiURL]);
 
   const client = useParticipant(clientConfig);
   const screenClient = useParticipant(screenClientConfig);
