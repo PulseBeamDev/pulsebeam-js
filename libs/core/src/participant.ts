@@ -21,6 +21,8 @@ export interface ParticipantConfig {
   videoSlots: number;
   audioSlots: number;
   baseUrl?: string;
+  token?: string;
+  metadata?: Record<string, string>;
 }
 
 export type ConnectionState = RTCPeerConnectionState;
@@ -392,7 +394,14 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     }
 
     const baseUrl = this.config.baseUrl || "https://demo.pulsebeam.dev/api/v1";
-    const uri = `${baseUrl}/rooms/${room}/participants?manual_sub=true`;
+    let uri = `${baseUrl}/rooms/${room}/participants?manual_sub=true`;
+
+    if (this.config.metadata) {
+      for (const [key, value] of Object.entries(this.config.metadata)) {
+        uri += `&metadata.${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+      }
+    }
+
     this.establishConnection("POST", uri);
   }
 
@@ -468,6 +477,9 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       const headers: Record<string, string> = {
         "Content-Type": "application/sdp"
       };
+      if (this.config.token) {
+        headers["Authorization"] = `Bearer ${this.config.token}`;
+      }
       if (this.session.etag) {
         headers["If-Match"] = this.session.etag;
       }

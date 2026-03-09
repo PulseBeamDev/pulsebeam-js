@@ -30,7 +30,9 @@ export type ParticipantManager = MapStore<ParticipantSnapshot>;
 function sameConfig(last: ParticipantConfig, cur: ParticipantConfig): boolean {
   return last.videoSlots === cur.videoSlots &&
     last.audioSlots === cur.audioSlots &&
-    last.baseUrl === cur.baseUrl;
+    last.baseUrl === cur.baseUrl &&
+    last.token === cur.token &&
+    JSON.stringify(last.metadata) === JSON.stringify(cur.metadata);
 }
 
 export function createParticipant(
