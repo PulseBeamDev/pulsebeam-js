@@ -30,8 +30,11 @@ export const PRESETS: Record<"camera" | "screen", VideoPreset> = {
  * Internal mapper to translate our abstraction into WebRTC SendParameters.
  */
 export function mapPresetToInternal(preset: VideoPreset) {
-  const rids = ["q", "h", "f"];
-  const scales = [4, 2, 1];
+  // Ordering here determines the highest quality first.
+  // https://datatracker.ietf.org/doc/html/rfc8853#section-5.2
+  // https://github.com/obsproject/obs-studio/pull/10885
+  const rids = ["f", "h", "q"];
+  const scales = [1, 2, 4];
 
   const encodings = scales.map((scale, i) => {
     const weight = scale === 4 ? 0.15 : scale === 2 ? 0.35 : 1.0;
