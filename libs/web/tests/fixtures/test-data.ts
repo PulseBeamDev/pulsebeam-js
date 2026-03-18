@@ -28,5 +28,5 @@ export const CONNECTION_STATES = [
 export const MOCK_CONFIG = {
   videoSlots: 16,
   audioSlots: 8,
-  baseUrl: 'http://localhost:3000/api/v1',
+  baseUrl: 'http://localhost:7070/api/v1',
 } as const;
