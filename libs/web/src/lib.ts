@@ -48,7 +48,7 @@ export const BrowserAdapter: PlatformAdapter = {
 export function createParticipant(config: ParticipantConfig) {
   if (adapter.browserDetails.browser == "firefox" && !!adapter.browserDetails.version && adapter.browserDetails.version < 146) {
     // TODO: this firefox requires at least 1 audio recv-only.. 
-    config.audioSlots = Math.max(config.audioSlots, 1);
+    // config.audioSlots = Math.max(config.audioSlots, 1);
   }
 
   return createCoreParticipant(BrowserAdapter, config);

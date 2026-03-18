@@ -17,11 +17,51 @@ import { mapPresetToInternal, PRESETS, type VideoPreset } from "./preset";
 const SIGNALING_LABEL = "__internal/v1/signaling";
 const SYNC_DEBOUNCE_MS = 300;
 
+/**
+ * Maximum number of video slots available per session.
+ * Each slot represents a simulcast video track that can be forwarded by the SFU.
+ */
+const MAX_VIDEO_SLOTS = 16;
+
+/**
+ * Maximum number of audio slots available per session.
+ * Each slot represents an audio track that can be forwarded by the SFU.
+ */
+const MAX_AUDIOS_SLOTS = 9;
+
+/**
+ * Configuration options for a participant connection.
+ */
 export interface ParticipantConfig {
-  videoSlots: number;
-  audioSlots: number;
+  /**
+   * Number of video slots to allocate for this participant.
+   * Must be between 1 and {@link MAX_VIDEO_SLOTS} (default: {@link MAX_VIDEO_SLOTS}).
+   */
+  videoSlots?: number;
+
+  /**
+   * Number of audio slots to allocate for this participant.
+   * Must be between 1 and {@link MAX_AUDIOS_SLOTS} (default: {@link MAX_AUDIOS_SLOTS}).
+   */
+  audioSlots?: number;
+
+  /**
+   * Base URL of the SFU signaling server.
+   * @example "http://localhost:7070"
+   */
   baseUrl?: string;
+
+  /**
+   * Authentication token for the participant session.
+   * Passed as a Bearer token in the signaling handshake.
+   */
   token?: string;
+
+  /**
+   * Arbitrary key-value metadata attached to the participant.
+   * Forwarded as-is to other participants via the signaling layer.
+   * @example { "displayName": "Alice", "role": "host" }
+   */
   metadata?: Record<string, string>;
 }
 
@@ -217,10 +257,12 @@ class Transport {
     this.dc.binaryType = "arraybuffer";
     this.dc.onmessage = (ev) => onSignal(ev.data);
 
-    for (let i = 0; i < config.videoSlots; i++) {
+    const videoSlots = Math.min(config.videoSlots ?? MAX_VIDEO_SLOTS, MAX_VIDEO_SLOTS);
+    const audioSlots = Math.min(config.audioSlots ?? MAX_AUDIOS_SLOTS, MAX_AUDIOS_SLOTS);
+    for (let i = 0; i < videoSlots; i++) {
       this.videoSlots.push(this.pc.addTransceiver("video", { direction: "recvonly" }));
     }
-    for (let i = 0; i < config.audioSlots; i++) {
+    for (let i = 0; i < audioSlots; i++) {
       this.audioSlots.push(this.pc.addTransceiver("audio", { direction: "recvonly" }));
     }
 

@@ -32,8 +32,6 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
 
   // Memoize configurations to prevent unnecessary resets
   const clientConfig = useMemo(() => ({
-    videoSlots: 16,
-    audioSlots: 8,
     baseUrl: apiURL,
   }), [apiURL]);
 
