@@ -4,100 +4,100 @@ import { Input } from "@pulsebeam/ui";
 import { useEffect, useRef, useState } from "react";
 
 interface LobbyProps {
-    onJoin: (roomId: string, apiURL?: string) => void;
-    localStream: MediaStream | null;
-    setLocalStream: (stream: MediaStream) => void;
+  onJoin: (roomId: string, apiURL?: string) => void;
+  localStream: MediaStream | null;
+  setLocalStream: (stream: MediaStream) => void;
 }
 
 export function Lobby({ onJoin, localStream, setLocalStream }: LobbyProps) {
-    const [roomId, setRoomId] = useState("");
-    const [apiURL, setApiURL] = useState("");
-    const [errorMsg, setErrorMsg] = useState<string | null>(null);
-    const [isJoining, setIsJoining] = useState(false);
-    const videoRef = useRef<HTMLVideoElement>(null);
+  const [roomId, setRoomId] = useState("");
+  const [apiURL, setApiURL] = useState("http://localhost:7070/api/v1");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isJoining, setIsJoining] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-    useEffect(() => {
-        if (!localStream) {
-            navigator.mediaDevices
-                .getUserMedia({
-                    video: { height: 720 },
-                    audio: true,
-                })
-                .then(setLocalStream)
-                .catch((e) => setErrorMsg(e.message));
-        }
-    }, [localStream, setLocalStream]);
+  useEffect(() => {
+    if (!localStream) {
+      navigator.mediaDevices
+        .getUserMedia({
+          video: { height: 720 },
+          audio: true,
+        })
+        .then(setLocalStream)
+        .catch((e) => setErrorMsg(e.message));
+    }
+  }, [localStream, setLocalStream]);
 
-    useEffect(() => {
-        if (videoRef.current && localStream) {
-            videoRef.current.srcObject = localStream;
-        }
-    }, [localStream]);
+  useEffect(() => {
+    if (videoRef.current && localStream) {
+      videoRef.current.srcObject = localStream;
+    }
+  }, [localStream]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (roomId && localStream) {
-            setIsJoining(true);
-            try {
-                // Ensure room join feels responsive
-                await onJoin(roomId, apiURL || undefined);
-            } catch (e) {
-                setErrorMsg("Failed to join room");
-                setIsJoining(false);
-            }
-        }
-    };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (roomId && localStream) {
+      setIsJoining(true);
+      try {
+        // Ensure room join feels responsive
+        await onJoin(roomId, apiURL || undefined);
+      } catch (e) {
+        setErrorMsg("Failed to join room");
+        setIsJoining(false);
+      }
+    }
+  };
 
-    return (
-        <div className="flex items-center justify-center min-h-screen bg-background">
-            <Card className="w-full max-w-md">
-                <CardHeader>
-                    <CardTitle>Join Room</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {errorMsg && <p className="text-destructive text-sm">{errorMsg}</p>}
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-background">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Join Room</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {errorMsg && <p className="text-destructive text-sm">{errorMsg}</p>}
 
-                    <div className="aspect-video bg-muted rounded-md overflow-hidden relative">
-                        {localStream ? (
-                            <video
-                                ref={videoRef}
-                                autoPlay
-                                muted
-                                playsInline
-                                className="w-full h-full object-cover"
-                            />
-                        ) : (
-                            <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
-                                <Spinner className="w-8 h-8" />
-                                <span className="text-sm font-medium">Requesting Camera...</span>
-                            </div>
-                        )}
-                    </div>
+          <div className="aspect-video bg-muted rounded-md overflow-hidden relative">
+            {localStream ? (
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
+                <Spinner className="w-8 h-8" />
+                <span className="text-sm font-medium">Requesting Camera...</span>
+              </div>
+            )}
+          </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <Input
-                            value={roomId}
-                            onChange={(e) => setRoomId(e.target.value)}
-                            placeholder="Room ID"
-                            required
-                        />
-                        <Input
-                            value={apiURL}
-                            onChange={(e) => setApiURL(e.target.value)}
-                            placeholder="ApiURL (Optional)"
-                        />
-                        <Button type="submit" className="w-full" disabled={!localStream || !roomId || isJoining}>
-                            {isJoining ? (
-                                <>
-                                    <Spinner className="w-4 h-4 mr-2" /> Joining...
-                                </>
-                            ) : (
-                                "Join"
-                            )}
-                        </Button>
-                    </form>
-                </CardContent>
-            </Card>
-        </div>
-    );
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              value={roomId}
+              onChange={(e) => setRoomId(e.target.value)}
+              placeholder="Room ID"
+              required
+            />
+            <Input
+              value={apiURL}
+              onChange={(e) => setApiURL(e.target.value)}
+              placeholder="ApiURL (Optional)"
+            />
+            <Button type="submit" className="w-full" disabled={!localStream || !roomId || isJoining}>
+              {isJoining ? (
+                <>
+                  <Spinner className="w-4 h-4 mr-2" /> Joining...
+                </>
+              ) : (
+                "Join"
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
