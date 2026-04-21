@@ -27,7 +27,7 @@ const MAX_VIDEO_SLOTS = 16;
  * Maximum number of audio slots available per session.
  * Each slot represents an audio track that can be forwarded by the SFU.
  */
-const MAX_AUDIOS_SLOTS = 9;
+const MAX_AUDIO_SLOTS = 5;
 
 /**
  * Configuration options for a participant connection.
@@ -41,7 +41,7 @@ export interface ParticipantConfig {
 
   /**
    * Number of audio slots to allocate for this participant.
-   * Must be between 1 and {@link MAX_AUDIOS_SLOTS} (default: {@link MAX_AUDIOS_SLOTS}).
+   * Must be between 1 and {@link MAX_AUDIO_SLOTS} (default: {@link MAX_AUDIO_SLOTS}).
    */
   audioSlots?: number;
 
@@ -258,7 +258,7 @@ class Transport {
     this.dc.onmessage = (ev) => onSignal(ev.data);
 
     const videoSlots = Math.min(config.videoSlots ?? MAX_VIDEO_SLOTS, MAX_VIDEO_SLOTS);
-    const audioSlots = Math.min(config.audioSlots ?? MAX_AUDIOS_SLOTS, MAX_AUDIOS_SLOTS);
+    const audioSlots = Math.min(config.audioSlots ?? MAX_AUDIO_SLOTS, MAX_AUDIO_SLOTS);
     for (let i = 0; i < videoSlots; i++) {
       this.videoSlots.push(this.pc.addTransceiver("video", { direction: "recvonly" }));
     }
