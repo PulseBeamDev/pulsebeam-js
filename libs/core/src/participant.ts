@@ -137,7 +137,9 @@ export class RemoteAudioTrack {
 
 export class RemoteVideoTrack {
   public height: number = 0;
+  public paused: boolean = true;
   public onLayoutChange?: () => void;
+  public onPausedChange?: (paused: boolean) => void;
 
   constructor(
     public readonly track: Track,
@@ -663,19 +665,31 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   private routePhysicalToVirtual() {
     if (!this.transport) return;
     const activeStreams = new Map<string, MediaStreamTrack>();
+    const pausedTrackIds = new Set<string>();
 
     for (const slot of this.transport.videoSlots) {
       const mid = slot.mid;
       if (!mid) continue;
 
       const assign = this.session.assignments.get(mid);
-      if (assign && !assign.paused && this.session.tracks.has(assign.trackId)) {
+      if (!assign || !this.session.tracks.has(assign.trackId)) continue;
+
+      if (assign.paused) {
+        pausedTrackIds.add(assign.trackId);
+      } else {
         activeStreams.set(assign.trackId, slot.receiver.track);
       }
     }
 
     for (const rvt of this.session.remoteVideoTracks.values()) {
       const track = activeStreams.get(rvt.id);
+      const isPaused = pausedTrackIds.has(rvt.id);
+
+      if (rvt.paused !== isPaused) {
+        rvt.paused = isPaused;
+        rvt.onPausedChange?.(isPaused);
+      }
+
       track ? rvt.setStream(track) : rvt.clearStream();
     }
   }

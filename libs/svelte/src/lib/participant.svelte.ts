@@ -6,6 +6,7 @@ import {
   RemoteVideoTrack,
   RemoteAudioTrack,
   type ParticipantConfig,
+  PAUSED_PLACEHOLDER_SVG,
 } from "@pulsebeam/web";
 export * from "@pulsebeam/web";
 

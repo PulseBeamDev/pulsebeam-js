@@ -6,6 +6,7 @@ import {
   createDisplayManager as createCoreDisplayManager,
 } from "@pulsebeam/core";
 import adapter from "webrtc-adapter";
+export { PAUSED_PLACEHOLDER_SVG } from "./paused-placeholder";
 
 export const BrowserAdapter: PlatformAdapter = {
   RTCPeerConnection: globalThis.RTCPeerConnection,
@@ -99,6 +100,10 @@ export class VideoBinder {
     this.resizeObserver?.disconnect();
     this.intersectionObserver?.disconnect();
 
+    if (this.track?.onPausedChange) {
+      this.track.onPausedChange = undefined;
+    }
+
     if (this.el) {
       this.el.pause(); // Release hardware decoder immediately
       this.el.srcObject = null;
@@ -108,6 +113,10 @@ export class VideoBinder {
 
   update(newTrack: RemoteVideoTrack) {
     if (this.track === newTrack) return;
+    if (this.track?.onPausedChange) {
+      this.track.onPausedChange = undefined;
+    }
+
     this.track = newTrack;
 
     if (this.el) {
@@ -209,6 +218,7 @@ export class VideoBinder {
 
     this.track.setHeight(height);
   }
+
 }
 
 export class AudioBinder {

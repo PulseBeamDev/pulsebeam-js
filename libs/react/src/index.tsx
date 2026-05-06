@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 import { useStore } from "@nanostores/react";
 import {
   createParticipant,
@@ -8,6 +8,8 @@ import {
   AudioBinder,
   type ParticipantConfig,
   type ParticipantManager,
+  type RemoteVideoTrack,
+  PAUSED_PLACEHOLDER_SVG,
 } from "@pulsebeam/web";
 
 export * from "@pulsebeam/web";
@@ -23,9 +25,42 @@ const useBinder = (track: any, Binder: any) => {
   return ref;
 };
 
-export const Video = ({ track, ...props }: any) => (
-  <video ref={useBinder(track, VideoBinder)} autoPlay playsInline muted {...props} />
-);
+export const Video = ({ track, className, style, ...props }: { track: RemoteVideoTrack; className?: string; style?: React.CSSProperties;[key: string]: any }) => {
+  const [paused, setPaused] = useState<boolean>(track?.paused ?? true);
+
+  useEffect(() => {
+    if (!track) return;
+    setPaused(track.paused);
+    track.onPausedChange = (p: boolean) => setPaused(p);
+    return () => { track.onPausedChange = undefined; };
+  }, [track]);
+
+  const ref = useBinder(track, VideoBinder);
+
+  return (
+    <div className={className} style={{ position: "relative", ...style }}>
+      <video ref={ref} autoPlay playsInline muted {...props} style={{ width: "100%", height: "100%", opacity: paused ? 0 : 1, transition: "opacity 120ms ease" }} />
+      {paused && (
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#1a1a1a",
+          pointerEvents: "none",
+        }}>
+          <img
+            src={PAUSED_PLACEHOLDER_SVG}
+            alt="Paused placeholder"
+            aria-hidden="true"
+            style={{ width: "40%", maxWidth: "96px", opacity: 0.5 }}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const Audio = ({ track, ...props }: any) => (
   <audio ref={useBinder(track, AudioBinder)} autoPlay {...props} />
