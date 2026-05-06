@@ -38,8 +38,32 @@ export const Video = ({ track, className, style, ...props }: { track: RemoteVide
   const ref = useBinder(track, VideoBinder);
 
   return (
-    <div className={className} style={{ position: "relative", ...style }}>
-      <video ref={ref} autoPlay playsInline muted {...props} style={{ width: "100%", height: "100%", opacity: paused ? 0 : 1, transition: "opacity 120ms ease" }} />
+    <div
+      className={className}
+      style={{
+        position: "relative",
+        overflow: "hidden",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        ...style
+      }}
+    >
+      <video
+        ref={ref}
+        autoPlay
+        playsInline
+        muted
+        {...props}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          opacity: paused ? 0 : 1,
+          transition: "opacity 120ms ease"
+        }}
+      />
+
       {paused && (
         <div style={{
           position: "absolute",
@@ -49,12 +73,16 @@ export const Video = ({ track, className, style, ...props }: { track: RemoteVide
           justifyContent: "center",
           backgroundColor: "#1a1a1a",
           pointerEvents: "none",
+          zIndex: 1, // Ensure it sits above the video
         }}>
           <img
             src={PAUSED_PLACEHOLDER_SVG}
             alt="Paused placeholder"
             aria-hidden="true"
-            style={{ width: "40%", maxWidth: "96px", opacity: 0.5 }}
+            style={{
+              height: "100%",
+              opacity: 0.5
+            }}
           />
         </div>
       )}
