@@ -12,7 +12,7 @@ import {
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 import type { PlatformAdapter } from "./platform";
 import { EventEmitter } from "./event";
-import { mapPresetToInternal, PRESETS, type VideoPreset } from "./preset";
+import { mapPresetToInternal, VIDEO_PRESETS, AUDIO_PRESETS, type VideoPreset, type VideoPresetName, type AudioPresetConfig } from "./preset";
 
 const SIGNALING_LABEL = "__internal/v1/signaling";
 const SYNC_DEBOUNCE_MS = 300;
@@ -338,7 +338,7 @@ class Transport {
     // 2. Reconcile RtpParameters (Encodings & Bitrates)
     try {
       const params = this.videoSender.getParameters();
-      const internal = mapPresetToInternal(desired.preset);
+      const internal = mapPresetToInternal(desired.videoPreset);
       const shouldBeActive = !!vTrack && !desired.localStream?.video?.muted;
       let changed = false;
 
@@ -384,12 +384,30 @@ class Transport {
     } catch (e) {
       // Common if the sender is not yet negotiated or parameters aren't available
     }
+
+    // 3. Reconcile Audio Preset
+    if (aTrack && "contentHint" in aTrack && aTrack.contentHint !== desired.audioPreset.contentHint) {
+      aTrack.contentHint = desired.audioPreset.contentHint;
+    }
+    try {
+      const aParams = this.audioSender.getParameters();
+      const aEncoding = aParams.encodings[0];
+      if (aEncoding && aEncoding.maxBitrate !== desired.audioPreset.maxBitrate) {
+        aEncoding.maxBitrate = desired.audioPreset.maxBitrate;
+        this.audioSender.setParameters(aParams).catch((e) => {
+          console.warn("audio setParameters failed, will retry on next sync", e);
+        });
+      }
+    } catch (e) {
+      // Common if the sender is not yet negotiated or parameters aren't available
+    }
   }
 }
 
 class UpstreamState {
   localStream: LocalMediaStream | null = null;
-  preset: VideoPreset = PRESETS["camera"];
+  videoPreset: VideoPreset = VIDEO_PRESETS["motion"];
+  audioPreset: AudioPresetConfig = AUDIO_PRESETS["voice"];
 }
 
 export class Participant extends EventEmitter<ParticipantEvents> {
@@ -452,17 +470,27 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   /**
    * Replaces the current stream. Pass null to unpublish.
    */
-  publish(stream: MediaStream | null, preset: VideoPreset | "camera" | "screen" = "camera") {
-    const resolved = typeof preset === "string" ? PRESETS[preset] : preset;
-    const internal = mapPresetToInternal(resolved);
+  publish(
+    stream: MediaStream | null,
+    options?: { videoPreset?: VideoPresetName; audioPreset?: "voice" | "music" },
+  ) {
+    const resolvedVideo = VIDEO_PRESETS[options?.videoPreset ?? "motion"];
+    const resolvedAudio = AUDIO_PRESETS[options?.audioPreset ?? "voice"];
+    const internal = mapPresetToInternal(resolvedVideo);
 
     if (stream) {
       const vTrack = stream.getVideoTracks()[0];
       if (vTrack && "contentHint" in vTrack) {
         vTrack.contentHint = internal.contentHint;
       }
+      const aTrack = stream.getAudioTracks()[0];
+      if (aTrack && "contentHint" in aTrack) {
+        aTrack.contentHint = resolvedAudio.contentHint;
+      }
     }
 
+    this.upstreamState.videoPreset = resolvedVideo;
+    this.upstreamState.audioPreset = resolvedAudio;
     this.upstreamState.localStream = stream ? new LocalMediaStream(stream) : null;
     this.transport?.sync(this.upstreamState);
 

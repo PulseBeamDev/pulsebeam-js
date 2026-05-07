@@ -1,3 +1,48 @@
+export interface AudioPresetConfig {
+  maxBitrate: number;
+  contentHint: "speech" | "music";
+  // getUserMedia constraints — used when capturing the track
+  constraints: {
+    echoCancellation: boolean;
+    noiseSuppression: boolean;
+    autoGainControl: boolean;
+  };
+}
+
+export const AUDIO_PRESETS = {
+  /**
+   * Optimised for human voice in a call/conference context.
+   * Browser pipeline cleans up noise, echo, gain.
+   * Opus runs in SILK/hybrid mode — tuned for speech.
+   */
+  voice: {
+    maxBitrate: 48_000,
+    contentHint: "speech",
+    constraints: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    },
+  },
+
+  /**
+   * Optimised for music, screen share audio, instruments, or
+   * any full-spectrum content. Browser pipeline is bypassed.
+   * Opus runs in full CELT mode — full 20Hz–20kHz.
+   */
+  music: {
+    maxBitrate: 128_000,
+    contentHint: "music",
+    constraints: {
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
+    },
+  },
+} as const satisfies Record<string, AudioPresetConfig>;
+
+export type AudioPreset = keyof typeof AUDIO_PRESETS;
+
 /**
  * High-level intent for video quality.
  */
@@ -8,21 +53,23 @@ export interface VideoPreset {
   baseBitrate: number;
 }
 
+export type VideoPresetName = "motion" | "detail";
+
 /**
  * Standard defaults for common use cases.
  */
-export const PRESETS: Record<"camera" | "screen", VideoPreset> = {
-  camera: {
+export const VIDEO_PRESETS: Record<VideoPresetName, VideoPreset> = {
+  motion: {
     layers: 3,
     mode: "motion",
     maxFps: 30,
-    baseBitrate: 1_250_000
+    baseBitrate: 1_250_000,
   },
-  screen: {
+  detail: {
     layers: 3,
-    mode: "detail", // Forces clarity over smoothness
+    mode: "detail",
     maxFps: 30,
-    baseBitrate: 2_500_000
+    baseBitrate: 2_500_000,
   },
 };
 

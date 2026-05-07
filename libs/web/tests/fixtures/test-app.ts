@@ -192,7 +192,7 @@ async function handleShareScreen() {
     try {
         const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
         publishedStream = stream;
-        participant.get().publish(stream, 'screen');
+        participant.get().publish(stream, { videoPreset: 'detail' });
     } catch (error) {
         console.error('Failed to share screen:', error);
     }
