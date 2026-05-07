@@ -47,6 +47,13 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
   const isSharing = screenClient.connectionState === "connected" || screenClient.connectionState === "connecting";
 
   useEffect(() => {
+    if (client.connectionState === "failed") {
+      console.warn("connection failed");
+      onLeave();
+    }
+  }, [client.connectionState]);
+
+  useEffect(() => {
     client.connect(roomId);
   }, [roomId]);
 
@@ -102,6 +109,7 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
     if (screenClient.connectionState === "connected") {
       setIsScreenShareLoading(false);
     }
+
   }, [screenClient.connectionState]);
 
   const toggleMic = () => client.mute({ audio: !client.audioMuted });
