@@ -33,7 +33,7 @@ export interface VideoProps extends React.VideoHTMLAttributes<HTMLVideoElement> 
 }
 
 export function Video(props: VideoProps) {
-  const [paused, setPaused] = useState<boolean>(props.track?.paused ?? true);
+  const [paused, setPaused] = useState<boolean>(props.track ? props.track.paused : true);
 
   useEffect(() => {
     if (!props.track) return;
@@ -66,8 +66,6 @@ export function Video(props: VideoProps) {
           width: "100%",
           height: "100%",
           objectFit: "cover",
-          opacity: paused ? 0 : 1,
-          transition: "opacity 120ms ease"
         }}
       />
 
@@ -88,7 +86,6 @@ export function Video(props: VideoProps) {
             aria-hidden="true"
             style={{
               height: "100%",
-              opacity: 0.5
             }}
           />
         </div>
