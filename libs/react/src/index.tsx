@@ -66,30 +66,29 @@ export function Video(props: VideoProps) {
           width: "100%",
           height: "100%",
           objectFit: "cover",
+          opacity: paused ? 0 : 1,
         }}
       />
 
-      {paused && (
-        <div style={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#1a1a1a",
-          pointerEvents: "none",
-          zIndex: 1, // Ensure it sits above the video
-        }}>
-          <img
-            src={PAUSED_PLACEHOLDER_SVG}
-            alt="Paused placeholder"
-            aria-hidden="true"
-            style={{
-              height: "100%",
-            }}
-          />
-        </div>
-      )}
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#1a1a1a",
+        pointerEvents: "none",
+        opacity: paused ? 1 : 0,
+      }}>
+        <img
+          src={PAUSED_PLACEHOLDER_SVG}
+          alt="Paused placeholder"
+          aria-hidden="true"
+          style={{
+            height: "100%",
+          }}
+        />
+      </div>
     </div>
   );
 };
