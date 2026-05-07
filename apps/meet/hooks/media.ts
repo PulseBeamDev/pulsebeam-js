@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useParticipant } from '@pulsebeam/react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 export function useMediaDevices(initialStream: MediaStream | null, onStreamChange: (s: MediaStream) => void) {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
@@ -91,4 +92,39 @@ export function useMediaDevices(initialStream: MediaStream | null, onStreamChang
     toggleVideo,
     startMedia
   };
+}
+
+
+export function useScreenShare(roomId: string, apiURL?: string) {
+  const [isLoading, setIsLoading] = useState(false);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const config = useMemo(() => ({
+    videoSlots: 0, audioSlots: 0, baseUrl: apiURL,
+  }), [apiURL]);
+  const client = useParticipant(config);
+
+  const start = async () => {
+    try {
+      setIsLoading(true);
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      streamRef.current = stream;
+      stream.getVideoTracks()[0].onended = stop;
+      client.publish(stream);
+      client.connect(roomId);
+    } catch (e) {
+      console.error(e);
+      setIsLoading(false);
+    }
+  };
+
+  const stop = () => {
+    client.close();
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    setIsLoading(false);
+  };
+
+  const isSharing = ["connected", "connecting"].includes(client.connectionState);
+
+  return { isSharing, isLoading: isLoading && !isSharing, start, stop };
 }
