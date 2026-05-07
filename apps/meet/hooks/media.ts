@@ -107,7 +107,7 @@ export function useScreenShare(roomId: string, apiURL?: string) {
   const start = async () => {
     try {
       setIsLoading(true);
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
       streamRef.current = stream;
       stream.getVideoTracks()[0].onended = stop;
       client.publish(stream, { videoPreset: 'detail', audioPreset: 'music' });
