@@ -16,7 +16,8 @@ export function useMediaDevices(initialStream: MediaStream | null, onStreamChang
 
   const refreshDevices = useCallback(async () => {
     try {
-      const devs = await navigator.mediaDevices.enumerateDevices();
+      let devs = await navigator.mediaDevices.enumerateDevices();
+      devs = devs.filter(d => !!d.deviceId && !!d.label);
       // Only update state if the device list actually changed to prevent unnecessary re-renders
       setDevices((prev) => {
         if (JSON.stringify(prev) === JSON.stringify(devs)) return prev;
@@ -36,25 +37,26 @@ export function useMediaDevices(initialStream: MediaStream | null, onStreamChang
 
   const startMedia = useCallback(async (vId?: string, aId?: string) => {
     try {
-      if (initialStream) {
-        initialStream.getTracks().forEach(t => t.stop());
-      }
-
       const stream = await navigator.mediaDevices.getUserMedia({
         video: vId ? { deviceId: { exact: vId }, height: 720 } : { height: 720 },
         audio: aId ? { deviceId: { exact: aId } } : true,
       });
 
-      // Apply the persistent UI states
-      stream.getAudioTracks().forEach(t => t.enabled = stateRef.current.isMicOn);
-      stream.getVideoTracks().forEach(t => t.enabled = stateRef.current.isCamOn);
+      // Extract the REAL device IDs chosen by the browser
+      const activeVideoId = stream.getVideoTracks()[0]?.getSettings().deviceId;
+      const activeAudioId = stream.getAudioTracks()[0]?.getSettings().deviceId;
+
+      // This clears the "Select Camera" placeholder immediately
+      if (activeVideoId) setVideoDeviceId(activeVideoId);
+      if (activeAudioId) setAudioDeviceId(activeAudioId);
 
       onStreamChange(stream);
-      setError(null);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      if (e instanceof Error) {
+        setError(e.message);
+      }
     }
-  }, [initialStream, onStreamChange]);
+  }, [onStreamChange]);
 
   const toggleAudio = () => {
     const newState = !isMicOn;
