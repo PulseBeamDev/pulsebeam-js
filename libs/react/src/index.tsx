@@ -25,28 +25,35 @@ const useBinder = (track: any, Binder: any) => {
   return ref;
 };
 
-export const Video = ({ track, className, style, ...props }: { track: RemoteVideoTrack; className?: string; style?: React.CSSProperties;[key: string]: any }) => {
-  const [paused, setPaused] = useState<boolean>(track?.paused ?? true);
+
+export interface VideoProps extends React.VideoHTMLAttributes<HTMLVideoElement> {
+  track: RemoteVideoTrack;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+export function Video(props: VideoProps) {
+  const [paused, setPaused] = useState<boolean>(props.track?.paused ?? true);
 
   useEffect(() => {
-    if (!track) return;
-    setPaused(track.paused);
-    track.onPausedChange = (p: boolean) => setPaused(p);
-    return () => { track.onPausedChange = undefined; };
-  }, [track]);
+    if (!props.track) return;
+    setPaused(props.track.paused);
+    props.track.onPausedChange = (p: boolean) => setPaused(p);
+    return () => { props.track.onPausedChange = undefined; };
+  }, [props.track]);
 
-  const ref = useBinder(track, VideoBinder);
+  const ref = useBinder(props.track, VideoBinder);
 
   return (
     <div
-      className={className}
+      className={props.className}
       style={{
         position: "relative",
         overflow: "hidden",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        ...style
+        ...props.style
       }}
     >
       <video
