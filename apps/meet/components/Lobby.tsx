@@ -1,7 +1,10 @@
-import { Card, CardHeader, CardTitle, CardContent, Spinner } from "@pulsebeam/ui";
+import { Card, CardContent } from "@pulsebeam/ui";
 import { Button } from "@pulsebeam/ui";
 import { Input } from "@pulsebeam/ui";
 import { useEffect, useRef, useState } from "react";
+import { MediaPreview } from "./MediaPreview";
+import { DeviceSelector } from "./DeviceSelector";
+import { useMediaDevices } from "@/hooks/media";
 
 interface LobbyProps {
   onJoin: (roomId: string, apiURL?: string) => void;
@@ -11,90 +14,69 @@ interface LobbyProps {
 
 export function Lobby({ onJoin, localStream, setLocalStream }: LobbyProps) {
   const [roomId, setRoomId] = useState("");
-  const [apiURL, setApiURL] = useState("http://localhost:7070/api/v1");
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [isJoining, setIsJoining] = useState(false);
+  const [apiURL, setApiURL] = useState("");
+  const [isJoining, _setIsJoining] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  useEffect(() => {
-    if (!localStream) {
-      navigator.mediaDevices
-        .getUserMedia({
-          video: { height: 720 },
-          audio: true,
-        })
-        .then(setLocalStream)
-        .catch((e) => setErrorMsg(e.message));
-    }
-  }, [localStream, setLocalStream]);
+  const media = useMediaDevices(localStream, setLocalStream);
 
+  // Initial trigger
   useEffect(() => {
-    if (videoRef.current && localStream) {
-      videoRef.current.srcObject = localStream;
-    }
-  }, [localStream]);
+    if (!localStream) media.startMedia();
+  }, []);
 
-  const handleSubmit = async (e: React.SubmitEvent) => {
-    e.preventDefault();
-    if (roomId && localStream) {
-      setIsJoining(true);
-      try {
-        // Ensure room join feels responsive
-        onJoin(roomId, apiURL || undefined);
-      } catch (e) {
-        setErrorMsg("Failed to join room");
-        setIsJoining(false);
-      }
+  // Video preview sync
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !localStream) return;
+
+    // Re-assign srcObject if it's different or missing
+    if (video.srcObject !== localStream) {
+      video.srcObject = localStream;
     }
-  };
+
+    if (media.isCamOn) {
+      // Chrome workaround: Explicitly call play() when unmuting video
+      // to wake up the rendering engine
+      video.play().catch((err) => {
+        // Log error but don't crash; usually it's just a "play() interrupted" warning
+        console.warn("Video play interrupted or failed:", err);
+      });
+    }
+  }, [localStream, media.isCamOn]); // isCamOn is a vital dependency here
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Join Room</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {errorMsg && <p className="text-destructive text-sm">{errorMsg}</p>}
+    <div className="flex items-center justify-center min-h-screen bg-background p-4">
+      <Card className="w-full max-w-xl shadow-2xl">
+        <CardContent className="pt-6 space-y-6">
+          <MediaPreview
+            videoRef={videoRef}
+            isCamOn={media.isCamOn}
+            isMicOn={media.isMicOn}
+            onToggleCam={media.toggleVideo}
+            onToggleMic={media.toggleAudio}
+            hasStream={!!localStream}
+          />
 
-          <div className="aspect-video bg-muted rounded-md overflow-hidden relative">
-            {localStream ? (
-              <video
-                ref={videoRef}
-                autoPlay
-                muted
-                playsInline
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
-                <Spinner className="w-8 h-8" />
-                <span className="text-sm font-medium">Requesting Camera...</span>
-              </div>
-            )}
+          <div className="grid grid-cols-2 gap-4">
+            <DeviceSelector
+              label="Camera"
+              value={media.videoDeviceId}
+              devices={media.devices.filter(d => d.kind === 'videoinput')}
+              onValueChange={media.setVideoDeviceId}
+            />
+            <DeviceSelector
+              label="Microphone"
+              value={media.audioDeviceId}
+              devices={media.devices.filter(d => d.kind === 'audioinput')}
+              onValueChange={media.setAudioDeviceId}
+            />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              value={roomId}
-              onChange={(e) => setRoomId(e.target.value)}
-              placeholder="Room ID"
-              required
-            />
-            <Input
-              value={apiURL}
-              onChange={(e) => setApiURL(e.target.value)}
-              placeholder="ApiURL (Optional)"
-            />
-            <Button type="submit" className="w-full" disabled={!localStream || !roomId || isJoining}>
-              {isJoining ? (
-                <>
-                  <Spinner className="w-4 h-4 mr-2" /> Joining...
-                </>
-              ) : (
-                "Join"
-              )}
-            </Button>
+          <form onSubmit={(e) => { e.preventDefault(); onJoin(roomId, apiURL); }} className="space-y-4 pt-4 border-t">
+            <Input value={roomId} onChange={e => setRoomId(e.target.value)} placeholder="Room ID" required />
+            <Input value={apiURL} onChange={e => setApiURL(e.target.value)} placeholder="API URL (optional)" />
+            <Button type="submit" className="w-full" disabled={!localStream || isJoining}>Join Room</Button>
           </form>
         </CardContent>
       </Card>
