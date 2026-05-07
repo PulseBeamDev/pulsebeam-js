@@ -37,8 +37,16 @@ export function useMediaDevices(initialStream: MediaStream | null, onStreamChang
 
   const startMedia = useCallback(async (vId?: string, aId?: string) => {
     try {
+      const videoConstraints = {
+        deviceId: vId ? { exact: vId } : undefined,
+        // 'ideal' tells the browser what you want, but allows fallback
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        aspectRatio: { ideal: 1.7777777778 }, // 16:9
+        frameRate: { ideal: 30 }
+      };
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: vId ? { deviceId: { exact: vId }, height: 720 } : { height: 720 },
+        video: videoConstraints,
         audio: aId ? { deviceId: { exact: aId } } : true,
       });
 
