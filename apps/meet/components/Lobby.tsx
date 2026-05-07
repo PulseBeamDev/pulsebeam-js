@@ -1,4 +1,4 @@
-import { Card, CardHeader, CardTitle, CardContent, CardFooter, Spinner } from "@pulsebeam/ui";
+import { Card, CardHeader, CardTitle, CardContent, Spinner } from "@pulsebeam/ui";
 import { Button } from "@pulsebeam/ui";
 import { Input } from "@pulsebeam/ui";
 import { useEffect, useRef, useState } from "react";
@@ -34,13 +34,13 @@ export function Lobby({ onJoin, localStream, setLocalStream }: LobbyProps) {
     }
   }, [localStream]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (roomId && localStream) {
       setIsJoining(true);
       try {
         // Ensure room join feels responsive
-        await onJoin(roomId, apiURL || undefined);
+        onJoin(roomId, apiURL || undefined);
       } catch (e) {
         setErrorMsg("Failed to join room");
         setIsJoining(false);
