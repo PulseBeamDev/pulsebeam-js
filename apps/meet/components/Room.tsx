@@ -41,34 +41,35 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
     baseUrl: apiURL,
   }), [apiURL]);
 
-  const client = useParticipant(clientConfig);
+  const mainClient = useParticipant(clientConfig);
   const screenClient = useParticipant(screenClientConfig);
+  const screenStream = useRef<MediaStream>(null);
 
   const isSharing = screenClient.connectionState === "connected" || screenClient.connectionState === "connecting";
 
   useEffect(() => {
-    if (client.connectionState === "failed") {
+    if (mainClient.connectionState === "failed") {
       console.warn("connection failed");
       onLeave();
     }
-  }, [client.connectionState]);
+  }, [mainClient.connectionState]);
 
   useEffect(() => {
-    client.connect(roomId);
+    mainClient.connect(roomId);
   }, [roomId]);
 
   useEffect(() => {
-    client.publish(localStream);
+    mainClient.publish(localStream);
   }, [localStream]);
 
   useEffect(() => {
     if (spotlightId !== "local") {
-      const isPresent = client.videoTracks.some((t: any) => t.id === spotlightId);
+      const isPresent = mainClient.videoTracks.some((t: any) => t.id === spotlightId);
       if (!isPresent) {
         setSpotlightId("local");
       }
     }
-  }, [client.videoTracks, spotlightId]);
+  }, [mainClient.videoTracks, spotlightId]);
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
@@ -89,9 +90,9 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
   const startScreenShare = async () => {
     try {
       setIsScreenShareLoading(true);
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-      stream.getVideoTracks()[0].onended = () => stopScreenShare();
-      screenClient.publish(stream);
+      screenStream.current = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      screenStream.current.getVideoTracks()[0].onended = () => stopScreenShare();
+      screenClient.publish(screenStream.current);
       screenClient.connect(roomId);
     } catch (e) {
       console.error("Screen share failed:", e);
@@ -101,6 +102,7 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
 
   const stopScreenShare = () => {
     screenClient.close();
+    screenStream.current?.getTracks().forEach(t => t.stop());
     setIsScreenShareLoading(false);
   };
 
@@ -112,11 +114,11 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
 
   }, [screenClient.connectionState]);
 
-  const toggleMic = () => client.mute({ audio: !client.audioMuted });
-  const toggleCam = () => client.mute({ video: !client.videoMuted });
+  const toggleMic = () => mainClient.mute({ audio: !mainClient.audioMuted });
+  const toggleCam = () => mainClient.mute({ video: !mainClient.videoMuted });
 
   // Find the track currently in spotlight
-  const spotlightTrack = client.videoTracks.find((t: any) => t.id === spotlightId);
+  const spotlightTrack = mainClient.videoTracks.find((t: any) => t.id === spotlightId);
 
   return (
     <TooltipProvider>
@@ -127,7 +129,7 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
             <Badge variant="outline" className="gap-2 px-2 py-0.5 rounded-md">
               <div className={cn(
                 "h-1.5 w-1.5 rounded-full",
-                client.connectionState === "connected" ? "bg-emerald-500 animate-pulse" : "bg-amber-500 animate-pulse"
+                mainClient.connectionState === "connected" ? "bg-emerald-500 animate-pulse" : "bg-amber-500 animate-pulse"
               )} />
               <span className="text-xs font-medium text-muted-foreground">
                 Room: <span className="text-foreground">{roomId}</span>
@@ -135,7 +137,7 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
             </Badge>
 
             {/* Connection Status */}
-            {client.connectionState === "connecting" && (
+            {mainClient.connectionState === "connecting" && (
               <Badge variant="secondary" className="gap-2 px-2 py-0.5 rounded-md animate-in fade-in slide-in-from-left-2">
                 <Loader2 className="h-3 w-3 animate-spin text-primary" />
                 <span className="text-xs font-medium">Connecting...</span>
@@ -177,7 +179,7 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-md" onClick={() => client.connect(roomId)}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-md" onClick={() => mainClient.connect(roomId)}>
                   <RotateCcw className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>
@@ -218,15 +220,15 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
                   <TooltipTrigger asChild>
                     <Button
                       size="icon"
-                      variant={client.audioMuted ? "destructive" : "secondary"}
+                      variant={mainClient.audioMuted ? "destructive" : "secondary"}
                       className="rounded-lg h-10 w-10 transition-transform active:scale-90"
                       onClick={toggleMic}
                     >
-                      {client.audioMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                      {mainClient.audioMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
-                    <p>{client.audioMuted ? "Unmute" : "Mute"}</p>
+                    <p>{mainClient.audioMuted ? "Unmute" : "Mute"}</p>
                   </TooltipContent>
                 </Tooltip>
 
@@ -234,15 +236,15 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
                   <TooltipTrigger asChild>
                     <Button
                       size="icon"
-                      variant={client.videoMuted ? "destructive" : "secondary"}
+                      variant={mainClient.videoMuted ? "destructive" : "secondary"}
                       className="rounded-lg h-10 w-10 transition-transform active:scale-90"
                       onClick={toggleCam}
                     >
-                      {client.videoMuted ? <VideoOff className="w-4 h-4" /> : <VideoIcon className="w-4 h-4" />}
+                      {mainClient.videoMuted ? <VideoOff className="w-4 h-4" /> : <VideoIcon className="w-4 h-4" />}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
-                    <p>{client.videoMuted ? "Camera on" : "Camera off"}</p>
+                    <p>{mainClient.videoMuted ? "Camera on" : "Camera off"}</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -254,7 +256,7 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
             <div className="flex items-center justify-between px-1">
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Participants</p>
               <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 rounded-sm border-none shadow-none">
-                {client.videoTracks.length + 1}
+                {mainClient.videoTracks.length + 1}
               </Badge>
             </div>
 
@@ -284,7 +286,7 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
                 )}
 
                 {/* Remote Thumbnails */}
-                {client.videoTracks.map((track: any) => (
+                {mainClient.videoTracks.map((track: any) => (
                   spotlightId !== track.id && (
                     <Card
                       key={track.id}
@@ -312,7 +314,7 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
         </main>
 
         {/* Background Audio */}
-        {client.audioTracks.map((track: any) => (
+        {mainClient.audioTracks.map((track: any) => (
           <Audio key={track.id} track={track} />
         ))}
       </div>
