@@ -1,6 +1,53 @@
 import { useParticipant } from '@pulsebeam/react';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
+type DisplaySurfacePolicy = 'include' | 'exclude';
+
+type ExtendedDisplayMediaStreamConstraints = MediaStreamConstraints & {
+  audio?: boolean | (MediaTrackConstraints & {
+    suppressLocalAudioPlayback?: boolean;
+    restrictOwnAudio?: boolean;
+  });
+  controller?: object;
+  systemAudio?: DisplaySurfacePolicy;
+  windowAudio?: DisplaySurfacePolicy;
+  selfBrowserSurface?: DisplaySurfacePolicy;
+  surfaceSwitching?: DisplaySurfacePolicy;
+};
+
+declare global {
+  interface Window {
+    CaptureController?: new () => object;
+  }
+}
+
+function createDisplayMediaConstraints(): ExtendedDisplayMediaStreamConstraints {
+  const controller = typeof window !== 'undefined' && window.CaptureController
+    ? new window.CaptureController()
+    : undefined;
+
+  return {
+    audio: {
+      autoGainControl: false,
+      channelCount: { ideal: 2 },
+      echoCancellation: false,
+      noiseSuppression: false,
+      suppressLocalAudioPlayback: false,
+      restrictOwnAudio: true,
+    },
+    video: {
+      frameRate: { ideal: 30 },
+      width: { max: 1920 },
+      height: { max: 1200 },
+    },
+    controller,
+    systemAudio: 'exclude',
+    windowAudio: 'exclude',
+    selfBrowserSurface: 'exclude',
+    surfaceSwitching: 'include',
+  };
+}
+
 export function useMediaDevices(initialStream: MediaStream | null, onStreamChange: (s: MediaStream) => void) {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [videoDeviceId, setVideoDeviceId] = useState<string>("");
@@ -107,7 +154,7 @@ export function useScreenShare(roomId: string, apiURL?: string) {
   const start = async () => {
     try {
       setIsLoading(true);
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      const stream = await navigator.mediaDevices.getDisplayMedia(createDisplayMediaConstraints());
       streamRef.current = stream;
       stream.getVideoTracks()[0].onended = stop;
       client.publish(stream, { videoPreset: 'detail', audioPreset: 'music' });
