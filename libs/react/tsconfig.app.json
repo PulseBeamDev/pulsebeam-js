@@ -2,6 +2,8 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "ES2022",
+    "rootDir": "./src",
+    "outDir": "./dist",
     "useDefineForClassFields": true,
     "lib": [
       "ES2022",
@@ -21,6 +23,7 @@
     "noEmit": false,
     "declaration": true,
     "emitDeclarationOnly": true,
+    "declarationMap": true,
     "jsx": "react-jsx",
     /* Linting */
     "strict": true,

@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Generated declarations are emitted to dist.
+src/**/*.d.ts

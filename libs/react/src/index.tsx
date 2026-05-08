@@ -1,4 +1,5 @@
 import { useMemo, useEffect, useRef, useState } from "react";
+import type { CSSProperties, VideoHTMLAttributes } from "react";
 import { useStore } from "@nanostores/react";
 import {
   createParticipant,
@@ -6,13 +7,17 @@ import {
   createDisplayManager,
   VideoBinder,
   AudioBinder,
-  type ParticipantConfig,
-  type ParticipantManager,
-  type RemoteVideoTrack,
   PAUSED_PLACEHOLDER_SVG,
 } from "@pulsebeam/web";
 
 export * from "@pulsebeam/web";
+
+type ParticipantManager = ReturnType<typeof createParticipant>;
+type ParticipantSnapshot = ReturnType<ParticipantManager["get"]>;
+type DeviceSnapshot = ReturnType<ReturnType<typeof createDeviceManager>["get"]>;
+type DisplaySnapshot = ReturnType<ReturnType<typeof createDisplayManager>["get"]>;
+type ParticipantConfig = Parameters<typeof createParticipant>[0];
+type RemoteVideoTrack = ParticipantSnapshot["videoTracks"][number];
 
 const useBinder = (track: any, Binder: any) => {
   const ref = useRef<any>(null);
@@ -26,10 +31,10 @@ const useBinder = (track: any, Binder: any) => {
 };
 
 
-export interface VideoProps extends React.VideoHTMLAttributes<HTMLVideoElement> {
+export interface VideoProps extends VideoHTMLAttributes<HTMLVideoElement> {
   track: RemoteVideoTrack;
   className?: string;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
 }
 
 export function Video(props: VideoProps) {
@@ -97,7 +102,7 @@ export const Audio = ({ track, ...props }: any) => (
   <audio ref={useBinder(track, AudioBinder)} autoPlay {...props} />
 );
 
-export function useParticipant(config: ParticipantConfig) {
+export function useParticipant(config: ParticipantConfig): ParticipantSnapshot {
   const $participant: ParticipantManager = useMemo(() => createParticipant(config), []);
 
   useEffect(() => {
@@ -107,12 +112,12 @@ export function useParticipant(config: ParticipantConfig) {
   return useStore($participant);
 }
 
-export function useDeviceManager() {
+export function useDeviceManager(): DeviceSnapshot {
   const $dm = useMemo(() => createDeviceManager(), []);
   return useStore($dm);
 }
 
-export function useDisplayManager() {
+export function useDisplayManager(): DisplaySnapshot {
   const $dm = useMemo(() => createDisplayManager(), []);
   return useStore($dm);
 }

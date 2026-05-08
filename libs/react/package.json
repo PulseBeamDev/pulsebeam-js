@@ -14,13 +14,15 @@
   },
   "scripts": {
     "dev": "vite",
-    "prepare": "vite build && tsc -p tsconfig.app.json",
+    "build": "vite build && tsc -p tsconfig.app.json",
+    "prepare": "pnpm run build",
     "lint": "eslint .",
     "preview": "vite preview",
     "test:e2e": "playwright test"
   },
   "dependencies": {
     "@nanostores/react": "^1.0.0",
+    "@pulsebeam/core": "workspace:*",
     "@pulsebeam/web": "workspace:*"
   },
   "peerDependencies": {
