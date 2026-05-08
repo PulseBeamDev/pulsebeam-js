@@ -224,6 +224,7 @@ export class VideoBinder {
 export class AudioBinder {
   private el: HTMLAudioElement;
   private track: RemoteAudioTrack;
+  private playToken = 0;
 
   public onAutoplayFailed?: () => void;
 
@@ -235,19 +236,18 @@ export class AudioBinder {
   mount() {
     if (!this.el || !this.track) return;
 
-    this.el.srcObject = this.track.stream;
+    this.setStreamIfNeeded(this.track.stream);
     this.el.autoplay = true;
     this.el.controls = false;
 
-    this.el.play().catch((e) => {
-      console.warn("[AudioBinder] Autoplay blocked:", e);
-      if (this.onAutoplayFailed) this.onAutoplayFailed();
-    });
+    this.attemptPlay();
   }
 
   unmount() {
     if (this.el) {
+      this.el.pause();
       this.el.srcObject = null;
+      this.el.removeAttribute("src");
     }
   }
 
@@ -256,10 +256,34 @@ export class AudioBinder {
 
     this.track = newTrack;
 
-    // Re-assign stream
     if (this.el) {
-      this.el.srcObject = this.track.stream;
-      this.el.play().catch(() => { });
+      this.setStreamIfNeeded(this.track.stream);
+      this.attemptPlay();
     }
+  }
+
+  private setStreamIfNeeded(stream: MediaStream) {
+    if (this.el.srcObject !== stream) {
+      this.el.srcObject = stream;
+    }
+  }
+
+  private attemptPlay() {
+    const token = ++this.playToken;
+    this.el.play().catch((e: DOMException) => {
+      // Ignore stale play rejections from earlier stream assignments.
+      if (token !== this.playToken) return;
+
+      if (e.name === "AbortError") {
+        return;
+      }
+
+      if (e.name === "NotAllowedError") {
+        if (this.onAutoplayFailed) this.onAutoplayFailed();
+        return;
+      }
+
+      console.warn("[AudioBinder] Failed to start playback:", e);
+    });
   }
 }

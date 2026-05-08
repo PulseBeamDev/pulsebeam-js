@@ -208,7 +208,6 @@ class SessionState extends EventEmitter<SessionEvents> {
     const seq = u.seq;
 
     if (u.isSnapshot) {
-      console.info("received a snapshot");
       const incomingIds = new Set(u.tracksUpsert.map((t) => t.id));
       for (const id of this.tracks.keys()) {
         if (!incomingIds.has(id)) this.removeTrack(id);
@@ -392,8 +391,16 @@ class Transport {
     try {
       const aParams = this.audioSender.getParameters();
       const aEncoding = aParams.encodings[0];
+      let changed = false;
       if (aEncoding && aEncoding.maxBitrate !== desired.audioPreset.maxBitrate) {
         aEncoding.maxBitrate = desired.audioPreset.maxBitrate;
+        changed = true;
+      }
+      if (aEncoding && aEncoding.dtx !== desired.audioPreset.dtx) {
+        aEncoding.dtx = desired.audioPreset.dtx;
+        changed = true;
+      }
+      if (changed) {
         this.audioSender.setParameters(aParams).catch((e) => {
           console.warn("audio setParameters failed, will retry on next sync", e);
         });
@@ -486,6 +493,10 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       const aTrack = stream.getAudioTracks()[0];
       if (aTrack && "contentHint" in aTrack) {
         aTrack.contentHint = resolvedAudio.contentHint;
+      }
+      if (aTrack) {
+        const targetChannels = resolvedAudio.stereo ? 2 : 1;
+        aTrack.applyConstraints({ channelCount: { ideal: targetChannels } }).catch(() => { });
       }
     }
 

@@ -14,7 +14,7 @@ interface LobbyProps {
 
 export function Lobby({ onJoin, localStream, setLocalStream }: LobbyProps) {
   const [roomId, setRoomId] = useState("");
-  const [apiURL, setApiURL] = useState("");
+  const [apiURL, setApiURL] = useState("http://localhost:7070/api/v1");
   const [isJoining, _setIsJoining] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -39,8 +39,10 @@ export function Lobby({ onJoin, localStream, setLocalStream }: LobbyProps) {
       // Chrome workaround: Explicitly call play() when unmuting video
       // to wake up the rendering engine
       video.play().catch((err) => {
-        // Log error but don't crash; usually it's just a "play() interrupted" warning
-        console.warn("Video play interrupted or failed:", err);
+        if (err instanceof DOMException && err.name === "AbortError") {
+          return;
+        }
+        console.warn("Video preview failed to start:", err);
       });
     }
   }, [localStream, media.isCamOn]); // isCamOn is a vital dependency here

@@ -33,7 +33,8 @@ function createDisplayMediaConstraints(): ExtendedDisplayMediaStreamConstraints 
       echoCancellation: false,
       noiseSuppression: false,
       suppressLocalAudioPlayback: false,
-      restrictOwnAudio: true,
+      // Allow capturing audio from the shared surface itself (tab/window/system).
+      restrictOwnAudio: false,
     },
     video: {
       frameRate: { ideal: 30 },
@@ -147,7 +148,7 @@ export function useScreenShare(roomId: string, apiURL?: string) {
   const streamRef = useRef<MediaStream | null>(null);
 
   const config = useMemo(() => ({
-    videoSlots: 0, audioSlots: 0, baseUrl: apiURL,
+    videoSlots: 0, audioSlots: 5, baseUrl: apiURL,
   }), [apiURL]);
   const client = useParticipant(config);
 
@@ -155,6 +156,9 @@ export function useScreenShare(roomId: string, apiURL?: string) {
     try {
       setIsLoading(true);
       const stream = await navigator.mediaDevices.getDisplayMedia(createDisplayMediaConstraints());
+      if (stream.getAudioTracks().length === 0) {
+        console.warn("Screen share started without an audio track. Choose a source with audio and enable 'Share audio' in the picker.");
+      }
       streamRef.current = stream;
       stream.getVideoTracks()[0].onended = stop;
       client.publish(stream, { videoPreset: 'detail', audioPreset: 'music' });

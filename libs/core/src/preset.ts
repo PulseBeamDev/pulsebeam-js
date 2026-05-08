@@ -1,11 +1,14 @@
 export interface AudioPresetConfig {
   maxBitrate: number;
   contentHint: "speech" | "music";
+  dtx: "enabled" | "disabled";
+  stereo: boolean;
   // getUserMedia constraints — used when capturing the track
   constraints: {
     echoCancellation: boolean;
     noiseSuppression: boolean;
     autoGainControl: boolean;
+    channelCount?: number;
   };
 }
 
@@ -18,10 +21,13 @@ export const AUDIO_PRESETS = {
   voice: {
     maxBitrate: 48_000,
     contentHint: "speech",
+    dtx: "enabled",
+    stereo: false,
     constraints: {
       echoCancellation: true,
       noiseSuppression: true,
       autoGainControl: true,
+      channelCount: 1,
     },
   },
 
@@ -33,10 +39,13 @@ export const AUDIO_PRESETS = {
   music: {
     maxBitrate: 128_000,
     contentHint: "music",
+    dtx: "disabled",
+    stereo: true,
     constraints: {
       echoCancellation: false,
       noiseSuppression: false,
       autoGainControl: false,
+      channelCount: 2,
     },
   },
 } as const satisfies Record<string, AudioPresetConfig>;
