@@ -28,6 +28,10 @@ const MAX_VIDEO_SLOTS = 16;
  * Each slot represents an audio track that can be forwarded by the SFU.
  */
 const MAX_AUDIO_SLOTS = 5;
+const MAX_PUBLISH_VIDEO_SLOTS = 2;
+const MAX_PUBLISH_AUDIO_SLOTS = 2;
+const MAIN_PUBLISH_LABEL = "main";
+const AUX_PUBLISH_LABEL = "aux";
 
 /**
  * Configuration options for a participant connection.
@@ -235,11 +239,8 @@ class Transport {
   readonly dc: RTCDataChannel;
   readonly videoSlots: RTCRtpTransceiver[] = [];
   readonly audioSlots: RTCRtpTransceiver[] = [];
-
-  private videoSender: RTCRtpSender;
-  private audioSender: RTCRtpSender;
-
-  upstreamState = new UpstreamState();
+  private readonly videoSenders: RTCRtpSender[] = [];
+  private readonly audioSenders: RTCRtpSender[] = [];
 
   constructor(
     private adapter: PlatformAdapter,
@@ -258,18 +259,22 @@ class Transport {
     this.dc.binaryType = "arraybuffer";
     this.dc.onmessage = (ev) => onSignal(ev.data);
 
-    this.audioSender = this.pc.addTransceiver("audio", {
-      direction: "sendonly",
-    }).sender;
+    for (let i = 0; i < MAX_PUBLISH_AUDIO_SLOTS; i++) {
+      this.audioSenders.push(this.pc.addTransceiver("audio", {
+        direction: "sendonly",
+      }).sender);
+    }
 
-    this.videoSender = this.pc.addTransceiver("video", {
-      direction: "sendonly",
-      sendEncodings: [
-        { rid: "q", active: true },
-        { rid: "h", active: true },
-        { rid: "f", active: true },
-      ]
-    }).sender;
+    for (let i = 0; i < MAX_PUBLISH_VIDEO_SLOTS; i++) {
+      this.videoSenders.push(this.pc.addTransceiver("video", {
+        direction: "sendonly",
+        sendEncodings: [
+          { rid: "q", active: true },
+          { rid: "h", active: true },
+          { rid: "f", active: true },
+        ]
+      }).sender);
+    }
 
     const audioSlots = Math.min(config.audioSlots ?? MAX_AUDIO_SLOTS, MAX_AUDIO_SLOTS);
     for (let i = 0; i < audioSlots; i++) {
@@ -291,122 +296,156 @@ class Transport {
     await this.pc.setRemoteDescription({ type: "answer", sdp });
   }
 
-  updateLocalStream(local: LocalMediaStream | null) {
-    const vTrack = local?.video?.track ?? null;
-    const aTrack = local?.audio?.track ?? null;
-
-    // Swap the actual hardware tracks
-    this.videoSender.replaceTrack(vTrack);
-    this.audioSender.replaceTrack(aTrack);
-
-    const params = this.videoSender.getParameters();
-    const shouldBeActive = !!vTrack && !local?.video?.muted;
-
-    let changed = false;
-    params.encodings.forEach(enc => {
-      if (enc.active !== shouldBeActive) {
-        enc.active = shouldBeActive;
-        changed = true;
-      }
-    });
-
-    if (changed) {
-      this.videoSender.setParameters(params).catch(() => { });
-    }
-  }
-
   close() {
     this.pc.close();
     this.dc.close();
   }
 
-  sync(desired: UpstreamState) {
+  sync(publications: UpstreamPublication[]) {
     if (this.pc.signalingState === "closed") return;
 
-    const vTrack = desired.localStream?.video?.track ?? null;
-    const aTrack = desired.localStream?.audio?.track ?? null;
+    const desiredVideo: Array<UpstreamVideoDesired | null> = Array.from(
+      { length: this.videoSenders.length },
+      () => null
+    );
+    const desiredAudio: Array<UpstreamAudioDesired | null> = Array.from(
+      { length: this.audioSenders.length },
+      () => null
+    );
 
-    // 1. Reconcile Physical Tracks
-    if (this.videoSender.track !== vTrack) {
-      this.videoSender.replaceTrack(vTrack).catch(() => { });
-    }
-    if (this.audioSender.track !== aTrack) {
-      this.audioSender.replaceTrack(aTrack).catch(() => { });
-    }
-
-    // 2. Reconcile RtpParameters (Encodings & Bitrates)
-    try {
-      const params = this.videoSender.getParameters();
-      const internal = mapPresetToInternal(desired.videoPreset);
-      const shouldBeActive = !!vTrack && !desired.localStream?.video?.muted;
-      let changed = false;
-
-      // Update contentHint if it has changed
-      if (vTrack && "contentHint" in vTrack && vTrack.contentHint !== internal.contentHint) {
-        vTrack.contentHint = internal.contentHint;
+    for (const publication of publications) {
+      const vTrack = publication.localStream.video?.track ?? null;
+      if (
+        vTrack &&
+        publication.videoSlot !== null &&
+        publication.videoSlot >= 0 &&
+        publication.videoSlot < desiredVideo.length
+      ) {
+        desiredVideo[publication.videoSlot] = {
+          track: vTrack,
+          preset: publication.videoPreset,
+          muted: publication.localStream.video?.muted ?? false,
+        };
       }
 
-      // Reconcile encodings
-      params.encodings.forEach((slot, i) => {
-        const config = internal.encodings[i];
-        if (!config) return;
+      const aTrack = publication.localStream.audio?.track ?? null;
+      if (
+        aTrack &&
+        publication.audioSlot !== null &&
+        publication.audioSlot >= 0 &&
+        publication.audioSlot < desiredAudio.length
+      ) {
+        desiredAudio[publication.audioSlot] = {
+          track: aTrack,
+          preset: publication.audioPreset,
+          muted: publication.localStream.audio?.muted ?? false,
+        };
+      }
+    }
 
-        if (slot.active !== shouldBeActive) {
-          slot.active = shouldBeActive;
-          changed = true;
-        }
-        if (slot.scaleResolutionDownBy !== config.scaleResolutionDownBy) {
-          slot.scaleResolutionDownBy = config.scaleResolutionDownBy;
-          changed = true;
-        }
-        if (slot.maxBitrate !== config.maxBitrate) {
-          slot.maxBitrate = config.maxBitrate;
-          changed = true;
-        }
-        if (slot.maxFramerate !== config.maxFramerate) {
-          slot.maxFramerate = config.maxFramerate;
-          changed = true;
-        }
-      });
+    for (let i = 0; i < this.videoSenders.length; i++) {
+      const sender = this.videoSenders[i];
+      if (!sender) continue;
+      const desired = desiredVideo[i];
+      const vTrack = desired?.track ?? null;
 
-      // Reconcile degradation preference
-      if (params.degradationPreference !== internal.degradationPreference) {
-        params.degradationPreference = internal.degradationPreference;
-        changed = true;
+      if (sender.track !== vTrack) {
+        sender.replaceTrack(vTrack).catch(() => { });
       }
 
-      if (changed) {
-        this.videoSender.setParameters(params).catch((e) => {
-          console.warn("setParameters failed, will retry on next sync", e);
+      if (!desired) {
+        continue;
+      }
+
+      try {
+        const params = sender.getParameters();
+        const internal = mapPresetToInternal(desired.preset);
+        const shouldBeActive = !!vTrack && !desired.muted;
+        let changed = false;
+
+        if (vTrack && "contentHint" in vTrack && vTrack.contentHint !== internal.contentHint) {
+          vTrack.contentHint = internal.contentHint;
+        }
+
+        params.encodings.forEach((slot, idx) => {
+          const config = internal.encodings[idx];
+          if (!config) return;
+
+          if (slot.active !== shouldBeActive) {
+            slot.active = shouldBeActive;
+            changed = true;
+          }
+          if (slot.scaleResolutionDownBy !== config.scaleResolutionDownBy) {
+            slot.scaleResolutionDownBy = config.scaleResolutionDownBy;
+            changed = true;
+          }
+          if (slot.maxBitrate !== config.maxBitrate) {
+            slot.maxBitrate = config.maxBitrate;
+            changed = true;
+          }
+          if (slot.maxFramerate !== config.maxFramerate) {
+            slot.maxFramerate = config.maxFramerate;
+            changed = true;
+          }
         });
+
+        if (params.degradationPreference !== internal.degradationPreference) {
+          params.degradationPreference = internal.degradationPreference;
+          changed = true;
+        }
+
+        if (changed) {
+          sender.setParameters(params).catch((e) => {
+            console.warn("video setParameters failed, will retry on next sync", e);
+          });
+        }
+      } catch (_e) {
+        // Common if the sender is not yet negotiated or parameters aren't available
       }
-    } catch (e) {
-      // Common if the sender is not yet negotiated or parameters aren't available
     }
 
-    // 3. Reconcile Audio Preset
-    if (aTrack && "contentHint" in aTrack && aTrack.contentHint !== desired.audioPreset.contentHint) {
-      aTrack.contentHint = desired.audioPreset.contentHint;
-    }
-    try {
-      const aParams = this.audioSender.getParameters();
-      const aEncoding = aParams.encodings[0];
-      let changed = false;
-      if (aEncoding && aEncoding.maxBitrate !== desired.audioPreset.maxBitrate) {
-        aEncoding.maxBitrate = desired.audioPreset.maxBitrate;
-        changed = true;
+    for (let i = 0; i < this.audioSenders.length; i++) {
+      const sender = this.audioSenders[i];
+      if (!sender) continue;
+      const desired = desiredAudio[i];
+      const aTrack = desired?.track ?? null;
+
+      if (sender.track !== aTrack) {
+        sender.replaceTrack(aTrack).catch(() => { });
       }
-      if (aEncoding && aEncoding.dtx !== desired.audioPreset.dtx) {
-        aEncoding.dtx = desired.audioPreset.dtx;
-        changed = true;
+
+      if (!desired) {
+        continue;
       }
-      if (changed) {
-        this.audioSender.setParameters(aParams).catch((e) => {
-          console.warn("audio setParameters failed, will retry on next sync", e);
-        });
+
+      if (aTrack && "contentHint" in aTrack && aTrack.contentHint !== desired.preset.contentHint) {
+        aTrack.contentHint = desired.preset.contentHint;
       }
-    } catch (e) {
-      // Common if the sender is not yet negotiated or parameters aren't available
+
+      try {
+        const aParams = sender.getParameters();
+        const aEncoding = aParams.encodings[0];
+        let changed = false;
+        if (aEncoding && aEncoding.maxBitrate !== desired.preset.maxBitrate) {
+          aEncoding.maxBitrate = desired.preset.maxBitrate;
+          changed = true;
+        }
+        if (aEncoding && aEncoding.dtx !== desired.preset.dtx) {
+          aEncoding.dtx = desired.preset.dtx;
+          changed = true;
+        }
+        if (aEncoding && aEncoding.active !== !desired.muted) {
+          aEncoding.active = !desired.muted;
+          changed = true;
+        }
+        if (changed) {
+          sender.setParameters(aParams).catch((e) => {
+            console.warn("audio setParameters failed, will retry on next sync", e);
+          });
+        }
+      } catch (_e) {
+        // Common if the sender is not yet negotiated or parameters aren't available
+      }
     }
   }
 }
@@ -416,17 +455,39 @@ export interface PublishOptions {
   audioPreset?: AudioPresetName;
 }
 
-class UpstreamState {
-  localStream: LocalMediaStream | null = null;
-  videoPreset: VideoPreset = VIDEO_PRESETS["motion"];
-  audioPreset: AudioPresetConfig = AUDIO_PRESETS["speech"];
+export interface StreamPublisher {
+  publish: (stream: MediaStream, options?: PublishOptions) => void;
+  unpublish: () => void;
+}
+
+interface UpstreamPublication {
+  label: string;
+  localStream: LocalMediaStream;
+  videoPreset: VideoPreset;
+  audioPreset: AudioPresetConfig;
+  videoSlot: number | null;
+  audioSlot: number | null;
+}
+
+interface UpstreamVideoDesired {
+  track: MediaStreamTrack;
+  preset: VideoPreset;
+  muted: boolean;
+}
+
+interface UpstreamAudioDesired {
+  track: MediaStreamTrack;
+  preset: AudioPresetConfig;
+  muted: boolean;
 }
 
 export class Participant extends EventEmitter<ParticipantEvents> {
   private session: SessionState;
   private transport: Transport | null = null;
   private _state: ConnectionState = "new";
-  private upstreamState = new UpstreamState();
+  private upstreamPublications = new Map<string, UpstreamPublication>();
+  public readonly main: StreamPublisher;
+  public readonly aux: StreamPublisher;
 
   private lastSentRequests: VideoRequest[] = [];
 
@@ -440,6 +501,8 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   constructor(private adapter: PlatformAdapter, private config: ParticipantConfig) {
     super();
     this.session = new SessionState(adapter);
+    this.main = this.createPublisher(MAIN_PUBLISH_LABEL);
+    this.aux = this.createPublisher(AUX_PUBLISH_LABEL);
 
     this.session.on("track_added", (e) => this.emit(ParticipantEvent.VideoTrackAdded, e));
     this.session.on("track_removed", (e) => this.emit(ParticipantEvent.VideoTrackRemoved, e));
@@ -453,7 +516,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
    * Snapshot of current local media state for UI binding.
    */
   get local(): LocalStreamState {
-    const s = this.upstreamState.localStream;
+    const s = this.getPrimaryPublication()?.localStream ?? null;
     return {
       audioMuted: s?.audio?.muted ?? false,
       videoMuted: s?.video?.muted ?? false,
@@ -479,50 +542,97 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     this.establishConnection("POST", uri);
   }
 
-  /**
-   * Replaces the current stream. Pass null to unpublish.
-   */
-  publish(
+  publish(stream: MediaStream | null, options?: PublishOptions) {
+    this.publishByLabel(MAIN_PUBLISH_LABEL, stream, options);
+  }
+
+  private publishByLabel(
+    label: string,
     stream: MediaStream | null,
     options?: PublishOptions,
   ) {
+    if (!stream) {
+      this.unpublishByLabel(label);
+      return;
+    }
+
     const resolvedVideo = VIDEO_PRESETS[options?.videoPreset ?? "motion"];
     const resolvedAudio = AUDIO_PRESETS[options?.audioPreset ?? "speech"];
     const internal = mapPresetToInternal(resolvedVideo);
 
-    if (stream) {
-      const vTrack = stream.getVideoTracks()[0];
-      if (vTrack && "contentHint" in vTrack) {
-        vTrack.contentHint = internal.contentHint;
-      }
-      const aTrack = stream.getAudioTracks()[0];
-      if (aTrack && "contentHint" in aTrack) {
-        aTrack.contentHint = resolvedAudio.contentHint;
-      }
-      if (aTrack) {
-        const targetChannels = resolvedAudio.stereo ? 2 : 1;
-        aTrack.applyConstraints({ channelCount: { ideal: targetChannels } }).catch(() => { });
-      }
+    const nextLocal = new LocalMediaStream(stream);
+    const needsVideoSlot = !!nextLocal.video;
+    const needsAudioSlot = !!nextLocal.audio;
+
+    const publication = this.upstreamPublications.get(label);
+    const videoSlot = this.reserveSlot(
+      publication?.videoSlot ?? null,
+      needsVideoSlot,
+      MAX_PUBLISH_VIDEO_SLOTS,
+      (entry) => entry.label !== label ? entry.videoSlot : null,
+      "video",
+    );
+    const audioSlot = this.reserveSlot(
+      publication?.audioSlot ?? null,
+      needsAudioSlot,
+      MAX_PUBLISH_AUDIO_SLOTS,
+      (entry) => entry.label !== label ? entry.audioSlot : null,
+      "audio",
+    );
+
+    if (nextLocal.video?.track && "contentHint" in nextLocal.video.track) {
+      nextLocal.video.track.contentHint = internal.contentHint;
+    }
+    if (nextLocal.audio?.track && "contentHint" in nextLocal.audio.track) {
+      nextLocal.audio.track.contentHint = resolvedAudio.contentHint;
+    }
+    if (nextLocal.audio?.track) {
+      const targetChannels = resolvedAudio.stereo ? 2 : 1;
+      nextLocal.audio.track
+        .applyConstraints({ channelCount: { ideal: targetChannels } })
+        .catch(() => { });
     }
 
-    this.upstreamState.videoPreset = resolvedVideo;
-    this.upstreamState.audioPreset = resolvedAudio;
-    this.upstreamState.localStream = stream ? new LocalMediaStream(stream) : null;
-    this.transport?.sync(this.upstreamState);
+    this.upstreamPublications.set(label, {
+      label,
+      localStream: nextLocal,
+      videoPreset: resolvedVideo,
+      audioPreset: resolvedAudio,
+      videoSlot,
+      audioSlot,
+    });
 
+    this.transport?.sync(Array.from(this.upstreamPublications.values()));
+    this.emit(ParticipantEvent.LocalStreamUpdate, this.local);
+  }
+
+  unpublish() {
+    this.unpublishByLabel(MAIN_PUBLISH_LABEL);
+  }
+
+  private unpublishByLabel(label: string) {
+    if (!this.upstreamPublications.delete(label)) {
+      return;
+    }
+    this.transport?.sync(Array.from(this.upstreamPublications.values()));
     this.emit(ParticipantEvent.LocalStreamUpdate, this.local);
   }
 
   mute(options: { video?: boolean; audio?: boolean }) {
+    const publication = this.getPrimaryPublication();
+    if (!publication) {
+      return;
+    }
+
     if (options.video !== undefined) {
-      this.upstreamState.localStream?.video?.setMuted(options.video);
+      publication.localStream.video?.setMuted(options.video);
     }
     if (options.audio !== undefined) {
-      this.upstreamState.localStream?.audio?.setMuted(options.audio);
+      publication.localStream.audio?.setMuted(options.audio);
     }
 
     // Update transport flow and notify UI
-    this.transport?.sync(this.upstreamState);
+    this.transport?.sync(Array.from(this.upstreamPublications.values()));
     this.emit(ParticipantEvent.LocalStreamUpdate, this.local);
   }
 
@@ -611,7 +721,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       // ATOMIC SWAP: The new transport is ready.
       if (this.transport) this.transport.close();
       this.transport = newTransport;
-      newTransport.sync(this.upstreamState);
+      newTransport.sync(Array.from(this.upstreamPublications.values()));
 
       // Reset the sent requests cache, as we have a fresh transport/session context
       this.lastSentRequests = [];
@@ -649,6 +759,51 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     if (state === "failed" || state === "disconnected") {
       this.scheduleReconnect();
     }
+  }
+
+  private createPublisher(label: string): StreamPublisher {
+    return {
+      publish: (stream, options) => this.publishByLabel(label, stream, options),
+      unpublish: () => this.unpublishByLabel(label),
+    };
+  }
+
+  private getPrimaryPublication(): UpstreamPublication | null {
+    return this.upstreamPublications.get(MAIN_PUBLISH_LABEL)
+      ?? this.upstreamPublications.values().next().value
+      ?? null;
+  }
+
+  private reserveSlot(
+    currentSlot: number | null,
+    needed: boolean,
+    maxSlots: number,
+    slotSelector: (entry: UpstreamPublication) => number | null,
+    kind: "video" | "audio",
+  ): number | null {
+    if (!needed) {
+      return null;
+    }
+
+    if (currentSlot !== null) {
+      return currentSlot;
+    }
+
+    const used = new Set<number>();
+    for (const entry of this.upstreamPublications.values()) {
+      const slot = slotSelector(entry);
+      if (slot !== null) {
+        used.add(slot);
+      }
+    }
+
+    for (let i = 0; i < maxSlots; i++) {
+      if (!used.has(i)) {
+        return i;
+      }
+    }
+
+    throw new Error(`No available ${kind} publish slots`);
   }
 
   private scheduleReconnect() {

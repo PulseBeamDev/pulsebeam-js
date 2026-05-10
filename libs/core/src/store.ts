@@ -3,6 +3,7 @@ import {
   Participant,
   ParticipantEvent,
   type ParticipantConfig,
+  type StreamPublisher,
   type RemoteVideoTrack,
   type RemoteAudioTrack,
   type ConnectionState,
@@ -16,10 +17,13 @@ export interface ParticipantState extends LocalStreamState {
   audioTracks: RemoteAudioTrack[];
 }
 
+export type PublishClient = StreamPublisher;
+
 export type ParticipantSnapshot = ParticipantState & {
   participant: Participant;
+  main: PublishClient;
+  aux: PublishClient;
   connect: Participant["connect"];
-  publish: Participant["publish"];
   mute: Participant["mute"];
   close: () => void;
   reset: (config: ParticipantConfig, force: boolean) => void;
@@ -86,9 +90,10 @@ export function createParticipant(
       videoTracks: [],
       audioTracks: [],
       participant,
+      main: participant.main,
+      aux: participant.aux,
       // Proxies to the current instance variable
       connect: (...args) => participant.connect(...args),
-      publish: (...args) => participant.publish(...args),
       mute: (...args) => participant.mute(...args),
       close: () => setup(config),
       reset: (newConfig, force) => {

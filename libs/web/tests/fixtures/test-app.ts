@@ -161,7 +161,7 @@ async function handleJoin() {
         });
         publishedStream = stream;
         console.log('[TestApp] Publishing stream');
-        participant.get().publish(stream);
+        participant.get().main.publish(stream);
         console.log('[TestApp] Connecting to room:', roomInputEl.value);
         participant.get().connect(roomInputEl.value);
     } catch (error) {
@@ -192,7 +192,7 @@ async function handleShareScreen() {
     try {
         const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
         publishedStream = stream;
-        participant.get().publish(stream, { videoPreset: 'detail' });
+        participant.get().aux.publish(stream, { videoPreset: 'detail' });
     } catch (error) {
         console.error('Failed to share screen:', error);
     }

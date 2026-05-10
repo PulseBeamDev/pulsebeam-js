@@ -1,6 +1,6 @@
 import type { ActionReturn } from "svelte/action";
 import {
-  createParticipantStore,
+  createParticipant as createParticipantStore,
   VideoBinder,
   AudioBinder,
   RemoteVideoTrack,
