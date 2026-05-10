@@ -258,14 +258,9 @@ class Transport {
     this.dc.binaryType = "arraybuffer";
     this.dc.onmessage = (ev) => onSignal(ev.data);
 
-    const videoSlots = Math.min(config.videoSlots ?? MAX_VIDEO_SLOTS, MAX_VIDEO_SLOTS);
-    const audioSlots = Math.min(config.audioSlots ?? MAX_AUDIO_SLOTS, MAX_AUDIO_SLOTS);
-    for (let i = 0; i < videoSlots; i++) {
-      this.videoSlots.push(this.pc.addTransceiver("video", { direction: "recvonly" }));
-    }
-    for (let i = 0; i < audioSlots; i++) {
-      this.audioSlots.push(this.pc.addTransceiver("audio", { direction: "recvonly" }));
-    }
+    this.audioSender = this.pc.addTransceiver("audio", {
+      direction: "sendonly",
+    }).sender;
 
     this.videoSender = this.pc.addTransceiver("video", {
       direction: "sendonly",
@@ -276,9 +271,14 @@ class Transport {
       ]
     }).sender;
 
-    this.audioSender = this.pc.addTransceiver("audio", {
-      direction: "sendonly",
-    }).sender;
+    const audioSlots = Math.min(config.audioSlots ?? MAX_AUDIO_SLOTS, MAX_AUDIO_SLOTS);
+    for (let i = 0; i < audioSlots; i++) {
+      this.audioSlots.push(this.pc.addTransceiver("audio", { direction: "recvonly" }));
+    }
+    const videoSlots = Math.min(config.videoSlots ?? MAX_VIDEO_SLOTS, MAX_VIDEO_SLOTS);
+    for (let i = 0; i < videoSlots; i++) {
+      this.videoSlots.push(this.pc.addTransceiver("video", { direction: "recvonly" }));
+    }
   }
 
   async createOffer() {
