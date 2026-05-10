@@ -1,6 +1,6 @@
 export interface AudioPresetConfig {
   maxBitrate: number;
-  contentHint: "speech" | "music";
+  contentHint: AudioPresetName;
   dtx: "enabled" | "disabled";
   stereo: boolean;
   // getUserMedia constraints — used when capturing the track
@@ -12,13 +12,13 @@ export interface AudioPresetConfig {
   };
 }
 
-export const AUDIO_PRESETS = {
+export const AUDIO_PRESETS: Record<AudioPresetName, AudioPresetConfig> = {
   /**
    * Optimised for human voice in a call/conference context.
    * Browser pipeline cleans up noise, echo, gain.
    * Opus runs in SILK/hybrid mode — tuned for speech.
    */
-  voice: {
+  speech: {
     maxBitrate: 48_000,
     contentHint: "speech",
     dtx: "enabled",
@@ -48,9 +48,10 @@ export const AUDIO_PRESETS = {
       channelCount: 2,
     },
   },
-} as const satisfies Record<string, AudioPresetConfig>;
+};
 
 export type AudioPreset = keyof typeof AUDIO_PRESETS;
+export type AudioPresetName = "speech" | "music";
 
 /**
  * High-level intent for video quality.

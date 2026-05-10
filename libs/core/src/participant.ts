@@ -12,7 +12,7 @@ import {
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 import type { PlatformAdapter } from "./platform";
 import { EventEmitter } from "./event";
-import { mapPresetToInternal, VIDEO_PRESETS, AUDIO_PRESETS, type VideoPreset, type VideoPresetName, type AudioPresetConfig } from "./preset";
+import { mapPresetToInternal, VIDEO_PRESETS, AUDIO_PRESETS, type VideoPreset, type VideoPresetName, type AudioPresetConfig, type AudioPresetName } from "./preset";
 
 const SIGNALING_LABEL = "__internal/v1/signaling";
 const SYNC_DEBOUNCE_MS = 300;
@@ -411,10 +411,15 @@ class Transport {
   }
 }
 
+export interface PublishOptions {
+  videoPreset?: VideoPresetName;
+  audioPreset?: AudioPresetName;
+}
+
 class UpstreamState {
   localStream: LocalMediaStream | null = null;
   videoPreset: VideoPreset = VIDEO_PRESETS["motion"];
-  audioPreset: AudioPresetConfig = AUDIO_PRESETS["voice"];
+  audioPreset: AudioPresetConfig = AUDIO_PRESETS["speech"];
 }
 
 export class Participant extends EventEmitter<ParticipantEvents> {
@@ -479,10 +484,10 @@ export class Participant extends EventEmitter<ParticipantEvents> {
    */
   publish(
     stream: MediaStream | null,
-    options?: { videoPreset?: VideoPresetName; audioPreset?: "voice" | "music" },
+    options?: PublishOptions,
   ) {
     const resolvedVideo = VIDEO_PRESETS[options?.videoPreset ?? "motion"];
-    const resolvedAudio = AUDIO_PRESETS[options?.audioPreset ?? "voice"];
+    const resolvedAudio = AUDIO_PRESETS[options?.audioPreset ?? "speech"];
     const internal = mapPresetToInternal(resolvedVideo);
 
     if (stream) {
