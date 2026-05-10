@@ -176,6 +176,9 @@ export function useScreenShare(roomId: string, apiURL?: string) {
   };
 
   const isSharing = ["connected", "connecting"].includes(client.connectionState);
+  useEffect(() => {
+    return stop;
+  }, []);
 
   return { isSharing, isLoading: isLoading && !isSharing, start, stop };
 }
