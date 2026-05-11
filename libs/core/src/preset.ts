@@ -78,7 +78,7 @@ export const VIDEO_PRESETS: Record<VideoPresetName, VideoPreset> = {
     baseBitrate: 1_250_000,
   },
   detail: {
-    layers: 2,
+    layers: 3,
     mode: "detail",
     minFps: 2,
     maxFps: 30,
