@@ -73,10 +73,10 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
               />
 
               <MediaControls
-                audioMuted={client.audioMuted}
-                videoMuted={client.videoMuted}
-                onToggleMic={() => client.mute({ audio: !client.audioMuted })}
-                onToggleCam={() => client.mute({ video: !client.videoMuted })}
+                audioMuted={client.main.audioMuted}
+                videoMuted={client.main.videoMuted}
+                onToggleMic={() => client.main.mute({ audio: !client.main.audioMuted })}
+                onToggleCam={() => client.main.mute({ video: !client.main.videoMuted })}
               />
             </div>
           </Card>

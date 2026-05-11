@@ -69,18 +69,18 @@ export default function MeetingRoom() {
         <div className="media-controls" data-testid="media-controls">
           <button
             data-testid="cam-mute-button"
-            data-muted={client.videoMuted}
-            onClick={() => client.mute({ video: !client.videoMuted })}
+            data-muted={client.main.videoMuted}
+            onClick={() => client.main.mute({ video: !client.main.videoMuted })}
           >
-            {client.videoMuted ? "Unmute Cam" : "Mute Cam"}
+            {client.main.videoMuted ? "Unmute Cam" : "Mute Cam"}
           </button>
 
           <button
             data-testid="mic-mute-button"
-            data-muted={client.audioMuted}
-            onClick={() => client.mute({ audio: !client.audioMuted })}
+            data-muted={client.main.audioMuted}
+            onClick={() => client.main.mute({ audio: !client.main.audioMuted })}
           >
-            {client.audioMuted ? "Unmute Mic" : "Mute Mic"}
+            {client.main.audioMuted ? "Unmute Mic" : "Mute Mic"}
           </button>
         </div>
       )}

@@ -50,8 +50,8 @@ function updateUI(state: any) {
     connectionStateEl.textContent = state.connectionState;
     videoTrackCountEl.textContent = state.videoTracks.length.toString();
     audioTrackCountEl.textContent = state.audioTracks.length.toString();
-    videoMutedEl.textContent = state.videoMuted.toString();
-    audioMutedEl.textContent = state.audioMuted.toString();
+    videoMutedEl.textContent = state.main.videoMuted.toString();
+    audioMutedEl.textContent = state.main.audioMuted.toString();
 
     // Update button visibility
     const isLive = !['new', 'disconnected', 'closed'].includes(state.connectionState);
@@ -63,8 +63,8 @@ function updateUI(state: any) {
     roomInputEl.disabled = isLive;
 
     // Update mute button labels
-    toggleVideoButtonEl.textContent = state.videoMuted ? 'Unmute Video' : 'Mute Video';
-    toggleAudioButtonEl.textContent = state.audioMuted ? 'Unmute Audio' : 'Mute Audio';
+    toggleVideoButtonEl.textContent = state.main.videoMuted ? 'Unmute Video' : 'Mute Video';
+    toggleAudioButtonEl.textContent = state.main.audioMuted ? 'Unmute Audio' : 'Mute Audio';
 
     // Render video tracks
     renderVideoTracks(state.videoTracks);
@@ -73,8 +73,8 @@ function updateUI(state: any) {
     // Update window state for testing
     if ((window as any).__testState) {
         (window as any).__testState.connectionState = state.connectionState;
-        (window as any).__testState.videoMuted = state.videoMuted;
-        (window as any).__testState.audioMuted = state.audioMuted;
+        (window as any).__testState.videoMuted = state.main.videoMuted;
+        (window as any).__testState.audioMuted = state.main.audioMuted;
         (window as any).__testState.videoTrackCount = state.videoTracks.length;
         (window as any).__testState.audioTrackCount = state.audioTracks.length;
         (window as any).__testState.publishedStream = publishedStream;
@@ -180,12 +180,12 @@ function handleLeave() {
 function handleToggleVideo() {
     const currentState = participant.get();
     console.log('[TestApp] Toggling video from:', currentState.videoMuted);
-    participant.get().mute({ video: !currentState.videoMuted });
+    participant.get().main.mute({ video: !currentState.main.videoMuted });
 }
 
 function handleToggleAudio() {
     const currentState = participant.get();
-    participant.get().mute({ audio: !currentState.audioMuted });
+    participant.get().main.mute({ audio: !currentState.main.audioMuted });
 }
 
 async function handleShareScreen() {
