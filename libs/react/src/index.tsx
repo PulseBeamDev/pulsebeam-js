@@ -9,6 +9,7 @@ import {
   AudioBinder,
   PAUSED_PLACEHOLDER_SVG,
   type ParticipantSnapshot,
+  type ParticipantManager,
   type DeviceSnapshot,
   type DisplaySnapshot,
   type ParticipantConfig,
