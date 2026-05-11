@@ -95,11 +95,18 @@ export function mapPresetToInternal(preset: VideoPreset) {
   // Ordering here determines the highest quality first.
   // https://datatracker.ietf.org/doc/html/rfc8853#section-5.2
   // https://github.com/obsproject/obs-studio/pull/10885
-  const rids = ["f", "h", "q"].slice(preset.layers);
-  const scales = [1, 2, 4].slice(preset.layers);
+  const allRids = ["f", "h", "q"];
+  const allScales = [1, 2, 4];
+
+  const rids = allRids.slice(0, preset.layers);
+  const scales = allScales.slice(0, preset.layers);
+
   const maxFramerate = Math.max(preset.maxFps, preset.minFps);
 
   const encodings = scales.map((scale, i) => {
+    // scale 1 (Full) gets 100% bitrate
+    // scale 2 (Half) gets 35% bitrate
+    // scale 4 (Quarter) gets 15% bitrate
     const weight = scale === 4 ? 0.15 : scale === 2 ? 0.35 : 1.0;
     const calculatedBitrate = Math.floor(preset.baseBitrate * weight);
 
