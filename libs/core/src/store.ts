@@ -3,6 +3,7 @@ import {
   Participant,
   ParticipantEvent,
   type ParticipantConfig,
+  type StreamPublisher,
   type RemoteVideoTrack,
   type RemoteAudioTrack,
   type ConnectionState,
@@ -10,17 +11,29 @@ import {
 } from "./participant";
 import type { PlatformAdapter } from "./platform";
 
-export interface ParticipantState extends LocalStreamState {
+export interface StreamPublisherSnapshot {
+  audioMuted: boolean;
+  videoMuted: boolean;
+  publish: StreamPublisher["publish"];
+  unpublish: () => void;
+  mute: StreamPublisher["mute"];
+}
+
+export interface ParticipantState {
   connectionState: ConnectionState;
   videoTracks: RemoteVideoTrack[];
   audioTracks: RemoteAudioTrack[];
+  main: StreamPublisherSnapshot;
+  aux: StreamPublisherSnapshot;
 }
+
+export type PublishClient = StreamPublisherSnapshot;
 
 export type ParticipantSnapshot = ParticipantState & {
   participant: Participant;
+  main: PublishClient;
+  aux: PublishClient;
   connect: Participant["connect"];
-  publish: Participant["publish"];
-  mute: Participant["mute"];
   close: () => void;
   reset: (config: ParticipantConfig, force: boolean) => void;
 };
@@ -53,8 +66,8 @@ export function createParticipant(
     connectionState: "new",
     videoTracks: [],
     audioTracks: [],
-    audioMuted: false,
-    videoMuted: false,
+    main: { audioMuted: false, videoMuted: false, publish: () => {}, unpublish: () => {}, mute: () => {} },
+    aux: { audioMuted: false, videoMuted: false, publish: () => {}, unpublish: () => {}, mute: () => {} },
   } as any);
 
   const setup = (config: ParticipantConfig) => {
@@ -64,10 +77,15 @@ export function createParticipant(
     // Bind event listeners
     unsubs = [
       participant.on(ParticipantEvent.State, (s) => $store.setKey("connectionState", s)),
-      participant.on(ParticipantEvent.LocalStreamUpdate, (local) => {
-        for (const [key, value] of Object.entries(local)) {
-          $store.setKey(key as keyof ParticipantState, value);
-        }
+      participant.on(ParticipantEvent.LocalStreamUpdate, ({ label, audioMuted, videoMuted }) => {
+        const publisher = participant[label as "main" | "aux"];
+        $store.setKey(label, {
+          audioMuted,
+          videoMuted,
+          publish: (...args) => publisher.publish(...args),
+          unpublish: () => publisher.unpublish(),
+          mute: (...args) => publisher.mute(...args),
+        });
       }),
       participant.on(ParticipantEvent.VideoTrackAdded, ({ track }) =>
         $store.setKey("videoTracks", [...$store.get().videoTracks, track])),
@@ -81,15 +99,26 @@ export function createParticipant(
 
     // Update store with new instance and reset state
     $store.set({
-      ...participant.local,
       connectionState: participant.state,
       videoTracks: [],
       audioTracks: [],
       participant,
+      main: {
+        audioMuted: participant.main.audioMuted,
+        videoMuted: participant.main.videoMuted,
+        publish: (...args) => participant.main.publish(...args),
+        unpublish: () => participant.main.unpublish(),
+        mute: (...args) => participant.main.mute(...args),
+      },
+      aux: {
+        audioMuted: participant.aux.audioMuted,
+        videoMuted: participant.aux.videoMuted,
+        publish: (...args) => participant.aux.publish(...args),
+        unpublish: () => participant.aux.unpublish(),
+        mute: (...args) => participant.aux.mute(...args),
+      },
       // Proxies to the current instance variable
       connect: (...args) => participant.connect(...args),
-      publish: (...args) => participant.publish(...args),
-      mute: (...args) => participant.mute(...args),
       close: () => setup(config),
       reset: (newConfig, force) => {
         if (force || !sameConfig(config, newConfig)) setup(newConfig);

@@ -1,5 +1,4 @@
-import { useParticipant } from '@pulsebeam/react';
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 type DisplaySurfacePolicy = 'include' | 'exclude';
 
@@ -143,14 +142,14 @@ export function useMediaDevices(initialStream: MediaStream | null, onStreamChang
 }
 
 
-export function useScreenShare(roomId: string, apiURL?: string) {
+type PublishClient = {
+  publish: (stream: MediaStream, options?: { videoPreset?: 'motion' | 'detail'; audioPreset?: 'speech' | 'music' }) => void;
+  unpublish: () => void;
+};
+
+export function useScreenShare(client: PublishClient) {
   const [isLoading, setIsLoading] = useState(false);
   const streamRef = useRef<MediaStream | null>(null);
-
-  const config = useMemo(() => ({
-    videoSlots: 0, audioSlots: 5, baseUrl: apiURL,
-  }), [apiURL]);
-  const client = useParticipant(config);
 
   const start = async () => {
     try {
@@ -162,7 +161,6 @@ export function useScreenShare(roomId: string, apiURL?: string) {
       streamRef.current = stream;
       stream.getVideoTracks()[0].onended = stop;
       client.publish(stream, { videoPreset: 'detail', audioPreset: 'music' });
-      client.connect(roomId);
     } catch (e) {
       console.error(e);
       setIsLoading(false);
@@ -170,12 +168,13 @@ export function useScreenShare(roomId: string, apiURL?: string) {
   };
 
   const stop = () => {
-    client.close();
+    client.unpublish();
     streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
     setIsLoading(false);
   };
 
-  const isSharing = ["connected", "connecting"].includes(client.connectionState);
+  const isSharing = streamRef.current !== null;
   useEffect(() => {
     return stop;
   }, []);

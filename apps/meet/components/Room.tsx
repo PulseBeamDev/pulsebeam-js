@@ -29,31 +29,33 @@ interface RoomProps {
 export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
   const [spotlightId, setSpotlightId] = useState<string | "local">("local");
 
-  const mainClient = useParticipant(useMemo(() => ({ baseUrl: apiURL }), [apiURL]));
-  const screen = useScreenShare(roomId, apiURL);
+  const client = useParticipant(useMemo(() => ({ baseUrl: apiURL }), [apiURL]));
+  const screen = useScreenShare(client.aux);
 
   // Auto-connect and publish
-  useEffect(() => { mainClient.connect(roomId); }, [roomId]);
-  useEffect(() => { mainClient.publish(localStream); }, [localStream]);
+  useEffect(() => { client.connect(roomId); }, [roomId]);
+  useEffect(() => {
+    client.main.publish(localStream, { videoPreset: "motion", audioPreset: "speech" });
+  }, [localStream]);
 
   // Handle spotlight fallback if participant leaves
   useEffect(() => {
-    if (spotlightId !== "local" && !mainClient.videoTracks.some(t => t.id === spotlightId)) {
+    if (spotlightId !== "local" && !client.videoTracks.some((t: any) => t.id === spotlightId)) {
       setSpotlightId("local");
     }
-  }, [mainClient.videoTracks, spotlightId]);
+  }, [client.videoTracks, spotlightId]);
 
-  const spotlightTrack = mainClient.videoTracks.find(t => t.id === spotlightId);
+  const spotlightTrack = client.videoTracks.find((t: any) => t.id === spotlightId);
 
   return (
     <TooltipProvider>
       <div className="flex flex-col h-screen bg-background overflow-hidden font-sans">
         <RoomHeader
           roomId={roomId}
-          state={mainClient.connectionState}
+          state={client.connectionState}
           screen={screen}
           onLeave={onLeave}
-          onReconnect={() => mainClient.connect(roomId)}
+          onReconnect={() => client.connect(roomId)}
         />
 
         <main className="flex-1 flex overflow-hidden p-4 gap-4">
@@ -71,10 +73,10 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
               />
 
               <MediaControls
-                audioMuted={mainClient.audioMuted}
-                videoMuted={mainClient.videoMuted}
-                onToggleMic={() => mainClient.mute({ audio: !mainClient.audioMuted })}
-                onToggleCam={() => mainClient.mute({ video: !mainClient.videoMuted })}
+                audioMuted={client.main.audioMuted}
+                videoMuted={client.main.videoMuted}
+                onToggleMic={() => client.main.mute({ audio: !client.main.audioMuted })}
+                onToggleCam={() => client.main.mute({ video: !client.main.videoMuted })}
               />
             </div>
           </Card>
@@ -82,7 +84,7 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
           {/* Sidebar */}
           <aside className="flex-1 flex flex-col gap-3 max-w-[280px]">
             <ParticipantSidebar
-              tracks={mainClient.videoTracks}
+              tracks={client.videoTracks}
               localStream={localStream}
               spotlightId={spotlightId}
               onSelect={setSpotlightId}
@@ -90,7 +92,7 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
           </aside>
         </main>
 
-        {mainClient.audioTracks.map(t => <Audio key={t.id} track={t} />)}
+        {client.audioTracks.map((t: any) => <Audio key={t.id} track={t} />)}
       </div>
     </TooltipProvider>
   );

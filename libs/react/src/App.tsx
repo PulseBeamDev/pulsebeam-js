@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useParticipant, Video, Audio, type ParticipantConfig } from "./index";
+import { useParticipant, Video, Audio } from "./index";
 
-const APP_CONFIG: ParticipantConfig = {
+const APP_CONFIG = {
   videoSlots: 16,
   audioSlots: 8,
   baseUrl: "http://localhost:9999/api/v1"
@@ -10,19 +10,18 @@ const APP_CONFIG: ParticipantConfig = {
 export default function MeetingRoom() {
   const [instanceId] = useState(() => Math.random().toString(36).slice(2));
   const [roomId, setRoomId] = useState("demo-room");
-  const main = useParticipant(APP_CONFIG);
-  const screen = useParticipant({ ...APP_CONFIG, videoSlots: 0, audioSlots: 0 });
+  const client = useParticipant(APP_CONFIG);
 
   useEffect(() => {
-    console.log(`App [${instanceId}]: connectionState:`, main.connectionState);
-  }, [main.connectionState, instanceId]);
+    console.log(`App [${instanceId}]: connectionState:`, client.connectionState);
+  }, [client.connectionState, instanceId]);
 
   const join = async () => {
     console.log(`App [${instanceId}]: Joining room:`, roomId);
     try {
       const s = await navigator.mediaDevices.getUserMedia({ video: { height: 720 }, audio: true });
-      main.publish(s);
-      main.connect(roomId);
+      client.main.publish(s);
+      client.connect(roomId);
     } catch (e) {
       console.error(`App [${instanceId}]: Join failed:`, e);
     }
@@ -30,14 +29,15 @@ export default function MeetingRoom() {
 
   const leave = () => {
     console.log(`App [${instanceId}]: Leaving room`);
-    main.close();
-    screen.close();
+    client.main.unpublish();
+    client.aux.unpublish();
+    client.close();
   };
 
   // 'new' is the initial WebRTC state, before any join/connect action.
   // We treat it as decoupled from any room.
-  const isLive = ["connected", "connecting", "joining", "failed", "closed"].includes(main.connectionState);
-  const status = main.connectionState;
+  const isLive = ["connected", "connecting", "joining", "failed", "closed"].includes(client.connectionState);
+  const status = client.connectionState;
 
   return (
     <div data-testid="meeting-container" data-instance-id={instanceId} className="test-app">
@@ -69,31 +69,31 @@ export default function MeetingRoom() {
         <div className="media-controls" data-testid="media-controls">
           <button
             data-testid="cam-mute-button"
-            data-muted={main.videoMuted}
-            onClick={() => main.mute({ video: !main.videoMuted })}
+            data-muted={client.main.videoMuted}
+            onClick={() => client.main.mute({ video: !client.main.videoMuted })}
           >
-            {main.videoMuted ? "Unmute Cam" : "Mute Cam"}
+            {client.main.videoMuted ? "Unmute Cam" : "Mute Cam"}
           </button>
 
           <button
             data-testid="mic-mute-button"
-            data-muted={main.audioMuted}
-            onClick={() => main.mute({ audio: !main.audioMuted })}
+            data-muted={client.main.audioMuted}
+            onClick={() => client.main.mute({ audio: !client.main.audioMuted })}
           >
-            {main.audioMuted ? "Unmute Mic" : "Mute Mic"}
+            {client.main.audioMuted ? "Unmute Mic" : "Mute Mic"}
           </button>
         </div>
       )}
 
       <div data-testid="video-grid" className="video-grid">
-        {main.videoTracks.map(t => (
+        {client.videoTracks.map((t: any) => (
           <div key={t.id} data-testid={`video-slot-${t.participantId}`}>
             <Video track={t} />
             <span>{t.participantId}</span>
           </div>
         ))}
       </div>
-      {main.audioTracks.map(t => <Audio key={t.id} track={t} />)}
+      {client.audioTracks.map((t: any) => <Audio key={t.id} track={t} />)}
     </div>
   );
 }

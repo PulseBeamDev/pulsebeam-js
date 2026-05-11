@@ -8,15 +8,19 @@ import {
   VideoBinder,
   AudioBinder,
   PAUSED_PLACEHOLDER_SVG,
+  type ParticipantSnapshot,
+  type DeviceSnapshot,
+  type DisplaySnapshot,
+  type ParticipantConfig,
 } from "@pulsebeam/web";
 
 export * from "@pulsebeam/web";
-
-type ParticipantManager = ReturnType<typeof createParticipant>;
-type ParticipantSnapshot = ReturnType<ParticipantManager["get"]>;
-type DeviceSnapshot = ReturnType<ReturnType<typeof createDeviceManager>["get"]>;
-type DisplaySnapshot = ReturnType<ReturnType<typeof createDisplayManager>["get"]>;
-type ParticipantConfig = Parameters<typeof createParticipant>[0];
+export type {
+  ParticipantConfig,
+  ParticipantSnapshot,
+  DeviceSnapshot,
+  DisplaySnapshot,
+} from "@pulsebeam/web";
 type RemoteVideoTrack = ParticipantSnapshot["videoTracks"][number];
 
 const useBinder = (track: any, Binder: any) => {
