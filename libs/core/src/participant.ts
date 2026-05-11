@@ -30,8 +30,6 @@ const MAX_VIDEO_SLOTS = 16;
 const MAX_AUDIO_SLOTS = 5;
 const MAX_PUBLISH_VIDEO_SLOTS = 2;
 const MAX_PUBLISH_AUDIO_SLOTS = 2;
-const MAIN_PUBLISH_LABEL = "main";
-const AUX_PUBLISH_LABEL = "aux";
 
 /**
  * Configuration options for a participant connection.
@@ -275,9 +273,9 @@ class Transport {
     this.mainVideoSender = this.pc.addTransceiver("video", {
       direction: "sendonly",
       sendEncodings: [
-        { rid: "q", active: true },
-        { rid: "h", active: true },
         { rid: "f", active: true },
+        { rid: "h", active: true },
+        { rid: "q", active: true },
       ]
     }).sender;
 
@@ -288,9 +286,9 @@ class Transport {
     this.auxVideoSender = this.pc.addTransceiver("video", {
       direction: "sendonly",
       sendEncodings: [
-        { rid: "q", active: true },
-        { rid: "h", active: true },
         { rid: "f", active: true },
+        { rid: "h", active: true },
+        { rid: "q", active: true },
       ]
     }).sender;
 
@@ -325,7 +323,11 @@ class Transport {
     this.syncStream(this.auxVideoSender, this.auxAudioSender, aux);
   }
 
-  private syncStream(videoSender: RTCRtpSender, audioSender: RTCRtpSender, desired: UpstreamState) {
+  private syncStream(
+    videoSender: RTCRtpSender,
+    audioSender: RTCRtpSender,
+    desired: UpstreamState,
+  ) {
     const vTrack = desired.localStream?.video?.track ?? null;
     const aTrack = desired.localStream?.audio?.track ?? null;
 
@@ -348,8 +350,12 @@ class Transport {
         vTrack.contentHint = internal.contentHint;
       }
 
+      const encodingByRid = new Map(
+        internal.encodings.map((encoding) => [encoding.rid, encoding] as const),
+      );
+
       params.encodings.forEach((slot, i) => {
-        const config = internal.encodings[i];
+        const config = (slot.rid && encodingByRid.get(slot.rid)) ?? internal.encodings[i];
         if (!config) return;
 
         if (slot.active !== shouldBeActive) { slot.active = shouldBeActive; changed = true; }

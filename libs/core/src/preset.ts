@@ -59,6 +59,7 @@ export type AudioPresetName = "speech" | "music";
 export interface VideoPreset {
   layers: 1 | 2 | 3;
   mode: "detail" | "motion";
+  minFps: number;
   maxFps: number;
   baseBitrate: number;
 }
@@ -72,16 +73,20 @@ export const VIDEO_PRESETS: Record<VideoPresetName, VideoPreset> = {
   motion: {
     layers: 3,
     mode: "motion",
+    minFps: 1,
     maxFps: 30,
     baseBitrate: 1_250_000,
   },
   detail: {
-    layers: 3,
+    layers: 2,
     mode: "detail",
+    minFps: 2,
     maxFps: 30,
     baseBitrate: 2_500_000,
   },
 };
+
+export const SCREEN_SHARE_MIN_FPS = 2;
 
 /**
  * Internal mapper to translate our abstraction into WebRTC SendParameters.
@@ -93,6 +98,8 @@ export function mapPresetToInternal(preset: VideoPreset) {
   const rids = ["f", "h", "q"];
   const scales = [1, 2, 4];
 
+  const maxFramerate = Math.max(preset.maxFps, preset.minFps);
+
   const encodings = scales.map((scale, i) => {
     const weight = scale === 4 ? 0.15 : scale === 2 ? 0.35 : 1.0;
     const calculatedBitrate = Math.floor(preset.baseBitrate * weight);
@@ -101,7 +108,7 @@ export function mapPresetToInternal(preset: VideoPreset) {
       rid: rids[i],
       scaleResolutionDownBy: scale,
       maxBitrate: calculatedBitrate,
-      maxFramerate: preset.maxFps,
+      maxFramerate,
       active: true,
       priority: preset.mode === "detail" ? "high" : "low",
       networkPriority: preset.mode === "detail" ? "high" : "low"
