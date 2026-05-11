@@ -64,8 +64,9 @@ message VideoRequest {
 
 message UpstreamIntent {
   string mid = 1;
-  // If false, the SFU should immediately Unpublish this track for everyone else,
-  // regardless of whether packets are still trickling in.
+  // Publisher intent for explicit stop behavior.
+  // - active=false: explicit stop/unpublish intent from publisher.
+  // - active=true: advisory publish intent; server may also publish implicitly.
   bool active = 2;
   // Metadata like "Screen Share" vs "Camera" can go here.
   map<string, string> meta = 3;

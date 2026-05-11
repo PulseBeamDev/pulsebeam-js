@@ -168,8 +168,9 @@ export type UpstreamIntent = Message<"signaling.UpstreamIntent"> & {
   mid: string;
 
   /**
-   * If false, the SFU should immediately Unpublish this track for everyone else,
-   * regardless of whether packets are still trickling in.
+   * Publisher intent for explicit stop behavior.
+   * - active=false: explicit stop/unpublish intent from publisher.
+   * - active=true: advisory publish intent; server may also publish implicitly.
    *
    * @generated from field: bool active = 2;
    */

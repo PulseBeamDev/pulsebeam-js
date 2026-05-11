@@ -836,7 +836,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       downstreamRequests: requests,
       upstreamIntents,
     });
-    this.transport.dc.send(toBinary(ClientIntentSchema, intent));
+    this.send({ case: "intent", value: intent });
   }
 
   private sendSyncRequest() {
