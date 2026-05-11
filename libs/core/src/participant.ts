@@ -326,17 +326,16 @@ class Transport {
 
   upstreamTrackStates(): UpstreamIntent[] {
     const pairs = [
-      [this.mainVideoTransceiver, this.mainVideoSender, "camera"] as const,
-      [this.auxVideoTransceiver, this.auxVideoSender, "screen_share"] as const,
+      [this.mainVideoTransceiver, this.mainVideoSender] as const,
+      [this.auxVideoTransceiver, this.auxVideoSender] as const,
     ];
 
     const states: UpstreamIntent[] = [];
-    for (const [tx, sender, source] of pairs) {
+    for (const [tx, sender] of pairs) {
       if (!tx.mid) continue;
       states.push(create(UpstreamIntentSchema, {
         mid: tx.mid,
         active: sender.track !== null,
-        meta: { source },
       }));
     }
     states.sort((a, b) => a.mid.localeCompare(b.mid));
