@@ -37,8 +37,8 @@ function createDisplayMediaConstraints(): ExtendedDisplayMediaStreamConstraints 
     },
     video: {
       frameRate: { ideal: 30 },
-      width: { max: 1920 },
-      height: { max: 1200 },
+      width: { max: 1280 },
+      height: { max: 720 },
     },
     controller,
     systemAudio: 'exclude',
@@ -87,9 +87,8 @@ export function useMediaDevices(initialStream: MediaStream | null, onStreamChang
     try {
       const videoConstraints = {
         deviceId: vId ? { exact: vId } : undefined,
-        // 'ideal' tells the browser what you want, but allows fallback
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
         aspectRatio: { ideal: 1.7777777778 }, // 16:9
         frameRate: { ideal: 30 }
       };
