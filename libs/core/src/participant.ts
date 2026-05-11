@@ -270,29 +270,27 @@ class Transport {
 
     this.mainAudioSender = this.pc.addTransceiver("audio", {
       direction: "sendonly",
-      sendEncodings: [{ priority: "high" }] as any,
     }).sender;
 
     this.mainVideoSender = this.pc.addTransceiver("video", {
       direction: "sendonly",
       sendEncodings: [
-        { rid: "q", active: true, priority: "high" } as any,
-        { rid: "h", active: true, priority: "high" } as any,
-        { rid: "f", active: true, priority: "high" } as any,
+        { rid: "q", active: true },
+        { rid: "h", active: true },
+        { rid: "f", active: true },
       ]
     }).sender;
 
     this.auxAudioSender = this.pc.addTransceiver("audio", {
       direction: "sendonly",
-      sendEncodings: [{ priority: "very-low" }] as any,
     }).sender;
 
     this.auxVideoSender = this.pc.addTransceiver("video", {
       direction: "sendonly",
       sendEncodings: [
-        { rid: "q", active: true, priority: "very-low" } as any,
-        { rid: "h", active: true, priority: "very-low" } as any,
-        { rid: "f", active: true, priority: "very-low" } as any,
+        { rid: "q", active: true },
+        { rid: "h", active: true },
+        { rid: "f", active: true },
       ]
     }).sender;
 
@@ -403,7 +401,7 @@ export class StreamPublisher {
     private readonly _label: "main" | "aux",
     private readonly _onSync: () => void,
     private readonly _emitLocal: (label: "main" | "aux", state: LocalStreamState) => void,
-  ) {}
+  ) { }
 
   /** @internal */
   get _upstream(): UpstreamState { return this._state; }
@@ -427,7 +425,7 @@ export class StreamPublisher {
       }
       if (aTrack) {
         const targetChannels = resolvedAudio.stereo ? 2 : 1;
-        aTrack.applyConstraints({ channelCount: { ideal: targetChannels } }).catch(() => {});
+        aTrack.applyConstraints({ channelCount: { ideal: targetChannels } }).catch(() => { });
       }
     }
 
