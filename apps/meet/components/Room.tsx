@@ -184,7 +184,7 @@ function ParticipantSidebar({ tracks, localStream, spotlightId, onSelect }: {
           {/* Local Thumbnail (Only show if not in spotlight) */}
           {spotlightId !== "local" && (
             <div className="relative aspect-video rounded-lg overflow-hidden group cursor-pointer border-2 border-transparent hover:border-primary" onClick={() => onSelect("local")}>
-              <LocalVideo stream={localStream} className="w-full h-full object-cover opacity-90" />
+              <LocalVideo stream={localStream} className="w-full h-full object-contain opacity-90" />
               <div className="absolute bottom-1.5 left-1.5">
                 <Badge variant="secondary" className="bg-black/40 text-[8px] h-3.5 backdrop-blur-sm border-none text-white">You</Badge>
               </div>
@@ -195,7 +195,7 @@ function ParticipantSidebar({ tracks, localStream, spotlightId, onSelect }: {
           {tracks.map((track) => (
             spotlightId !== track.id && (
               <div key={track.id} className="relative aspect-video rounded-lg overflow-hidden group cursor-pointer border-2 border-transparent hover:border-primary bg-muted" onClick={() => onSelect(track.id)}>
-                <Video track={track} className="w-full h-full object-cover" />
+                <Video track={track} className="w-full h-full object-contain" />
                 <div className="absolute bottom-1.5 left-1.5">
                   <Badge variant="secondary" className="bg-black/40 text-[8px] h-3.5 border-none text-white">{track.participantId}</Badge>
                 </div>

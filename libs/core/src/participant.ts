@@ -886,18 +886,6 @@ function areUpstreamIntentsEqual(
     if (lhs.mid !== rhs.mid || lhs.active !== rhs.active) {
       return false;
     }
-    const leftKeys = Object.keys(lhs.meta).sort();
-    const rightKeys = Object.keys(rhs.meta).sort();
-    if (leftKeys.length !== rightKeys.length) {
-      return false;
-    }
-    for (let j = 0; j < leftKeys.length; j++) {
-      const kLeft = leftKeys[j];
-      const kRight = rightKeys[j];
-      if (!kLeft || !kRight || kLeft !== kRight || lhs.meta[kLeft] !== rhs.meta[kRight]) {
-        return false;
-      }
-    }
   }
   return true;
 }

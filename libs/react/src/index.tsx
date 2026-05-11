@@ -75,7 +75,7 @@ export function Video(props: VideoProps) {
         style={{
           width: "100%",
           height: "100%",
-          objectFit: "cover",
+          objectFit: "contain",
           opacity: paused ? 0 : 1,
         }}
       />

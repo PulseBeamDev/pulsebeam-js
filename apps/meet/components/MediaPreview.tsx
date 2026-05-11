@@ -28,7 +28,7 @@ export function MediaPreview({
             autoPlay
             muted
             playsInline
-            className="w-full h-full object-cover mirror"
+            className="w-full h-full object-contain mirror"
           />
         ) : (
           <div className="flex flex-col items-center justify-center h-full bg-muted text-muted-foreground transition-colors">
