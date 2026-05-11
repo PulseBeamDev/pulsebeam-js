@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file signaling.proto.
  */
 export const file_signaling: GenFile = /*@__PURE__*/
-  fileDesc("Cg9zaWduYWxpbmcucHJvdG8SCXNpZ25hbGluZyKmAQoFVHJhY2sSCgoCaWQYASABKAkSIgoEa2luZBgCIAEoDjIULnNpZ25hbGluZy5UcmFja0tpbmQSFgoOcGFydGljaXBhbnRfaWQYAyABKAkSKAoEbWV0YRgEIAMoCzIaLnNpZ25hbGluZy5UcmFjay5NZXRhRW50cnkaKwoJTWV0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiQAoPVmlkZW9Bc3NpZ25tZW50EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZwYXVzZWQYAyABKAgiwwEKC1N0YXRlVXBkYXRlEgsKA3NlcRgBIAEoBBITCgtpc19zbmFwc2hvdBgCIAEoCBInCg10cmFja3NfdXBzZXJ0GAMgAygLMhAuc2lnbmFsaW5nLlRyYWNrEhUKDXRyYWNrc19yZW1vdmUYBCADKAkSNgoSYXNzaWdubWVudHNfdXBzZXJ0GAUgAygLMhouc2lnbmFsaW5nLlZpZGVvQXNzaWdubWVudBIaChJhc3NpZ25tZW50c19yZW1vdmUYBiADKAkiPQoMVmlkZW9SZXF1ZXN0EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZoZWlnaHQYAyABKA0iOQoMQ2xpZW50SW50ZW50EikKCHJlcXVlc3RzGAEgAygLMhcuc2lnbmFsaW5nLlZpZGVvUmVxdWVzdCJdCg1DbGllbnRNZXNzYWdlEikKBmludGVudBgBIAEoCzIXLnNpZ25hbGluZy5DbGllbnRJbnRlbnRIABIWCgxyZXF1ZXN0X3N5bmMYAiABKAhIAEIJCgdwYXlsb2FkIlUKDVNlcnZlck1lc3NhZ2USKAoGdXBkYXRlGAEgASgLMhYuc2lnbmFsaW5nLlN0YXRlVXBkYXRlSAASDwoFZXJyb3IYAiABKAlIAEIJCgdwYXlsb2FkKj0KCVRyYWNrS2luZBIaChZUUkFDS19LSU5EX1VOU1BFQ0lGSUVEEAASCQoFVklERU8QARIJCgVBVURJTxACYgZwcm90bzM");
+  fileDesc("Cg9zaWduYWxpbmcucHJvdG8SCXNpZ25hbGluZyKmAQoFVHJhY2sSCgoCaWQYASABKAkSIgoEa2luZBgCIAEoDjIULnNpZ25hbGluZy5UcmFja0tpbmQSFgoOcGFydGljaXBhbnRfaWQYAyABKAkSKAoEbWV0YRgEIAMoCzIaLnNpZ25hbGluZy5UcmFjay5NZXRhRW50cnkaKwoJTWV0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiQAoPVmlkZW9Bc3NpZ25tZW50EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZwYXVzZWQYAyABKAgiwwEKC1N0YXRlVXBkYXRlEgsKA3NlcRgBIAEoBBITCgtpc19zbmFwc2hvdBgCIAEoCBInCg10cmFja3NfdXBzZXJ0GAMgAygLMhAuc2lnbmFsaW5nLlRyYWNrEhUKDXRyYWNrc19yZW1vdmUYBCADKAkSNgoSYXNzaWdubWVudHNfdXBzZXJ0GAUgAygLMhouc2lnbmFsaW5nLlZpZGVvQXNzaWdubWVudBIaChJhc3NpZ25tZW50c19yZW1vdmUYBiADKAkiPQoMVmlkZW9SZXF1ZXN0EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZoZWlnaHQYAyABKA0ijQEKDlVwc3RyZWFtSW50ZW50EgsKA21pZBgBIAEoCRIOCgZhY3RpdmUYAiABKAgSMQoEbWV0YRgDIAMoCzIjLnNpZ25hbGluZy5VcHN0cmVhbUludGVudC5NZXRhRW50cnkaKwoJTWV0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEieQoMQ2xpZW50SW50ZW50EjQKE2Rvd25zdHJlYW1fcmVxdWVzdHMYASADKAsyFy5zaWduYWxpbmcuVmlkZW9SZXF1ZXN0EjMKEHVwc3RyZWFtX2ludGVudHMYAiADKAsyGS5zaWduYWxpbmcuVXBzdHJlYW1JbnRlbnQiXQoNQ2xpZW50TWVzc2FnZRIpCgZpbnRlbnQYASABKAsyFy5zaWduYWxpbmcuQ2xpZW50SW50ZW50SAASFgoMcmVxdWVzdF9zeW5jGAIgASgISABCCQoHcGF5bG9hZCJVCg1TZXJ2ZXJNZXNzYWdlEigKBnVwZGF0ZRgBIAEoCzIWLnNpZ25hbGluZy5TdGF0ZVVwZGF0ZUgAEg8KBWVycm9yGAIgASgJSABCCQoHcGF5bG9hZCo9CglUcmFja0tpbmQSGgoWVFJBQ0tfS0lORF9VTlNQRUNJRklFRBAAEgkKBVZJREVPEAESCQoFQVVESU8QAmIGcHJvdG8z");
 
 /**
  * @generated from message signaling.Track
@@ -159,13 +159,50 @@ export const VideoRequestSchema: GenMessage<VideoRequest> = /*@__PURE__*/
   messageDesc(file_signaling, 3);
 
 /**
+ * @generated from message signaling.UpstreamIntent
+ */
+export type UpstreamIntent = Message<"signaling.UpstreamIntent"> & {
+  /**
+   * @generated from field: string mid = 1;
+   */
+  mid: string;
+
+  /**
+   * If false, the SFU should immediately Unpublish this track for everyone else,
+   * regardless of whether packets are still trickling in.
+   *
+   * @generated from field: bool active = 2;
+   */
+  active: boolean;
+
+  /**
+   * Metadata like "Screen Share" vs "Camera" can go here.
+   *
+   * @generated from field: map<string, string> meta = 3;
+   */
+  meta: { [key: string]: string };
+};
+
+/**
+ * Describes the message signaling.UpstreamIntent.
+ * Use `create(UpstreamIntentSchema)` to create a new message.
+ */
+export const UpstreamIntentSchema: GenMessage<UpstreamIntent> = /*@__PURE__*/
+  messageDesc(file_signaling, 4);
+
+/**
  * @generated from message signaling.ClientIntent
  */
 export type ClientIntent = Message<"signaling.ClientIntent"> & {
   /**
-   * @generated from field: repeated signaling.VideoRequest requests = 1;
+   * @generated from field: repeated signaling.VideoRequest downstream_requests = 1;
    */
-  requests: VideoRequest[];
+  downstreamRequests: VideoRequest[];
+
+  /**
+   * @generated from field: repeated signaling.UpstreamIntent upstream_intents = 2;
+   */
+  upstreamIntents: UpstreamIntent[];
 };
 
 /**
@@ -173,7 +210,7 @@ export type ClientIntent = Message<"signaling.ClientIntent"> & {
  * Use `create(ClientIntentSchema)` to create a new message.
  */
 export const ClientIntentSchema: GenMessage<ClientIntent> = /*@__PURE__*/
-  messageDesc(file_signaling, 4);
+  messageDesc(file_signaling, 5);
 
 /**
  * @generated from message signaling.ClientMessage
@@ -202,7 +239,7 @@ export type ClientMessage = Message<"signaling.ClientMessage"> & {
  * Use `create(ClientMessageSchema)` to create a new message.
  */
 export const ClientMessageSchema: GenMessage<ClientMessage> = /*@__PURE__*/
-  messageDesc(file_signaling, 5);
+  messageDesc(file_signaling, 6);
 
 /**
  * @generated from message signaling.ServerMessage
@@ -231,7 +268,7 @@ export type ServerMessage = Message<"signaling.ServerMessage"> & {
  * Use `create(ServerMessageSchema)` to create a new message.
  */
 export const ServerMessageSchema: GenMessage<ServerMessage> = /*@__PURE__*/
-  messageDesc(file_signaling, 6);
+  messageDesc(file_signaling, 7);
 
 /**
  * @generated from enum signaling.TrackKind

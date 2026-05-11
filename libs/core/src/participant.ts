@@ -1,13 +1,16 @@
 import {
   ClientMessageSchema,
   ServerMessageSchema,
-  ClientIntentSchema,
   VideoRequestSchema,
   type VideoAssignment,
   type StateUpdate,
   type VideoRequest,
   type Track,
   type ClientMessage,
+  type ClientIntent,
+  type UpstreamIntent,
+  UpstreamIntentSchema,
+  ClientIntentSchema,
 } from "./gen/signaling_pb";
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 import type { PlatformAdapter } from "./platform";
@@ -248,6 +251,8 @@ class Transport {
   private mainAudioSender: RTCRtpSender;
   private auxVideoSender: RTCRtpSender;
   private auxAudioSender: RTCRtpSender;
+  private mainVideoTransceiver: RTCRtpTransceiver;
+  private auxVideoTransceiver: RTCRtpTransceiver;
 
   constructor(
     private adapter: PlatformAdapter,
@@ -270,27 +275,29 @@ class Transport {
       direction: "sendonly",
     }).sender;
 
-    this.mainVideoSender = this.pc.addTransceiver("video", {
+    this.mainVideoTransceiver = this.pc.addTransceiver("video", {
       direction: "sendonly",
       sendEncodings: [
         { rid: "f", active: true },
         { rid: "h", active: true },
         { rid: "q", active: true },
       ]
-    }).sender;
+    });
+    this.mainVideoSender = this.mainVideoTransceiver.sender;
 
     this.auxAudioSender = this.pc.addTransceiver("audio", {
       direction: "sendonly",
     }).sender;
 
-    this.auxVideoSender = this.pc.addTransceiver("video", {
+    this.auxVideoTransceiver = this.pc.addTransceiver("video", {
       direction: "sendonly",
       sendEncodings: [
         { rid: "f", active: true },
         { rid: "h", active: true },
         { rid: "q", active: true },
       ]
-    }).sender;
+    });
+    this.auxVideoSender = this.auxVideoTransceiver.sender;
 
     const audioSlots = Math.min(config.audioSlots ?? MAX_AUDIO_SLOTS, MAX_AUDIO_SLOTS);
     for (let i = 0; i < audioSlots; i++) {
@@ -315,6 +322,25 @@ class Transport {
   close() {
     this.pc.close();
     this.dc.close();
+  }
+
+  upstreamTrackStates(): UpstreamIntent[] {
+    const pairs = [
+      [this.mainVideoTransceiver, this.mainVideoSender, "camera"] as const,
+      [this.auxVideoTransceiver, this.auxVideoSender, "screen_share"] as const,
+    ];
+
+    const states: UpstreamIntent[] = [];
+    for (const [tx, sender, source] of pairs) {
+      if (!tx.mid) continue;
+      states.push(create(UpstreamIntentSchema, {
+        mid: tx.mid,
+        active: sender.track !== null,
+        meta: { source },
+      }));
+    }
+    states.sort((a, b) => a.mid.localeCompare(b.mid));
+    return states;
   }
 
   sync(main: UpstreamState, aux: UpstreamState) {
@@ -464,6 +490,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   private _state: ConnectionState = "new";
 
   private lastSentRequests: VideoRequest[] = [];
+  private lastSentUpstreamIntents: UpstreamIntent[] = [];
 
   private debounceTimer: any | null = null;
   private isReconnecting = false;
@@ -482,7 +509,10 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     this.session.on("track_removed", (e) => this.emit(ParticipantEvent.VideoTrackRemoved, e));
     this.session.on("update_needed", () => this.scheduleReconcile());
 
-    const sync = () => this.transport?.sync(this.main._upstream, this.aux._upstream);
+    const sync = () => {
+      this.transport?.sync(this.main._upstream, this.aux._upstream);
+      this.scheduleReconcile();
+    };
     const emitLocal = (label: "main" | "aux", state: LocalStreamState) =>
       this.emit(ParticipantEvent.LocalStreamUpdate, { label, ...state });
 
@@ -601,6 +631,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
       // Reset the sent requests cache, as we have a fresh transport/session context
       this.lastSentRequests = [];
+      this.lastSentUpstreamIntents = [];
 
       // Sync the state immediately to the new transport's reality
       this.updateState(newTransport.pc.connectionState);
@@ -787,13 +818,25 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       }
     }
 
+    const upstreamIntents = this.transport.upstreamTrackStates();
+
     // 5. Differential Update
-    if (!force && areRequestsEqual(this.lastSentRequests, requests)) return;
+    if (
+      !force
+      && areRequestsEqual(this.lastSentRequests, requests)
+      && areUpstreamIntentsEqual(this.lastSentUpstreamIntents, upstreamIntents)
+    ) {
+      return;
+    }
     this.lastSentRequests = requests;
+    this.lastSentUpstreamIntents = upstreamIntents;
 
     console.table(requests);
-    const intent = create(ClientIntentSchema, { requests });
-    this.send({ case: "intent", value: intent });
+    const intent: ClientIntent = create(ClientIntentSchema, {
+      downstreamRequests: requests,
+      upstreamIntents,
+    });
+    this.transport.dc.send(toBinary(ClientIntentSchema, intent));
   }
 
   private sendSyncRequest() {
@@ -831,3 +874,32 @@ function areRequestsEqual(a: VideoRequest[], b: VideoRequest[]): boolean {
   }
   return true;
 }
+
+function areUpstreamIntentsEqual(
+  a: UpstreamIntent[],
+  b: UpstreamIntent[],
+): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const lhs = a[i];
+    const rhs = b[i];
+    if (!lhs || !rhs) return false;
+    if (lhs.mid !== rhs.mid || lhs.active !== rhs.active) {
+      return false;
+    }
+    const leftKeys = Object.keys(lhs.meta).sort();
+    const rightKeys = Object.keys(rhs.meta).sort();
+    if (leftKeys.length !== rightKeys.length) {
+      return false;
+    }
+    for (let j = 0; j < leftKeys.length; j++) {
+      const kLeft = leftKeys[j];
+      const kRight = rightKeys[j];
+      if (!kLeft || !kRight || kLeft !== kRight || lhs.meta[kLeft] !== rhs.meta[kRight]) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
