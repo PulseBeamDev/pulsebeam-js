@@ -24,15 +24,13 @@ const SYNC_DEBOUNCE_MS = 300;
  * Maximum number of video slots available per session.
  * Each slot represents a simulcast video track that can be forwarded by the SFU.
  */
-const MAX_VIDEO_SLOTS = 16;
+const MAX_VIDEO_SLOTS = 7;
 
 /**
  * Maximum number of audio slots available per session.
  * Each slot represents an audio track that can be forwarded by the SFU.
  */
-const MAX_AUDIO_SLOTS = 5;
-const MAX_PUBLISH_VIDEO_SLOTS = 2;
-const MAX_PUBLISH_AUDIO_SLOTS = 2;
+const MAX_AUDIO_SLOTS = 3;
 
 /**
  * Configuration options for a participant connection.
