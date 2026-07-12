@@ -17,7 +17,7 @@ import type { PlatformAdapter } from "./platform";
 import { EventEmitter } from "./event";
 import { mapPresetToInternal, VIDEO_PRESETS, AUDIO_PRESETS, type VideoPreset, type VideoPresetName, type AudioPresetConfig, type AudioPresetName } from "./preset";
 
-const SIGNALING_LABEL = "__internal/v1/signaling";
+const SIGNALING_LABEL = "v1/sys/signaling";
 const SYNC_DEBOUNCE_MS = 300;
 
 /**
@@ -263,8 +263,7 @@ class Transport {
 
     this.dc = this.pc.createDataChannel(SIGNALING_LABEL, {
       ordered: true,
-      negotiated: true,
-      id: 0,
+      negotiated: false,
     });
     this.dc.binaryType = "arraybuffer";
     this.dc.onmessage = (ev) => onSignal(ev.data);
