@@ -123,7 +123,9 @@ export function mapPresetToInternal(preset: VideoPreset) {
 
   return {
     encodings,
-    degradationPreference: preset.mode === "detail" ? "maintain-resolution" : "balanced",
+    // TODO: this is easier to estimate on the sfu side for now.
+    // degradationPreference: preset.mode === "detail" ? "maintain-resolution" : "balanced",
+    degradationPreference: "maintain-framerate",
     contentHint: preset.mode === "detail" ? "text" : "motion",
   };
 }
