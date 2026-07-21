@@ -372,18 +372,21 @@ class Transport {
         vTrack.contentHint = internal.contentHint;
       }
 
-      const encodingByRid = new Map(
-        internal.encodings.map((encoding) => [encoding.rid, encoding] as const),
+      const encodingByRid = new Map<string, typeof internal.encodings[number]>(
+        internal.encodings.map((encoding) => [encoding.rid, encoding]),
       );
 
       params.encodings.forEach((slot, i) => {
         const config = (slot.rid && encodingByRid.get(slot.rid)) ?? internal.encodings[i];
         if (!config) return;
 
-        if (slot.active !== shouldBeActive) { slot.active = shouldBeActive; changed = true; }
+        const active = shouldBeActive && !!config.active;
+        if (slot.active !== active) { slot.active = active; changed = true; }
         if (slot.scaleResolutionDownBy !== config.scaleResolutionDownBy) { slot.scaleResolutionDownBy = config.scaleResolutionDownBy; changed = true; }
         if (slot.maxBitrate !== config.maxBitrate) { slot.maxBitrate = config.maxBitrate; changed = true; }
         if (slot.maxFramerate !== config.maxFramerate) { slot.maxFramerate = config.maxFramerate; changed = true; }
+        if (slot.priority !== config.priority) { slot.priority = config.priority; changed = true; }
+        if (slot.networkPriority !== config.networkPriority) { slot.networkPriority = config.networkPriority; changed = true; }
       });
 
       if (params.degradationPreference !== internal.degradationPreference) {

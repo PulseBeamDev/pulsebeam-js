@@ -78,10 +78,15 @@ export const VIDEO_PRESETS: Record<VideoPresetName, VideoPreset> = {
     baseBitrate: 1_250_000,
   },
   detail: {
-    layers: 3,
+    // 2 layers (max 2x downscale) instead of 3: screen-shared text/slides
+    // become illegible at 1/4 resolution, so a constrained viewer is better
+    // served by the half-res layer than a blurry quarter-res one.
+    layers: 2,
     mode: "detail",
     minFps: 2,
-    maxFps: 30,
+    // Static screen content rarely needs 30fps; capping lower frees up
+    // bitrate budget for resolution/quality instead.
+    maxFps: 15,
     baseBitrate: 2_500_000,
   },
 };
@@ -92,40 +97,42 @@ export const SCREEN_SHARE_MIN_FPS = 2;
  * Internal mapper to translate our abstraction into WebRTC SendParameters.
  */
 export function mapPresetToInternal(preset: VideoPreset) {
-  // Ordering here determines the highest quality first.
-  // https://datatracker.ietf.org/doc/html/rfc8853#section-5.2
-  // https://github.com/obsproject/obs-studio/pull/10885
-  const allRids = ["f", "h", "q"];
-  const allScales = [1, 2, 4];
-
-  const rids = allRids.slice(0, preset.layers);
-  const scales = allScales.slice(0, preset.layers);
+  // rid <-> scale is a fixed mapping (f=full, h=half, q=quarter), independent
+  // of preset.layers. The transceiver is always negotiated with all 3 rids
+  // (see Transport's addTransceiver calls) and WebRTC does not allow the
+  // number or order of encodings to change after negotiation - only which
+  // ones are `active`. So we always emit exactly 3, correctly ordered
+  // (ascending scaleResolutionDownBy, as required by
+  // https://datatracker.ietf.org/doc/html/rfc8853#section-5.2 and
+  // https://github.com/obsproject/obs-studio/pull/10885), and use `active`
+  // to hide layers beyond preset.layers instead of omitting them.
+  const LAYERS = [
+    { rid: "f", scale: 1, weight: 1.0 },
+    { rid: "h", scale: 2, weight: 0.35 },
+    { rid: "q", scale: 4, weight: 0.15 },
+  ] as const;
 
   const maxFramerate = Math.max(preset.maxFps, preset.minFps);
 
-  const encodings = scales.map((scale, i) => {
-    // scale 1 (Full) gets 100% bitrate
-    // scale 2 (Half) gets 35% bitrate
-    // scale 4 (Quarter) gets 15% bitrate
-    const weight = scale === 4 ? 0.15 : scale === 2 ? 0.35 : 1.0;
+  const encodings = LAYERS.map(({ rid, scale, weight }, i) => {
     const calculatedBitrate = Math.floor(preset.baseBitrate * weight);
 
     return {
-      rid: rids[i],
+      rid,
       scaleResolutionDownBy: scale,
       maxBitrate: calculatedBitrate,
       maxFramerate,
-      active: true,
+      active: i < preset.layers,
       priority: preset.mode === "detail" ? "high" : "low",
-      networkPriority: preset.mode === "detail" ? "high" : "low"
-    };
+      networkPriority: preset.mode === "detail" ? "high" : "low",
+    } satisfies RTCRtpEncodingParameters;
   });
 
   return {
     encodings,
-    // TODO: this is easier to estimate on the sfu side for now.
-    // degradationPreference: preset.mode === "detail" ? "maintain-resolution" : "balanced",
-    degradationPreference: "maintain-framerate",
+    // detail favors legibility (resolution) over smoothness under congestion;
+    // motion favors smoothness (framerate) since blur matters less for faces/movement.
+    degradationPreference: preset.mode === "detail" ? "maintain-resolution" : "balanced",
     contentHint: preset.mode === "detail" ? "text" : "motion",
   };
 }

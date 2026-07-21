@@ -14,6 +14,8 @@ declare global {
     sdp: string;
   }
 
+  type RTCPriorityType = "very-low" | "low" | "medium" | "high";
+
   interface RTCRtpEncodingParameters {
     active?: boolean;
     maxBitrate?: number;
@@ -22,6 +24,8 @@ declare global {
     scaleResolutionDownBy?: number;
     rid?: string;
     codec?: RTCRtpCodecParameters;
+    priority?: RTCPriorityType;
+    networkPriority?: RTCPriorityType;
   }
 
   interface RTCRtpCodecParameters {
