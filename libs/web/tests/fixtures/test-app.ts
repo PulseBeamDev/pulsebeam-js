@@ -26,176 +26,176 @@ const audioTracksEl = document.getElementById('audio-tracks')!;
 
 // Initialize participant with default config
 function initParticipant(config: ParticipantConfig = MOCK_CONFIG) {
-    participant = createParticipant(config);
-    deviceManager = createDeviceManager();
-    displayManager = createDisplayManager();
+  participant = createParticipant(config);
+  deviceManager = createDeviceManager();
+  displayManager = createDisplayManager();
 
-    // Subscribe to state changes
-    participant.subscribe((state: any) => {
-        console.log('[TestApp] State Update:', state);
-        updateUI(state);
-    });
+  // Subscribe to state changes
+  participant.subscribe((state: any) => {
+    console.log('[TestApp] State Update:', state);
+    updateUI(state);
+  });
 
-    // Expose to window for testing
-    (window as any).__testState = {
-        participant,
-        deviceManager,
-        displayManager,
-        getPublishedStream: () => publishedStream,
-    };
+  // Expose to window for testing
+  (window as any).__testState = {
+    participant,
+    deviceManager,
+    displayManager,
+    getPublishedStream: () => publishedStream,
+  };
 }
 
 // Update UI based on state
 function updateUI(state: any) {
-    connectionStateEl.textContent = state.connectionState;
-    videoTrackCountEl.textContent = state.videoTracks.length.toString();
-    audioTrackCountEl.textContent = state.audioTracks.length.toString();
-    videoMutedEl.textContent = state.main.videoMuted.toString();
-    audioMutedEl.textContent = state.main.audioMuted.toString();
+  connectionStateEl.textContent = state.connectionState;
+  videoTrackCountEl.textContent = state.videoTracks.length.toString();
+  audioTrackCountEl.textContent = state.audioTracks.length.toString();
+  videoMutedEl.textContent = state.main.videoMuted.toString();
+  audioMutedEl.textContent = state.main.audioMuted.toString();
 
-    // Update button visibility
-    const isLive = !['new', 'disconnected', 'closed'].includes(state.connectionState);
-    joinButtonEl.style.display = isLive ? 'none' : 'inline-block';
-    leaveButtonEl.style.display = isLive ? 'inline-block' : 'none';
-    toggleVideoButtonEl.style.display = isLive ? 'inline-block' : 'none';
-    toggleAudioButtonEl.style.display = isLive ? 'inline-block' : 'none';
-    shareScreenButtonEl.style.display = isLive ? 'inline-block' : 'none';
-    roomInputEl.disabled = isLive;
+  // Update button visibility
+  const isLive = !['new', 'disconnected', 'closed'].includes(state.connectionState);
+  joinButtonEl.style.display = isLive ? 'none' : 'inline-block';
+  leaveButtonEl.style.display = isLive ? 'inline-block' : 'none';
+  toggleVideoButtonEl.style.display = isLive ? 'inline-block' : 'none';
+  toggleAudioButtonEl.style.display = isLive ? 'inline-block' : 'none';
+  shareScreenButtonEl.style.display = isLive ? 'inline-block' : 'none';
+  roomInputEl.disabled = isLive;
 
-    // Update mute button labels
-    toggleVideoButtonEl.textContent = state.main.videoMuted ? 'Unmute Video' : 'Mute Video';
-    toggleAudioButtonEl.textContent = state.main.audioMuted ? 'Unmute Audio' : 'Mute Audio';
+  // Update mute button labels
+  toggleVideoButtonEl.textContent = state.main.videoMuted ? 'Unmute Video' : 'Mute Video';
+  toggleAudioButtonEl.textContent = state.main.audioMuted ? 'Unmute Audio' : 'Mute Audio';
 
-    // Render video tracks
-    renderVideoTracks(state.videoTracks);
-    renderAudioTracks(state.audioTracks);
+  // Render video tracks
+  renderVideoTracks(state.videoTracks);
+  renderAudioTracks(state.audioTracks);
 
-    // Update window state for testing
-    if ((window as any).__testState) {
-        (window as any).__testState.connectionState = state.connectionState;
-        (window as any).__testState.videoMuted = state.main.videoMuted;
-        (window as any).__testState.audioMuted = state.main.audioMuted;
-        (window as any).__testState.videoTrackCount = state.videoTracks.length;
-        (window as any).__testState.audioTrackCount = state.audioTracks.length;
-        (window as any).__testState.publishedStream = publishedStream;
-    }
+  // Update window state for testing
+  if ((window as any).__testState) {
+    (window as any).__testState.connectionState = state.connectionState;
+    (window as any).__testState.videoMuted = state.main.videoMuted;
+    (window as any).__testState.audioMuted = state.main.audioMuted;
+    (window as any).__testState.videoTrackCount = state.videoTracks.length;
+    (window as any).__testState.audioTrackCount = state.audioTracks.length;
+    (window as any).__testState.publishedStream = publishedStream;
+  }
 }
 
 // Render video tracks
 function renderVideoTracks(tracks: any[]) {
-    // Remove tracks that no longer exist
-    const currentIds = new Set(tracks.map(t => t.id));
-    for (const [id, binder] of videoBinders.entries()) {
-        if (!currentIds.has(id)) {
-            binder.unmount();
-            videoBinders.delete(id);
-            const container = document.querySelector(`[data-track-id="${id}"]`);
-            if (container) container.remove();
-        }
+  // Remove tracks that no longer exist
+  const currentIds = new Set(tracks.map(t => t.id));
+  for (const [id, binder] of videoBinders.entries()) {
+    if (!currentIds.has(id)) {
+      binder.unmount();
+      videoBinders.delete(id);
+      const container = document.querySelector(`[data-track-id="${id}"]`);
+      if (container) container.remove();
     }
+  }
 
-    // Add or update tracks
-    for (const track of tracks) {
-        if (!videoBinders.has(track.id)) {
-            const container = document.createElement('div');
-            container.className = 'video-container';
-            container.setAttribute('data-testid', `video-track-${track.id}`);
-            container.setAttribute('data-track-id', track.id);
-            container.setAttribute('data-participant-id', track.participantId);
+  // Add or update tracks
+  for (const track of tracks) {
+    if (!videoBinders.has(track.id)) {
+      const container = document.createElement('div');
+      container.className = 'video-container';
+      container.setAttribute('data-testid', `video-track-${track.id}`);
+      container.setAttribute('data-track-id', track.id);
+      container.setAttribute('data-participant-id', track.participantId);
 
-            const video = document.createElement('video');
-            video.autoplay = true;
-            video.playsInline = true;
-            video.muted = true;
+      const video = document.createElement('video');
+      video.autoplay = true;
+      video.playsInline = true;
+      video.muted = true;
 
-            const label = document.createElement('span');
-            label.className = 'participant-label';
-            label.textContent = track.participantId;
+      const label = document.createElement('span');
+      label.className = 'participant-label';
+      label.textContent = track.participantId;
 
-            container.appendChild(video);
-            container.appendChild(label);
-            videoGridEl.appendChild(container);
+      container.appendChild(video);
+      container.appendChild(label);
+      videoGridEl.appendChild(container);
 
-            const binder = new VideoBinder(video, track);
-            binder.mount();
-            videoBinders.set(track.id, binder);
-        }
+      const binder = new VideoBinder(video, track);
+      binder.mount();
+      videoBinders.set(track.id, binder);
     }
+  }
 }
 
 // Render audio tracks
 function renderAudioTracks(tracks: any[]) {
-    // Remove tracks that no longer exist
-    const currentIds = new Set(tracks.map(t => t.id));
-    for (const [id, binder] of audioBinders.entries()) {
-        if (!currentIds.has(id)) {
-            binder.unmount();
-            audioBinders.delete(id);
-            const audio = document.querySelector(`[data-audio-id="${id}"]`);
-            if (audio) audio.remove();
-        }
+  // Remove tracks that no longer exist
+  const currentIds = new Set(tracks.map(t => t.id));
+  for (const [id, binder] of audioBinders.entries()) {
+    if (!currentIds.has(id)) {
+      binder.unmount();
+      audioBinders.delete(id);
+      const audio = document.querySelector(`[data-audio-id="${id}"]`);
+      if (audio) audio.remove();
     }
+  }
 
-    // Add or update tracks
-    for (const track of tracks) {
-        if (!audioBinders.has(track.id)) {
-            const audio = document.createElement('audio');
-            audio.autoplay = true;
-            audio.setAttribute('data-testid', `audio-track-${track.id}`);
-            audio.setAttribute('data-audio-id', track.id);
-            audioTracksEl.appendChild(audio);
+  // Add or update tracks
+  for (const track of tracks) {
+    if (!audioBinders.has(track.id)) {
+      const audio = document.createElement('audio');
+      audio.autoplay = true;
+      audio.setAttribute('data-testid', `audio-track-${track.id}`);
+      audio.setAttribute('data-audio-id', track.id);
+      audioTracksEl.appendChild(audio);
 
-            const binder = new AudioBinder(audio, track);
-            binder.mount();
-            audioBinders.set(track.id, binder);
-        }
+      const binder = new AudioBinder(audio, track);
+      binder.mount();
+      audioBinders.set(track.id, binder);
     }
+  }
 }
 
 // Event handlers
 async function handleJoin() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: 1280, height: 720 },
-            audio: true,
-        });
-        publishedStream = stream;
-        console.log('[TestApp] Publishing stream');
-        participant.get().main.publish(stream);
-        console.log('[TestApp] Connecting to room:', roomInputEl.value);
-        participant.get().connect(roomInputEl.value);
-    } catch (error) {
-        console.error('Failed to join:', error);
-    }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 1280, height: 720 },
+      audio: true,
+    });
+    publishedStream = stream;
+    console.log('[TestApp] Publishing stream');
+    participant.get().main.publish(stream);
+    console.log('[TestApp] Connecting to room:', roomInputEl.value);
+    participant.get().connect(roomInputEl.value);
+  } catch (error) {
+    console.error('Failed to join:', error);
+  }
 }
 
 function handleLeave() {
-    participant.get().close();
-    if (publishedStream) {
-        publishedStream.getTracks().forEach(track => track.stop());
-        publishedStream = null;
-    }
+  participant.get().close();
+  if (publishedStream) {
+    publishedStream.getTracks().forEach(track => track.stop());
+    publishedStream = null;
+  }
 }
 
 function handleToggleVideo() {
-    const currentState = participant.get();
-    console.log('[TestApp] Toggling video from:', currentState.videoMuted);
-    participant.get().main.mute({ video: !currentState.main.videoMuted });
+  const currentState = participant.get();
+  console.log('[TestApp] Toggling video from:', currentState.videoMuted);
+  participant.get().main.mute({ video: !currentState.main.videoMuted });
 }
 
 function handleToggleAudio() {
-    const currentState = participant.get();
-    participant.get().main.mute({ audio: !currentState.main.audioMuted });
+  const currentState = participant.get();
+  participant.get().main.mute({ audio: !currentState.main.audioMuted });
 }
 
 async function handleShareScreen() {
-    try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-        publishedStream = stream;
-        participant.get().aux.publish(stream, { videoPreset: 'detail' });
-    } catch (error) {
-        console.error('Failed to share screen:', error);
-    }
+  try {
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+    publishedStream = stream;
+    participant.get().aux.publish(stream, { videoPreset: 'detail' });
+  } catch (error) {
+    console.error('Failed to share screen:', error);
+  }
 }
 
 // Attach event listeners

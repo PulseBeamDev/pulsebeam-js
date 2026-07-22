@@ -83,7 +83,7 @@ export const VIDEO_PRESETS: Record<VideoPresetName, VideoPreset> = {
     // served by the half-res layer than a blurry quarter-res one.
     layers: 2,
     mode: "detail",
-    minFps: 2,
+    minFps: 1,
     // Static screen content rarely needs 30fps; capping lower frees up
     // bitrate budget for resolution/quality instead.
     maxFps: 15,
@@ -123,8 +123,6 @@ export function mapPresetToInternal(preset: VideoPreset) {
       maxBitrate: calculatedBitrate,
       maxFramerate,
       active: i < preset.layers,
-      priority: preset.mode === "detail" ? "high" : "low",
-      networkPriority: preset.mode === "detail" ? "high" : "low",
     } satisfies RTCRtpEncodingParameters;
   });
 

@@ -19,13 +19,16 @@ declare global {
   interface RTCRtpEncodingParameters {
     active?: boolean;
     maxBitrate?: number;
+    scalabilityMode?: 'L1T2';
     dtx?: "enabled" | "disabled";
     maxFramerate?: number;
     scaleResolutionDownBy?: number;
     rid?: string;
     codec?: RTCRtpCodecParameters;
-    priority?: RTCPriorityType;
-    networkPriority?: RTCPriorityType;
+    // https://www.w3.org/TR/webrtc-priority/
+    // These are no longer implemented
+    // priority?: RTCPriorityType;
+    // networkPriority?: RTCPriorityType;
   }
 
   interface RTCRtpCodecParameters {

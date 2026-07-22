@@ -34,6 +34,7 @@
     "gen": "buf generate",
     "dev": "tsup src/index.ts --format esm --dts --watch",
     "dev:local": "tsup src/index.ts --format esm --dts --watch",
-    "prepare": "tsup src/index.ts --format esm --dts --clean"
+    "prepare": "tsup src/index.ts --format esm --dts --clean",
+    "test": "vitest run"
   }
 }

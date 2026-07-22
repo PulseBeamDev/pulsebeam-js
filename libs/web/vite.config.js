@@ -6,7 +6,9 @@ import dts from 'vite-plugin-dts';
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
-  plugins: [dts()],
+  // The source alias keeps the development build linked to core, while the
+  // declaration package must retain its public package import.
+  plugins: [dts({ aliasesExclude: ['@pulsebeam/core'] })],
   resolve: {
     alias: {
       '@pulsebeam/core': resolve(__dirname, '../core/src/index.ts'),

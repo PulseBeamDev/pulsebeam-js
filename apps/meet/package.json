@@ -6,7 +6,7 @@
     "dev": "pnpm --parallel --filter @pulsebeam/core --filter @pulsebeam/web --filter @pulsebeam/react --filter @pulsebeam/ui --filter meet run dev:local",
     "dev:local": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "serve out",
     "lint": "eslint"
   },
   "dependencies": {

@@ -36,9 +36,9 @@ function createDisplayMediaConstraints(): ExtendedDisplayMediaStreamConstraints 
       restrictOwnAudio: false,
     },
     video: {
-      frameRate: { ideal: 30 },
-      width: { max: 1280 },
-      height: { max: 720 },
+      frameRate: 30,
+      width: 1920,
+      height: 1080,
     },
     controller,
     systemAudio: 'exclude',

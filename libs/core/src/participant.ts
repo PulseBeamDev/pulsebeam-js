@@ -289,9 +289,13 @@ class Transport {
     this.auxVideoTransceiver = this.pc.addTransceiver("video", {
       direction: "sendonly",
       sendEncodings: [
-        { rid: "f", active: true },
-        { rid: "h", active: true },
-        { rid: "q", active: true },
+        // { rid: "f", active: true },
+        // { rid: "h", active: true },
+        // { rid: "q", active: true },
+
+        { rid: 'f', scaleResolutionDownBy: 1, maxBitrate: 1250000 },
+        { rid: 'h', scaleResolutionDownBy: 2, maxBitrate: 400000 },
+        { rid: 'q', scaleResolutionDownBy: 4, maxBitrate: 150000 },
       ]
     });
     this.auxVideoSender = this.auxVideoTransceiver.sender;
@@ -321,18 +325,23 @@ class Transport {
     this.dc.close();
   }
 
-  upstreamTrackStates(): UpstreamIntent[] {
+  upstreamTrackStates(main: UpstreamState, aux: UpstreamState): UpstreamIntent[] {
     const pairs = [
-      [this.mainVideoTransceiver, this.mainVideoSender] as const,
-      [this.auxVideoTransceiver, this.auxVideoSender] as const,
+      [this.mainVideoTransceiver, main] as const,
+      [this.auxVideoTransceiver, aux] as const,
     ];
 
     const states: UpstreamIntent[] = [];
-    for (const [tx, sender] of pairs) {
+    for (const [tx, desired] of pairs) {
       if (!tx.mid) continue;
       states.push(create(UpstreamIntentSchema, {
         mid: tx.mid,
-        active: sender.track !== null,
+        // This is publisher intent, not an observation of the sender. A
+        // freshly selected display track is the desired upstream state even
+        // while replaceTrack() is still pending; using sender.track here
+        // races the async replacement and can send an explicit active=false
+        // for a screen share that the app just published.
+        active: desired.localStream?.video !== null && desired.localStream?.video !== undefined,
       }));
     }
     states.sort((a, b) => a.mid.localeCompare(b.mid));
@@ -341,83 +350,105 @@ class Transport {
 
   sync(main: UpstreamState, aux: UpstreamState) {
     if (this.pc.signalingState === "closed") return;
-    this.syncStream(this.mainVideoSender, this.mainAudioSender, main);
-    this.syncStream(this.auxVideoSender, this.auxAudioSender, aux);
+    void syncSenderState(this.mainVideoSender, this.mainAudioSender, main);
+    void syncSenderState(this.auxVideoSender, this.auxAudioSender, aux);
+  }
+}
+
+/**
+ * Reconciles one RTCRtpSender pair (video + audio) against the desired local
+ * stream/preset state: swaps in the right physical track and applies the
+ * preset's per-encoding config.
+ */
+export async function syncSenderState(
+  videoSender: RTCRtpSender,
+  audioSender: RTCRtpSender,
+  desired: UpstreamState,
+) {
+  const vTrack = desired.localStream?.video?.track ?? null;
+  const aTrack = desired.localStream?.audio?.track ?? null;
+
+  // 1. Reconcile Physical Tracks
+  if (videoSender.track !== vTrack) {
+    await videoSender.replaceTrack(vTrack).catch((e) => {
+      console.warn("video replaceTrack failed", e);
+    });
+  }
+  if (audioSender.track !== aTrack) {
+    await audioSender.replaceTrack(aTrack).catch((e) => {
+      console.warn("audio replaceTrack failed", e);
+    });
   }
 
-  private syncStream(
-    videoSender: RTCRtpSender,
-    audioSender: RTCRtpSender,
-    desired: UpstreamState,
-  ) {
-    const vTrack = desired.localStream?.video?.track ?? null;
-    const aTrack = desired.localStream?.audio?.track ?? null;
+  // 2. Reconcile Video Encodings
+  try {
+    const params = videoSender.getParameters();
+    const internal = mapPresetToInternal(desired.videoPreset);
+    const shouldBeActive = !!vTrack && !desired.localStream?.video?.muted;
+    let changed = false;
 
-    // 1. Reconcile Physical Tracks
-    if (videoSender.track !== vTrack) {
-      videoSender.replaceTrack(vTrack).catch(() => { });
-    }
-    if (audioSender.track !== aTrack) {
-      audioSender.replaceTrack(aTrack).catch(() => { });
+    if (vTrack && "contentHint" in vTrack && vTrack.contentHint !== internal.contentHint) {
+      vTrack.contentHint = internal.contentHint;
     }
 
-    // 2. Reconcile Video Encodings
-    try {
-      const params = videoSender.getParameters();
-      const internal = mapPresetToInternal(desired.videoPreset);
-      const shouldBeActive = !!vTrack && !desired.localStream?.video?.muted;
-      let changed = false;
+    const encodingByRid = new Map<string, typeof internal.encodings[number]>(
+      internal.encodings.map((encoding) => [encoding.rid, encoding]),
+    );
 
-      if (vTrack && "contentHint" in vTrack && vTrack.contentHint !== internal.contentHint) {
-        vTrack.contentHint = internal.contentHint;
-      }
+    params.encodings.forEach((slot, i) => {
+      const config = (slot.rid && encodingByRid.get(slot.rid)) ?? internal.encodings[i];
+      if (!config) return;
 
-      const encodingByRid = new Map<string, typeof internal.encodings[number]>(
-        internal.encodings.map((encoding) => [encoding.rid, encoding]),
-      );
+      const active = shouldBeActive && !!config.active;
+      changed = setSupportedParameter(slot, "active", active) || changed;
+      changed = setSupportedParameter(slot, "scaleResolutionDownBy", config.scaleResolutionDownBy) || changed;
+      changed = setSupportedParameter(slot, "maxBitrate", config.maxBitrate) || changed;
+      changed = setSupportedParameter(slot, "maxFramerate", config.maxFramerate) || changed;
+    });
+    changed = setSupportedParameter(params, "degradationPreference", internal.degradationPreference) || changed;
 
-      params.encodings.forEach((slot, i) => {
-        const config = (slot.rid && encodingByRid.get(slot.rid)) ?? internal.encodings[i];
-        if (!config) return;
-
-        const active = shouldBeActive && !!config.active;
-        if (slot.active !== active) { slot.active = active; changed = true; }
-        if (slot.scaleResolutionDownBy !== config.scaleResolutionDownBy) { slot.scaleResolutionDownBy = config.scaleResolutionDownBy; changed = true; }
-        if (slot.maxBitrate !== config.maxBitrate) { slot.maxBitrate = config.maxBitrate; changed = true; }
-        if (slot.maxFramerate !== config.maxFramerate) { slot.maxFramerate = config.maxFramerate; changed = true; }
-        if (slot.priority !== config.priority) { slot.priority = config.priority; changed = true; }
-        if (slot.networkPriority !== config.networkPriority) { slot.networkPriority = config.networkPriority; changed = true; }
+    if (changed) {
+      await videoSender.setParameters(params).catch((e) => {
+        console.warn("video setParameters failed", e, params);
       });
-
-      if (params.degradationPreference !== internal.degradationPreference) {
-        params.degradationPreference = internal.degradationPreference;
-        changed = true;
-      }
-
-      if (changed) {
-        videoSender.setParameters(params).catch((e) => {
-          console.warn("setParameters failed, will retry on next sync", e);
-        });
-      }
-    } catch (e) { /* sender not yet negotiated */ }
-
-    // 3. Reconcile Audio Preset
-    if (aTrack && "contentHint" in aTrack && aTrack.contentHint !== desired.audioPreset.contentHint) {
-      aTrack.contentHint = desired.audioPreset.contentHint;
     }
-    try {
-      const aParams = audioSender.getParameters();
-      const aEncoding = aParams.encodings[0];
-      let changed = false;
-      if (aEncoding && aEncoding.maxBitrate !== desired.audioPreset.maxBitrate) { aEncoding.maxBitrate = desired.audioPreset.maxBitrate; changed = true; }
-      if (aEncoding && aEncoding.dtx !== desired.audioPreset.dtx) { aEncoding.dtx = desired.audioPreset.dtx; changed = true; }
-      if (changed) {
-        audioSender.setParameters(aParams).catch((e) => {
-          console.warn("audio setParameters failed, will retry on next sync", e);
-        });
-      }
-    } catch (e) { /* sender not yet negotiated */ }
+  } catch (e) { /* sender not yet negotiated */ }
+
+  // 3. Reconcile Audio Preset
+  if (aTrack && "contentHint" in aTrack && aTrack.contentHint !== desired.audioPreset.contentHint) {
+    aTrack.contentHint = desired.audioPreset.contentHint;
   }
+  try {
+    const aParams = audioSender.getParameters();
+    const aEncoding = aParams.encodings[0];
+    let changed = false;
+    if (aEncoding) {
+      changed = setSupportedParameter(aEncoding, "maxBitrate", desired.audioPreset.maxBitrate) || changed;
+      changed = setSupportedParameter(aEncoding, "dtx", desired.audioPreset.dtx) || changed;
+    }
+    if (changed) {
+      await audioSender.setParameters(aParams).catch((e) => {
+        console.warn("audio setParameters failed", e);
+      });
+    }
+  } catch (e) { /* sender not yet negotiated */ }
+}
+
+/**
+ * `getParameters()` is the sender's capability contract. Some browsers expose
+ * only a subset of the WebRTC encoding fields; adding a missing field makes
+ * `setParameters()` reject the *entire* update with OperationError. Preserve
+ * that returned shape and update only fields the implementation supports.
+ */
+function setSupportedParameter(
+  parameters: object,
+  key: string,
+  value: unknown,
+): boolean {
+  const supported = parameters as Record<string, unknown>;
+  if (!(key in supported) || supported[key] === value) return false;
+  supported[key] = value;
+  return true;
 }
 
 export interface PublishOptions {
@@ -517,6 +548,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
     this.main = new StreamPublisher("main", sync, emitLocal);
     this.aux = new StreamPublisher("aux", sync, emitLocal);
+
   }
 
   get state() { return this._state; }
@@ -765,45 +797,19 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     // 1. Declarative State: What tracks do we want? (Sorted by priority)
     const desired = Array.from(this.session.remoteVideoTracks.values())
       .filter(v => v.height > 0)
-      .sort((a, b) => b.height - a.height);
+      .sort((a, b) => b.height - a.height)
+      .map(v => ({ id: v.id, height: v.height }));
 
-    // 2. Resource State: What slots do we have?
-    const nextAssignments = new Map<string, { trackId: string, height: number }>();
-    const usedMids = new Set<string>();
+    // 2. Resource State: What slots do we have, and what are they currently assigned to?
+    const slotStates = this.transport.videoSlots
+      .filter((s): s is RTCRtpTransceiver & { mid: string } => s.mid !== null)
+      .map(s => ({
+        mid: s.mid,
+        currentTrackId: this.session.assignments.get(s.mid)?.trackId ?? null,
+      }));
 
-    // 3. Reconciliation Algorithm: Map Desired -> Resources
-
-    // Pass 1: Sticky Assignments.
-    // If a slot is currently assigned to a track we still want, keep it.
-    for (const slot of this.transport.videoSlots) {
-      const mid = slot.mid;
-      if (!mid) continue;
-
-      const currentAssign = this.session.assignments.get(mid);
-      if (currentAssign) {
-        const vSlot = this.session.remoteVideoTracks.get(currentAssign.trackId);
-        // If this track is in our desired list, keep the assignment
-        if (vSlot && desired.includes(vSlot)) {
-          nextAssignments.set(mid, { trackId: vSlot.id, height: vSlot.height });
-          usedMids.add(mid);
-          // Remove from desired list so we don't assign it again
-          desired.splice(desired.indexOf(vSlot), 1);
-        }
-      }
-    }
-
-    // Pass 2: New Assignments.
-    // For remaining desired tracks, find the first free slot.
-    for (const vSlot of desired) {
-      const freeSlot = this.transport.videoSlots.find(s => s.mid && !usedMids.has(s.mid));
-      if (freeSlot) {
-        nextAssignments.set(freeSlot.mid!, { trackId: vSlot.id, height: vSlot.height });
-        usedMids.add(freeSlot.mid!);
-      } else {
-        // No more slots available. Stop assigning.
-        break;
-      }
-    }
+    // 3. Reconciliation Algorithm: Map Desired -> Resources (priority-aware eviction)
+    const nextAssignments = computeVideoSlotAssignments(desired, slotStates);
 
     // 4. Construct Intent
     const requests: VideoRequest[] = [];
@@ -817,7 +823,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       }
     }
 
-    const upstreamIntents = this.transport.upstreamTrackStates();
+    const upstreamIntents = this.transport.upstreamTrackStates(this.main._upstream, this.aux._upstream);
 
     // 5. Differential Update
     if (
@@ -850,6 +856,66 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     const msg = create(ClientMessageSchema, { payload });
     this.transport.dc.send(toBinary(ClientMessageSchema, msg));
   }
+}
+
+export interface DesiredVideoTrack {
+  id: string;
+  height: number;
+}
+
+export interface VideoSlotState {
+  mid: string;
+  currentTrackId: string | null;
+}
+
+/**
+ * Maps desired video tracks to the limited set of downstream slots, evicting
+ * lower-priority sticky assignments to make room for higher-priority ones
+ * once slots are full.
+ *
+ * `desired` must already be sorted highest-priority-first (e.g. by height
+ * descending). Only the top `slots.length` entries can ever win a slot.
+ *
+ * Two passes:
+ *  1. Sticky - a slot keeps its current track if that track is still within
+ *     the top-priority set, minimizing renegotiation/churn.
+ *  2. Fill - remaining top-priority tracks (including ones just evicted from
+ *     a slot given to something higher priority) take over any slot that
+ *     didn't survive pass 1, i.e. slots freed from lower-priority tracks.
+ */
+export function computeVideoSlotAssignments(
+  desired: DesiredVideoTrack[],
+  slots: VideoSlotState[],
+): Map<string, { trackId: string; height: number }> {
+  const capacity = slots.length;
+  const top = desired.slice(0, capacity);
+  const topById = new Map(top.map(t => [t.id, t]));
+
+  const nextAssignments = new Map<string, { trackId: string; height: number }>();
+  const usedMids = new Set<string>();
+
+  // Pass 1: Sticky assignments - keep a slot if its current track still
+  // deserves one, instead of blindly keeping whatever it had before.
+  for (const slot of slots) {
+    const currentTrackId = slot.currentTrackId;
+    const track = currentTrackId ? topById.get(currentTrackId) : undefined;
+    if (track) {
+      nextAssignments.set(slot.mid, { trackId: track.id, height: track.height });
+      usedMids.add(slot.mid);
+      topById.delete(track.id);
+    }
+  }
+
+  // Pass 2: Fill slots freed from lower-priority tracks with the remaining
+  // top-priority desired tracks (preserves priority order via Map insertion order).
+  for (const track of topById.values()) {
+    const freeSlot = slots.find(s => !usedMids.has(s.mid));
+    if (!freeSlot) break;
+    nextAssignments.set(freeSlot.mid, { trackId: track.id, height: track.height });
+    usedMids.add(freeSlot.mid);
+  }
+
+  return nextAssignments;
 }
 
 function areRequestsEqual(a: VideoRequest[], b: VideoRequest[]): boolean {
@@ -889,4 +955,3 @@ function areUpstreamIntentsEqual(
   }
   return true;
 }
-

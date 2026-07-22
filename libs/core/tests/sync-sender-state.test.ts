@@ -24,9 +24,9 @@ function fakeTrack(kind: "video" | "audio" = "video"): MediaStreamTrack {
 function fakeSender(opts: { replaceTrack?: () => Promise<void> } = {}): RTCRtpSender {
   let track: MediaStreamTrack | null = null;
   const encodings = [
-    { rid: "f", active: true },
-    { rid: "h", active: true },
-    { rid: "q", active: true },
+    { rid: "f", active: true, scaleResolutionDownBy: undefined, maxBitrate: undefined, maxFramerate: undefined },
+    { rid: "h", active: true, scaleResolutionDownBy: undefined, maxBitrate: undefined, maxFramerate: undefined },
+    { rid: "q", active: true, scaleResolutionDownBy: undefined, maxBitrate: undefined, maxFramerate: undefined },
   ];
   return {
     get track() { return track; },
@@ -61,11 +61,11 @@ describe("syncSenderState", () => {
     const audioSender = fakeSender();
     const desired = desiredState();
 
-    syncSenderState(videoSender, audioSender, desired as any);
-    await vi.waitFor(() => expect(videoSender.replaceTrack).toHaveBeenCalledWith(desired.localStream.video!.track));
+    await syncSenderState(videoSender, audioSender, desired as any);
+    expect(videoSender.replaceTrack).toHaveBeenCalledWith(desired.localStream.video!.track);
   });
 
-  it("is a no-op once the sender already matches the desired track (idempotent)", () => {
+  it("is a no-op once the sender already matches the desired track (idempotent)", async () => {
     const videoSender = fakeSender();
     const audioSender = fakeSender();
     const desired = desiredState();
@@ -73,46 +73,39 @@ describe("syncSenderState", () => {
     // Simulate the sender already carrying the desired track.
     Object.defineProperty(videoSender, "track", { get: () => desired.localStream.video!.track });
 
-    syncSenderState(videoSender, audioSender, desired as any);
+    await syncSenderState(videoSender, audioSender, desired as any);
     expect(videoSender.replaceTrack).not.toHaveBeenCalled();
   });
 
-  it("self-heals: a failed replaceTrack (e.g. mid-renegotiation) succeeds on a later retry", async () => {
-    // This is the core regression this test guards: a transient replaceTrack
-    // rejection used to be silently swallowed with no retry path, leaving a
-    // published screen share permanently un-sent. Participant now retries via
-    // a periodic heartbeat that just calls syncSenderState again.
-    let shouldFail = true;
+  it("makes one publish attempt when replaceTrack fails", async () => {
     const videoSender = fakeSender({
       replaceTrack: async () => {
-        if (shouldFail) throw new Error("InvalidStateError: mid-renegotiation");
+        throw new Error("InvalidStateError: mid-negotiation");
       },
     });
     const audioSender = fakeSender();
     const desired = desiredState();
 
-    syncSenderState(videoSender, audioSender, desired as any);
-    await vi.waitFor(() => expect(videoSender.replaceTrack).toHaveBeenCalledTimes(1));
-    expect(videoSender.track).toBeNull(); // failed - sender still not publishing
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await syncSenderState(videoSender, audioSender, desired as any);
+    warning.mockRestore();
 
-    // Heartbeat retry (Participant.scheduleSyncHeartbeat) just calls this again.
-    shouldFail = false;
-    syncSenderState(videoSender, audioSender, desired as any);
-    await vi.waitFor(() => expect(videoSender.track).toBe(desired.localStream.video!.track));
+    expect(videoSender.replaceTrack).toHaveBeenCalledTimes(1);
+    expect(videoSender.track).toBeNull();
   });
 
-  it("activates only the encodings within the preset's layer count (screen share = detail, 2 layers)", () => {
+  it("activates only the encodings within the preset's layer count (screen share = detail, 2 layers)", async () => {
     const videoSender = fakeSender();
     const audioSender = fakeSender();
     const desired = desiredState({ videoPreset: VIDEO_PRESETS.detail });
 
-    syncSenderState(videoSender, audioSender, desired as any);
+    await syncSenderState(videoSender, audioSender, desired as any);
 
     const [params] = (videoSender.setParameters as any).mock.calls.at(-1);
     expect(params.encodings.map((e: any) => e.active)).toEqual([true, true, false]);
   });
 
-  it("deactivates all encodings when the local video is muted", () => {
+  it("deactivates all encodings when the local video is muted", async () => {
     const videoSender = fakeSender();
     const audioSender = fakeSender();
     const desired = desiredState({ videoMuted: true });
@@ -120,13 +113,40 @@ describe("syncSenderState", () => {
     // Sender already has the track so only encoding params are reconciled.
     Object.defineProperty(videoSender, "track", { get: () => desired.localStream.video!.track });
 
-    syncSenderState(videoSender, audioSender, desired as any);
+    await syncSenderState(videoSender, audioSender, desired as any);
 
     const [params] = (videoSender.setParameters as any).mock.calls.at(-1);
     expect(params.encodings.every((e: any) => e.active === false)).toBe(true);
   });
 
-  it("tolerates a sender that isn't negotiated yet (getParameters throws) without throwing", () => {
+  it("does not add unsupported encoding fields to sender parameters", async () => {
+    let currentTrack: MediaStreamTrack | null = null;
+    const params = {
+      transactionId: "1",
+      encodings: [
+        { rid: "f", active: true },
+        { rid: "h", active: true },
+        { rid: "q", active: true },
+      ],
+    };
+    const videoSender = {
+      get track() { return currentTrack; },
+      replaceTrack: vi.fn(async (track: MediaStreamTrack | null) => { currentTrack = track; }),
+      getParameters: () => params,
+      setParameters: vi.fn().mockResolvedValue(undefined),
+    } as unknown as RTCRtpSender;
+    const desired = desiredState({ videoPreset: VIDEO_PRESETS.detail });
+
+    await syncSenderState(videoSender, fakeSender(), desired as any);
+
+    expect(videoSender.setParameters).toHaveBeenCalledWith(params);
+    for (const encoding of params.encodings) {
+      expect(Object.keys(encoding).sort()).toEqual(["active", "rid"]);
+    }
+    expect(Object.keys(params).sort()).toEqual(["encodings", "transactionId"]);
+  });
+
+  it("tolerates a sender that isn't negotiated yet (getParameters throws) without throwing", async () => {
     const videoSender = {
       track: null,
       replaceTrack: vi.fn().mockResolvedValue(undefined),
@@ -136,6 +156,6 @@ describe("syncSenderState", () => {
     const audioSender = fakeSender();
     const desired = desiredState();
 
-    expect(() => syncSenderState(videoSender, audioSender, desired as any)).not.toThrow();
+    await expect(syncSenderState(videoSender, audioSender, desired as any)).resolves.toBeUndefined();
   });
 });
