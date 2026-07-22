@@ -17,7 +17,9 @@
     "./style.css": "./dist/ui.css"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "vite build --watch",
+    "dev:local": "vite build --watch",
+    "playground": "vite",
     "prepare": "vite build && tsc -p tsconfig.app.json",
     "lint": "eslint .",
     "preview": "vite preview"

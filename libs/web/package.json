@@ -7,12 +7,14 @@
   ],
   "exports": {
     ".": {
+      "source": "./src/lib.ts",
       "types": "./dist/src/lib.d.ts",
       "default": "./dist/lib.js"
     }
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "vite build --watch",
+    "dev:local": "vite build --watch",
     "prepare": "tsc && vite build",
     "preview": "vite preview",
     "test:e2e": "playwright test --config=tests/playwright.config.ts",

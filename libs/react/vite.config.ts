@@ -5,7 +5,14 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@pulsebeam/core': path.resolve(__dirname, '../core/src/index.ts'),
+      '@pulsebeam/web': path.resolve(__dirname, '../web/src/lib.ts'),
+    },
+  },
   build: {
+    emptyOutDir: false,
     lib: {
       entry: path.resolve(__dirname, 'src/index.tsx'),
       name: 'PulseBeamReact',

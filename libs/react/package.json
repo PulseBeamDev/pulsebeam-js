@@ -7,13 +7,16 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "source": "./src/index.tsx",
       "types": "./dist/index.d.ts",
       "import": "./dist/react.js",
       "require": "./dist/react.umd.cjs"
     }
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "vite build --watch",
+    "dev:local": "vite build --watch",
+    "playground": "vite",
     "build": "vite build && tsc -p tsconfig.app.json",
     "prepare": "pnpm run build",
     "lint": "eslint .",

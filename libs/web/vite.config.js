@@ -7,7 +7,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
   plugins: [dts()],
+  resolve: {
+    alias: {
+      '@pulsebeam/core': resolve(__dirname, '../core/src/index.ts'),
+    },
+  },
   build: {
+    emptyOutDir: false,
     lib: {
       entry: resolve(__dirname, 'src/lib.ts'),
       fileName: "lib",

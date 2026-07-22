@@ -24,6 +24,9 @@
             "cache": true
         },
         "dev": {
+            "dependsOn": [
+                "^prepare"
+            ],
             "cache": false,
             "persistent": true
         },
