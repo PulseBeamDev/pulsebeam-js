@@ -289,13 +289,9 @@ class Transport {
     this.auxVideoTransceiver = this.pc.addTransceiver("video", {
       direction: "sendonly",
       sendEncodings: [
-        // { rid: "f", active: true },
-        // { rid: "h", active: true },
-        // { rid: "q", active: true },
-
-        { rid: 'f', scaleResolutionDownBy: 1, maxBitrate: 1250000 },
-        { rid: 'h', scaleResolutionDownBy: 2, maxBitrate: 400000 },
-        { rid: 'q', scaleResolutionDownBy: 4, maxBitrate: 150000 },
+        { rid: "f", active: true },
+        { rid: "h", active: true },
+        { rid: "q", active: true },
       ]
     });
     this.auxVideoSender = this.auxVideoTransceiver.sender;
@@ -408,6 +404,7 @@ export async function syncSenderState(
     changed = setSupportedParameter(params, "degradationPreference", internal.degradationPreference) || changed;
 
     if (changed) {
+      console.log(params);
       await videoSender.setParameters(params).catch((e) => {
         console.warn("video setParameters failed", e, params);
       });
@@ -434,19 +431,13 @@ export async function syncSenderState(
   } catch (e) { /* sender not yet negotiated */ }
 }
 
-/**
- * `getParameters()` is the sender's capability contract. Some browsers expose
- * only a subset of the WebRTC encoding fields; adding a missing field makes
- * `setParameters()` reject the *entire* update with OperationError. Preserve
- * that returned shape and update only fields the implementation supports.
- */
 function setSupportedParameter(
   parameters: object,
   key: string,
   value: unknown,
 ): boolean {
   const supported = parameters as Record<string, unknown>;
-  if (!(key in supported) || supported[key] === value) return false;
+  if (supported[key] === value) return false;
   supported[key] = value;
   return true;
 }

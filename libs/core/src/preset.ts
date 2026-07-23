@@ -78,10 +78,7 @@ export const VIDEO_PRESETS: Record<VideoPresetName, VideoPreset> = {
     baseBitrate: 1_250_000,
   },
   detail: {
-    // 2 layers (max 2x downscale) instead of 3: screen-shared text/slides
-    // become illegible at 1/4 resolution, so a constrained viewer is better
-    // served by the half-res layer than a blurry quarter-res one.
-    layers: 2,
+    layers: 3,
     mode: "detail",
     minFps: 1,
     // Static screen content rarely needs 30fps; capping lower frees up
