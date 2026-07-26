@@ -557,6 +557,11 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
   // null = adaptive default (no extension sent); { 0, 0 } = disable smoothing.
   private playoutDelay: { minMs: number; maxMs: number } | null = null;
+  // Local receiver-side target (ms) that aims the jitter buffer at a delay.
+  // Complements the SFU playout-delay cap: the cap alone lets the buffer
+  // collapse to the adaptive low, so this is what actually holds e.g. ~300ms.
+  // null = adaptive. Capped at 4000ms (the `jitterBufferTarget` API limit).
+  private jitterBufferTargetMs: number | null = null;
 
   private debounceTimer: any | null = null;
   private isReconnecting = false;
@@ -711,6 +716,9 @@ export class Participant extends EventEmitter<ParticipantEvents> {
         this.emit(ParticipantEvent.AudioTrackAdded, { track: new RemoteAudioTrack(stream) });
       });
 
+      // Re-apply the local jitter-buffer target to the fresh receivers.
+      this.applyJitterBufferTarget();
+
       // Immediately reconcile to ensure declarative state matches the new transport
       this.reconcile(true);
 
@@ -828,27 +836,53 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   }
 
   /**
-   * Bound the receive-side latency for every remote stream (audio and video).
-   * The SFU enforces the bound across the network via the `playout-delay` RTP
-   * extension.
+   * Set the receiver jitter-buffer delay window `[minMs, maxMs]` (ms) for every
+   * remote stream. Video is controlled precisely by the SFU `playout-delay` RTP
+   * extension, which maps 1:1 to libwebrtc's VCMTiming:
    *
-   *   maxMs = null → reset to default browser behavior (the dynamic jitter
-   *                  buffer). The SDK sends the receiver default as an explicit
-   *                  high ceiling, since the extension is sticky and cannot be
-   *                  cleared by omission — the app never needs the value.
-   *   maxMs = 0    → disable all smoothing: render as soon as frames arrive
-   *                  (interactive — gaming, remote access).
-   *   maxMs > 0    → hard ceiling; the receiver conceals rather than buffer past
-   *                  it. Lower = tighter latency, more artifacts under jitter.
+   *     render_delay = clamp(adaptive_estimate, min, max)
    *
-   * `minMs` raises the floor (usually 0); clamped to `<= maxMs`.
+   * so `min` is a floor, `max` a ceiling. libwebrtc combines the effective floor
+   * as `max(ext.min, jitterBufferTarget, avsync)` but the ceiling comes ONLY
+   * from the extension — which is why `max` needs the ext, not `jitterBufferTarget`.
+   * Audio has no such extension, so we set `jitterBufferTarget` (a floor) on the
+   * audio receivers and let A/V sync align it to the video.
+   *
+   *   {0, 10000}   → adaptive (libwebrtc default).
+   *   {0, 0}       → render ASAP — interactive / cloud-gaming.
+   *   {X, X}       → hold exactly X ms.
+   *   {X, Y}, X<Y  → hold at least X, cap at Y (adaptive within the window).
+   *
+   * libwebrtc quirk: `min == 0 && max <= 500` activates "render ASAP" and the
+   * buffer is bypassed entirely — so to hold a *low* latency (not zero) you must
+   * use `min > 0`. `{0, <=500}` is only for the interactive/gaming case.
    */
-  setLatency(maxMs: number | null, minMs = 0): void {
-    const max = maxMs === null ? ADAPTIVE_MAX_PLAYOUT_MS : Math.max(0, Math.trunc(maxMs));
-    const min = Math.min(Math.max(0, Math.trunc(minMs)), max);
-    if (min === this.playoutDelay?.minMs && max === this.playoutDelay?.maxMs) return;
+  setLatency(minMs: number, maxMs: number): void {
+    const min = Math.max(0, Math.trunc(minMs));
+    const max = Math.max(min, Math.trunc(maxMs));
+    // Audio floor (no ext for audio). An adaptive window (min 0 + default-high
+    // max) → null so NetEQ stays fully adaptive.
+    const adaptive = min === 0 && max >= ADAPTIVE_MAX_PLAYOUT_MS;
+    const target = adaptive ? null : Math.min(min, 4000);
+
+    if (min === this.playoutDelay?.minMs && max === this.playoutDelay?.maxMs
+      && target === this.jitterBufferTargetMs) return;
     this.playoutDelay = { minMs: min, maxMs: max };
+    this.jitterBufferTargetMs = target;
+    this.applyJitterBufferTarget();
     this.reconcile(true);
+  }
+
+  private applyJitterBufferTarget(): void {
+    if (!this.transport) return;
+    // Audio only — video is bounded by the playout-delay extension; on video
+    // jitterBufferTarget would be a redundant floor and can only raise, not cap.
+    for (const t of this.transport.audioSlots) {
+      const receiver = t.receiver as RTCRtpReceiver & { jitterBufferTarget?: number | null };
+      if (receiver && "jitterBufferTarget" in receiver) {
+        try { receiver.jitterBufferTarget = this.jitterBufferTargetMs; } catch { /* unsupported browser */ }
+      }
+    }
   }
 
   private reconcile(force = false) {

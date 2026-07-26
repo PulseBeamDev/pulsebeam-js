@@ -53,6 +53,9 @@ declare global {
     readonly track: MediaStreamTrack;
     readonly transport?: any;
     readonly rtcpTransport?: any;
+    // Configurable jitter buffer (Chrome/Edge >= M111). Target in ms (<=4000);
+    // null restores the adaptive default.
+    jitterBufferTarget?: number | null;
   }
 
   interface RTCRtpSender {

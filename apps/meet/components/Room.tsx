@@ -25,14 +25,16 @@ import { useScreenShare } from "@/hooks/media";
 const SPOTLIGHT_QOS = { priority: 200, minHeight: 360 };
 const THUMBNAIL_QOS = { priority: 10, minHeight: 90 };
 
-// Max receive-side jitter-buffer delay (ms) the SFU enforces via the
-// playout-delay extension. Lower = tighter, more consistent latency, but more
-// concealment under jitter/loss. null = the browser's adaptive default.
-const LATENCY_MODES: { label: string; ms: number | null; hint: string }[] = [
-  { label: "Auto", ms: null, hint: "Browser default (adaptive)" },
-  { label: "Smooth", ms: 300, hint: "Prioritize smoothness (~300ms cap)" },
-  { label: "Low", ms: 150, hint: "Low latency (~150ms cap)" },
-  { label: "Ultra", ms: 50, hint: "Ultra-low latency (~50ms cap)" },
+// Receiver jitter-buffer delay window [min, max] ms, enforced via the SFU
+// playout-delay extension (video) + jitterBufferTarget (audio). render_delay =
+// clamp(estimate, min, max): min holds the buffer up, max caps it. NOTE
+// libwebrtc quirk: min==0 && max<=500 means "render ASAP" (buffer ignored), so a
+// held low-latency buffer needs min>0.
+const LATENCY_MODES: { label: string; min: number; max: number; hint: string }[] = [
+  { label: "Auto", min: 0, max: 10000, hint: "Adaptive (browser default)" },
+  { label: "Smooth", min: 300, max: 600, hint: "Hold ≥300ms — smooth under jitter" },
+  { label: "Low", min: 100, max: 200, hint: "Hold ~100–200ms — low latency" },
+  { label: "Ultra", min: 0, max: 0, hint: "Render ASAP — interactive/gaming" },
 ];
 
 interface RoomProps {
@@ -48,7 +50,7 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
   const client = useParticipant(useMemo(() => ({ baseUrl: apiURL }), [apiURL]));
   const screen = useScreenShare(client.aux);
 
-  const [latencyMs, setLatencyMs] = useState<number | null>(null);
+  const [latencyMode, setLatencyMode] = useState("Auto");
 
   // Auto-connect and publish
   useEffect(() => { client.connect(roomId); }, [roomId]);
@@ -57,7 +59,10 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
   }, [localStream]);
 
   // Bound receive-side latency for every remote stream (audio + video).
-  useEffect(() => { client.setLatency(latencyMs); }, [client, latencyMs]);
+  useEffect(() => {
+    const m = LATENCY_MODES.find(x => x.label === latencyMode) ?? LATENCY_MODES[0];
+    client.setLatency(m.min, m.max);
+  }, [client, latencyMode]);
 
   // Handle spotlight fallback if participant leaves
   useEffect(() => {
@@ -75,8 +80,8 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
           roomId={roomId}
           state={client.connectionState}
           screen={screen}
-          latencyMs={latencyMs}
-          onLatencyChange={setLatencyMs}
+          latencyMode={latencyMode}
+          onLatencyChange={setLatencyMode}
           onLeave={onLeave}
           onReconnect={() => client.connect(roomId)}
         />
@@ -129,12 +134,12 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
 }
 
 
-function RoomHeader({ roomId, state, screen, latencyMs, onLatencyChange, onLeave, onReconnect }: {
+function RoomHeader({ roomId, state, screen, latencyMode, onLatencyChange, onLeave, onReconnect }: {
   roomId: string;
   state: string;
   screen: { isSharing: boolean; isLoading: boolean; start: () => void; stop: () => void };
-  latencyMs: number | null;
-  onLatencyChange: (ms: number | null) => void;
+  latencyMode: string;
+  onLatencyChange: (label: string) => void;
   onLeave: () => void;
   onReconnect: () => void;
 }) {
@@ -165,9 +170,9 @@ function RoomHeader({ roomId, state, screen, latencyMs, onLatencyChange, onLeave
                   variant="ghost" size="sm"
                   className={cn(
                     "rounded h-7 px-2 text-xs",
-                    latencyMs === m.ms && "bg-primary/15 text-primary",
+                    latencyMode === m.label && "bg-primary/15 text-primary",
                   )}
-                  onClick={() => onLatencyChange(m.ms)}
+                  onClick={() => onLatencyChange(m.label)}
                 >
                   {m.label}
                 </Button>
@@ -175,7 +180,7 @@ function RoomHeader({ roomId, state, screen, latencyMs, onLatencyChange, onLeave
             </div>
           </TooltipTrigger>
           <TooltipContent>
-            {LATENCY_MODES.find((m) => m.ms === latencyMs)?.hint ?? "Latency cap"}
+            {LATENCY_MODES.find((m) => m.label === latencyMode)?.hint ?? "Latency"}
           </TooltipContent>
         </Tooltip>
         <Separator orientation="vertical" className="h-4 mx-1" />
