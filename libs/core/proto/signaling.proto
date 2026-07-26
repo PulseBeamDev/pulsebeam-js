@@ -119,29 +119,42 @@ message UpstreamIntent {
   bool active = 2;
 }
 
+// Receiver jitter-buffer bounds the server signals to a subscriber via the
+// `playout-delay` RTP header extension, in milliseconds (rounded to 10ms on the
+// wire). Constrains how long the browser may buffer before playout.
+//
+//   min == max == 0 → disable ALL receiver smoothing: render each frame as soon
+//                     as it arrives (interactive streaming — gaming, remote
+//                     access). Lowest possible latency, no concealment buffer.
+//   min <  max      → clamp the jitter buffer to this window; `max` is the hard
+//                     latency ceiling (the receiver conceals rather than buffer
+//                     past it). Lower = tighter latency, more artifacts under
+//                     jitter/loss.
+//
+// The extension is STICKY on the receiver: once applied, the bounds persist
+// until a new value arrives — omitting it does NOT revert to the default
+// dynamic jitter buffer. There is no "unset" on the wire (0 means 0ms, i.e.
+// disable). To restore the dynamic buffer you must send an explicit high ceiling
+// equal to the receiver default (min=0, max≈10000ms), NOT drop the field. Client
+// SDKs own that default and expose it as a reset call.
+message PlayoutDelay {
+  uint32 min_ms = 1;
+  uint32 max_ms = 2;
+}
+
 message ClientIntent {
   repeated VideoRequest downstream_requests = 1;
   repeated UpstreamIntent upstream_intents = 2;
 
-  // Receiver jitter-buffer bounds, in milliseconds, that the server signals to
-  // THIS subscriber via the `playout-delay` RTP header extension. They cap
-  // glass-to-glass latency by constraining how long the browser may buffer a
-  // stream before playing it out. Applied to ALL streams this participant
-  // receives — audio and video together — so lip-sync cannot reintroduce the
-  // latency you shaved off one of them.
-  //
-  //   max_playout_delay_ms == 0 → unset: the browser uses its own adaptive
-  //                               jitter buffer (latency drifts up under jitter/
-  //                               loss and recovers slowly).
-  //   max_playout_delay_ms  > 0 → hard ceiling: rather than buffer longer than
-  //                               this, the receiver conceals/skips. Lower =
-  //                               tighter, more consistent latency, but more
-  //                               artifacts under jitter/loss.
-  //
-  // min_playout_delay_ms raises the floor (the receiver will not play out
-  // sooner than this); usually 0. Must be <= max when max > 0.
-  uint32 min_playout_delay_ms = 3;
-  uint32 max_playout_delay_ms = 4;
+  // Absent → the client is not managing latency; the server stamps no extension.
+  //          Because the extension is sticky (see PlayoutDelay), this is NOT a
+  //          receiver reset — a receiver already constrained keeps its last
+  //          bounds. To return to the dynamic buffer, send an explicit
+  //          `{min:0, max:≈10000}`, don't drop the field.
+  // Present → the server stamps these bounds on ALL egress RTP for this
+  //           subscriber — audio and video together, so lip-sync cannot
+  //           reintroduce the latency you shaved off one of them.
+  PlayoutDelay playout_delay = 3;
 }
 
 // ========================================================================

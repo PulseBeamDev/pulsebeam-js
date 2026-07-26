@@ -27,9 +27,9 @@ const THUMBNAIL_QOS = { priority: 10, minHeight: 90 };
 
 // Max receive-side jitter-buffer delay (ms) the SFU enforces via the
 // playout-delay extension. Lower = tighter, more consistent latency, but more
-// concealment under jitter/loss. 0 = the browser's adaptive default.
-const LATENCY_MODES: { label: string; ms: number; hint: string }[] = [
-  { label: "Auto", ms: 0, hint: "Browser default (adaptive)" },
+// concealment under jitter/loss. null = the browser's adaptive default.
+const LATENCY_MODES: { label: string; ms: number | null; hint: string }[] = [
+  { label: "Auto", ms: null, hint: "Browser default (adaptive)" },
   { label: "Smooth", ms: 300, hint: "Prioritize smoothness (~300ms cap)" },
   { label: "Low", ms: 150, hint: "Low latency (~150ms cap)" },
   { label: "Ultra", ms: 50, hint: "Ultra-low latency (~50ms cap)" },
@@ -48,7 +48,7 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
   const client = useParticipant(useMemo(() => ({ baseUrl: apiURL }), [apiURL]));
   const screen = useScreenShare(client.aux);
 
-  const [latencyMs, setLatencyMs] = useState(0);
+  const [latencyMs, setLatencyMs] = useState<number | null>(null);
 
   // Auto-connect and publish
   useEffect(() => { client.connect(roomId); }, [roomId]);
@@ -133,8 +133,8 @@ function RoomHeader({ roomId, state, screen, latencyMs, onLatencyChange, onLeave
   roomId: string;
   state: string;
   screen: { isSharing: boolean; isLoading: boolean; start: () => void; stop: () => void };
-  latencyMs: number;
-  onLatencyChange: (ms: number) => void;
+  latencyMs: number | null;
+  onLatencyChange: (ms: number | null) => void;
   onLeave: () => void;
   onReconnect: () => void;
 }) {

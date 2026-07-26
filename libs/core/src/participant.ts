@@ -11,6 +11,7 @@ import {
   type UpstreamIntent,
   UpstreamIntentSchema,
   ClientIntentSchema,
+  PlayoutDelaySchema,
 } from "./gen/signaling_pb";
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 import type { PlatformAdapter } from "./platform";
@@ -19,6 +20,16 @@ import { mapPresetToInternal, VIDEO_PRESETS, AUDIO_PRESETS, type VideoPreset, ty
 
 const SIGNALING_LABEL = "v1/sys/signaling";
 const SYNC_DEBOUNCE_MS = 300;
+
+// `playout-delay` is sticky on the receiver and has no "unset" on the wire, so
+// dropping the extension does NOT revert to the adaptive jitter buffer — the
+// receiver keeps the last bounds. To restore dynamic behavior we send a ceiling
+// high enough to leave the adaptive algorithm effectively unconstrained. This
+// equals libwebrtc's default max render delay; the browser exposes no way to
+// read it, so the SDK owns the constant (apps call `setLatency(null)` and never
+// see it). It is also the seam to swap for a native browser playout-max API if
+// one ever ships.
+const ADAPTIVE_MAX_PLAYOUT_MS = 10000;
 
 /**
  * Maximum number of video slots available per session.
@@ -544,8 +555,8 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   private lastSentRequests: VideoRequest[] = [];
   private lastSentUpstreamIntents: UpstreamIntent[] = [];
 
-  private minPlayoutDelayMs = 0;
-  private maxPlayoutDelayMs = 0;
+  // null = adaptive default (no extension sent); { 0, 0 } = disable smoothing.
+  private playoutDelay: { minMs: number; maxMs: number } | null = null;
 
   private debounceTimer: any | null = null;
   private isReconnecting = false;
@@ -700,9 +711,6 @@ export class Participant extends EventEmitter<ParticipantEvents> {
         this.emit(ParticipantEvent.AudioTrackAdded, { track: new RemoteAudioTrack(stream) });
       });
 
-      // Re-apply the local jitter-buffer hint to the fresh receivers.
-      this.applyJitterBufferTarget();
-
       // Immediately reconcile to ensure declarative state matches the new transport
       this.reconcile(true);
 
@@ -821,35 +829,26 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
   /**
    * Bound the receive-side latency for every remote stream (audio and video).
-   * `maxMs` is a hard ceiling on the jitter buffer: the SFU enforces it across
-   * the network via the `playout-delay` RTP extension, and we also hint the
-   * local receivers. `minMs` raises the floor (usually 0). `maxMs === 0`
-   * restores the browser's adaptive default.
+   * The SFU enforces the bound across the network via the `playout-delay` RTP
+   * extension.
    *
-   * Lower `maxMs` = tighter, more consistent latency, but more concealment
-   * under jitter/loss. Typical: ~80–150ms for interactive, higher for playback.
+   *   maxMs = null → reset to default browser behavior (the dynamic jitter
+   *                  buffer). The SDK sends the receiver default as an explicit
+   *                  high ceiling, since the extension is sticky and cannot be
+   *                  cleared by omission — the app never needs the value.
+   *   maxMs = 0    → disable all smoothing: render as soon as frames arrive
+   *                  (interactive — gaming, remote access).
+   *   maxMs > 0    → hard ceiling; the receiver conceals rather than buffer past
+   *                  it. Lower = tighter latency, more artifacts under jitter.
+   *
+   * `minMs` raises the floor (usually 0); clamped to `<= maxMs`.
    */
-  setLatency(maxMs: number, minMs = 0): void {
-    const max = Math.max(0, Math.trunc(maxMs));
-    const min = Math.min(Math.max(0, Math.trunc(minMs)), max > 0 ? max : Number.MAX_SAFE_INTEGER);
-    if (max === this.maxPlayoutDelayMs && min === this.minPlayoutDelayMs) return;
-    this.maxPlayoutDelayMs = max;
-    this.minPlayoutDelayMs = min;
-    this.applyJitterBufferTarget();
+  setLatency(maxMs: number | null, minMs = 0): void {
+    const max = maxMs === null ? ADAPTIVE_MAX_PLAYOUT_MS : Math.max(0, Math.trunc(maxMs));
+    const min = Math.min(Math.max(0, Math.trunc(minMs)), max);
+    if (min === this.playoutDelay?.minMs && max === this.playoutDelay?.maxMs) return;
+    this.playoutDelay = { minMs: min, maxMs: max };
     this.reconcile(true);
-  }
-
-  private applyJitterBufferTarget(): void {
-    if (!this.transport) return;
-    // Soft, local hint biased toward the ceiling; the SFU's playout-delay
-    // extension is the hard bound. `null` restores the adaptive default.
-    const target = this.maxPlayoutDelayMs > 0 ? this.maxPlayoutDelayMs : null;
-    for (const t of [...this.transport.videoSlots, ...this.transport.audioSlots]) {
-      const receiver = t.receiver as RTCRtpReceiver & { jitterBufferTarget?: number | null };
-      if (receiver && "jitterBufferTarget" in receiver) {
-        try { receiver.jitterBufferTarget = target; } catch { /* unsupported browser */ }
-      }
-    }
   }
 
   private reconcile(force = false) {
@@ -909,8 +908,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     const intent: ClientIntent = create(ClientIntentSchema, {
       downstreamRequests: requests,
       upstreamIntents,
-      minPlayoutDelayMs: this.minPlayoutDelayMs,
-      maxPlayoutDelayMs: this.maxPlayoutDelayMs,
+      ...(this.playoutDelay && { playoutDelay: create(PlayoutDelaySchema, this.playoutDelay) }),
     });
     this.send({ case: "intent", value: intent });
   }
