@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file signaling.proto.
  */
 export const file_signaling: GenFile = /*@__PURE__*/
-  fileDesc("Cg9zaWduYWxpbmcucHJvdG8SCXNpZ25hbGluZyKmAQoFVHJhY2sSCgoCaWQYASABKAkSIgoEa2luZBgCIAEoDjIULnNpZ25hbGluZy5UcmFja0tpbmQSFgoOcGFydGljaXBhbnRfaWQYAyABKAkSKAoEbWV0YRgEIAMoCzIaLnNpZ25hbGluZy5UcmFjay5NZXRhRW50cnkaKwoJTWV0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiQAoPVmlkZW9Bc3NpZ25tZW50EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZwYXVzZWQYAyABKAgiwwEKC1N0YXRlVXBkYXRlEgsKA3NlcRgBIAEoBBITCgtpc19zbmFwc2hvdBgCIAEoCBInCg10cmFja3NfdXBzZXJ0GAMgAygLMhAuc2lnbmFsaW5nLlRyYWNrEhUKDXRyYWNrc19yZW1vdmUYBCADKAkSNgoSYXNzaWdubWVudHNfdXBzZXJ0GAUgAygLMhouc2lnbmFsaW5nLlZpZGVvQXNzaWdubWVudBIaChJhc3NpZ25tZW50c19yZW1vdmUYBiADKAkiPQoMVmlkZW9SZXF1ZXN0EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZoZWlnaHQYAyABKA0iLQoOVXBzdHJlYW1JbnRlbnQSCwoDbWlkGAEgASgJEg4KBmFjdGl2ZRgCIAEoCCJ5CgxDbGllbnRJbnRlbnQSNAoTZG93bnN0cmVhbV9yZXF1ZXN0cxgBIAMoCzIXLnNpZ25hbGluZy5WaWRlb1JlcXVlc3QSMwoQdXBzdHJlYW1faW50ZW50cxgCIAMoCzIZLnNpZ25hbGluZy5VcHN0cmVhbUludGVudCJdCg1DbGllbnRNZXNzYWdlEikKBmludGVudBgBIAEoCzIXLnNpZ25hbGluZy5DbGllbnRJbnRlbnRIABIWCgxyZXF1ZXN0X3N5bmMYAiABKAhIAEIJCgdwYXlsb2FkIlUKDVNlcnZlck1lc3NhZ2USKAoGdXBkYXRlGAEgASgLMhYuc2lnbmFsaW5nLlN0YXRlVXBkYXRlSAASDwoFZXJyb3IYAiABKAlIAEIJCgdwYXlsb2FkKj0KCVRyYWNrS2luZBIaChZUUkFDS19LSU5EX1VOU1BFQ0lGSUVEEAASCQoFVklERU8QARIJCgVBVURJTxACYgZwcm90bzM");
+  fileDesc("Cg9zaWduYWxpbmcucHJvdG8SCXNpZ25hbGluZyKmAQoFVHJhY2sSCgoCaWQYASABKAkSIgoEa2luZBgCIAEoDjIULnNpZ25hbGluZy5UcmFja0tpbmQSFgoOcGFydGljaXBhbnRfaWQYAyABKAkSKAoEbWV0YRgEIAMoCzIaLnNpZ25hbGluZy5UcmFjay5NZXRhRW50cnkaKwoJTWV0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiQAoPVmlkZW9Bc3NpZ25tZW50EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZwYXVzZWQYAyABKAgiwwEKC1N0YXRlVXBkYXRlEgsKA3NlcRgBIAEoBBITCgtpc19zbmFwc2hvdBgCIAEoCBInCg10cmFja3NfdXBzZXJ0GAMgAygLMhAuc2lnbmFsaW5nLlRyYWNrEhUKDXRyYWNrc19yZW1vdmUYBCADKAkSNgoSYXNzaWdubWVudHNfdXBzZXJ0GAUgAygLMhouc2lnbmFsaW5nLlZpZGVvQXNzaWdubWVudBIaChJhc3NpZ25tZW50c19yZW1vdmUYBiADKAkiYwoMVmlkZW9SZXF1ZXN0EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZoZWlnaHQYAyABKA0SEAoIcHJpb3JpdHkYBCABKA0SEgoKbWluX2hlaWdodBgFIAEoDSItCg5VcHN0cmVhbUludGVudBILCgNtaWQYASABKAkSDgoGYWN0aXZlGAIgASgIInkKDENsaWVudEludGVudBI0ChNkb3duc3RyZWFtX3JlcXVlc3RzGAEgAygLMhcuc2lnbmFsaW5nLlZpZGVvUmVxdWVzdBIzChB1cHN0cmVhbV9pbnRlbnRzGAIgAygLMhkuc2lnbmFsaW5nLlVwc3RyZWFtSW50ZW50Il0KDUNsaWVudE1lc3NhZ2USKQoGaW50ZW50GAEgASgLMhcuc2lnbmFsaW5nLkNsaWVudEludGVudEgAEhYKDHJlcXVlc3Rfc3luYxgCIAEoCEgAQgkKB3BheWxvYWQiVQoNU2VydmVyTWVzc2FnZRIoCgZ1cGRhdGUYASABKAsyFi5zaWduYWxpbmcuU3RhdGVVcGRhdGVIABIPCgVlcnJvchgCIAEoCUgAQgkKB3BheWxvYWQqPQoJVHJhY2tLaW5kEhoKFlRSQUNLX0tJTkRfVU5TUEVDSUZJRUQQABIJCgVWSURFTxABEgkKBUFVRElPEAJiBnByb3RvMw");
 
 /**
  * @generated from message signaling.Track
@@ -128,6 +128,21 @@ export const StateUpdateSchema: GenMessage<StateUpdate> = /*@__PURE__*/
   messageDesc(file_signaling, 2);
 
 /**
+ * Per received video stream, `VideoRequest` tells the server how the stream is
+ * being consumed so it can spend the subscriber's limited downlink bandwidth
+ * where it matters most. The server chooses one simulcast layer per stream to
+ * maximize perceived quality within the available budget.
+ *
+ * Under bandwidth contention the server, per subscriber:
+ *   1. guarantees each stream its `min_height` floor, in `priority` order
+ *      (least-important droppable streams give way first), then
+ *   2. raises streams toward their `height` target, in `priority` order, one
+ *      quality step at a time.
+ *
+ * Optimal use: set `height` to what you actually render, `min_height` to the
+ * lowest quality you still want (or 0 to allow pausing), and `priority` to how
+ * much this stream matters relative to your others.
+ *
  * @generated from message signaling.VideoRequest
  */
 export type VideoRequest = Message<"signaling.VideoRequest"> & {
@@ -142,13 +157,56 @@ export type VideoRequest = Message<"signaling.VideoRequest"> & {
   trackId: string;
 
   /**
-   * Render height in physical pixels. 
-   * 0 = Off-screen/Hidden (Server pauses stream).
-   * >0 = Visible (Server optimizes simulcast layer).
+   * TARGET render height in physical pixels — the size you are actually
+   * displaying this stream at. Primary quality lever: the server will not send
+   * meaningfully more than this, because pixels beyond your display size are
+   * invisible. Update it whenever your layout changes (resize, pin, fullscreen).
+   *   0  = hidden / off-screen → the server sends nothing (frees bandwidth).
+   *   >0 = the server picks the simulcast layer that best matches this size.
+   * Do not over-request: asking for 1080p in a thumbnail steals bandwidth from
+   * the streams you are actually looking at.
    *
    * @generated from field: uint32 height = 3;
    */
   height: number;
+
+  /**
+   * Relative importance for bandwidth contention — decides the ORDER in which
+   * streams keep and gain quality when not everything fits. Higher = more
+   * important; 0 = least. It is an order only, not a size (size is `height`),
+   * so do not encode display size here.
+   *
+   * A free scalar, so it can be driven continuously and dynamically — e.g. from
+   * an active-speaker score, gaze/focus, or a proximity/danger sensor.
+   * Suggested (non-binding) convention: 0 background, 100 normal, 200 focused /
+   * active speaker, 255+ safety-critical. Any monotonically increasing scheme
+   * works.
+   *
+   * @generated from field: uint32 priority = 4;
+   */
+  priority: number;
+
+  /**
+   * FLOOR: the lowest render height to keep for this stream under contention.
+   * The server holds the stream at or above this resolution as long as it
+   * possibly can, dropping below it (to paused) only when no budget remains
+   * after higher-`priority` streams.
+   *   0              = droppable: may be paused entirely under contention
+   *                    (use for background/auxiliary streams).
+   *   0 < n < height = keep at least ~n px (e.g. a small always-visible tile).
+   *   n == height    = pin at full quality: never degrade (safety-critical /
+   *                    focused stream).
+   *
+   * Examples:
+   *   Teleoperation front camera : height=1080 priority=255 min_height=1080
+   *   Teleoperation side camera  : height=480  priority=5   min_height=0
+   *   Conference active speaker  : height=720  priority=200 min_height=180
+   *   Conference other tile      : height=360  priority=10  min_height=90
+   *   Conference minimized tile  : height=0
+   *
+   * @generated from field: uint32 min_height = 5;
+   */
+  minHeight: number;
 };
 
 /**

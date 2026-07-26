@@ -19,6 +19,12 @@ import {
 import { LocalVideo } from "./LocalVideo";
 import { useScreenShare } from "@/hooks/media";
 
+// Conferencing QoS: the spotlight is what the user is watching, so it wins
+// bandwidth under contention and stays watchable; thumbnails yield first but
+// keep a small floor so they never go blank.
+const SPOTLIGHT_QOS = { priority: 200, minHeight: 360 };
+const THUMBNAIL_QOS = { priority: 10, minHeight: 90 };
+
 interface RoomProps {
   roomId: string;
   apiURL?: string;
@@ -65,7 +71,14 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
               {spotlightId === "local" ? (
                 <LocalVideo stream={localStream} mirror className="w-full h-full object-contain" />
               ) : (
-                spotlightTrack && <Video track={spotlightTrack} className="w-full h-full object-contain" />
+                spotlightTrack && (
+                  <Video
+                    track={spotlightTrack}
+                    priority={SPOTLIGHT_QOS.priority}
+                    minHeight={SPOTLIGHT_QOS.minHeight}
+                    className="w-full h-full object-contain"
+                  />
+                )
               )}
 
               <SpotlightBadge
@@ -195,7 +208,12 @@ function ParticipantSidebar({ tracks, localStream, spotlightId, onSelect }: {
           {tracks.map((track) => (
             spotlightId !== track.id && (
               <div key={track.id} className="relative aspect-video rounded-lg overflow-hidden group cursor-pointer border-2 border-transparent hover:border-primary bg-muted" onClick={() => onSelect(track.id)}>
-                <Video track={track} className="w-full h-full object-contain" />
+                <Video
+                  track={track}
+                  priority={THUMBNAIL_QOS.priority}
+                  minHeight={THUMBNAIL_QOS.minHeight}
+                  className="w-full h-full object-contain"
+                />
                 <div className="absolute bottom-1.5 left-1.5">
                   <Badge variant="secondary" className="bg-black/40 text-[8px] h-3.5 border-none text-white">{track.participantId}</Badge>
                 </div>

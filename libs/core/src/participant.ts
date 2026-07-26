@@ -138,8 +138,18 @@ export class RemoteAudioTrack {
   get id() { return this.stream.id; }
 }
 
+const VIDEO_LAYERS = [0, 90, 180, 360, 540, 720, 1080];
+function quantizeHeight(h: number): number {
+  return VIDEO_LAYERS.find((l) => l >= h) ?? 1080;
+}
+
 export class RemoteVideoTrack {
+  /** Target render height (px, quantized). The primary QoS lever. */
   public height: number = 0;
+  /** Floor render height (px) to keep under contention; 0 = droppable. */
+  public minHeight: number = 0;
+  /** Contention importance; higher keeps/gains quality first. See VideoRequest. */
+  public priority: number = 0;
   public paused: boolean = true;
   public onLayoutChange?: () => void;
   public onPausedChange?: (paused: boolean) => void;
@@ -153,11 +163,32 @@ export class RemoteVideoTrack {
   get participantId() { return this.track.participantId; }
 
   setHeight(h: number) {
-    const layers = [0, 90, 180, 360, 540, 720, 1080];
-    const quantizedHeight = layers.find((l) => l >= h) ?? 1080;
-
+    const quantizedHeight = quantizeHeight(h);
     if (this.height === quantizedHeight) return;
     this.height = quantizedHeight;
+    this.onLayoutChange?.();
+  }
+
+  /**
+   * Lowest quality to keep for this stream under bandwidth contention. `0`
+   * makes it droppable (may pause); set to a small value to keep it visible,
+   * or to `height` to pin it at full quality. Quantized to a layer.
+   */
+  setMinHeight(h: number) {
+    const quantized = quantizeHeight(h);
+    if (this.minHeight === quantized) return;
+    this.minHeight = quantized;
+    this.onLayoutChange?.();
+  }
+
+  /**
+   * Relative importance for bandwidth contention (higher = keeps/gains quality
+   * first). Drive it from focus/active-speaker/etc. See `VideoRequest.priority`.
+   */
+  setPriority(p: number) {
+    const priority = Math.max(0, Math.trunc(p));
+    if (this.priority === priority) return;
+    this.priority = priority;
     this.onLayoutChange?.();
   }
 
@@ -785,11 +816,13 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   private reconcile(force = false) {
     if (!this.transport || this.transport.dc.readyState !== "open") return;
 
-    // 1. Declarative State: What tracks do we want? (Sorted by priority)
+    // 1. Declarative State: which tracks do we want, ranked by importance so the
+    // most important win the limited downstream slots. Priority first, then the
+    // rendered size as a tie-break.
     const desired = Array.from(this.session.remoteVideoTracks.values())
       .filter(v => v.height > 0)
-      .sort((a, b) => b.height - a.height)
-      .map(v => ({ id: v.id, height: v.height }));
+      .sort((a, b) => b.priority - a.priority || b.height - a.height)
+      .map(v => ({ id: v.id, height: v.height, minHeight: v.minHeight, priority: v.priority }));
 
     // 2. Resource State: What slots do we have, and what are they currently assigned to?
     const slotStates = this.transport.videoSlots
@@ -810,7 +843,13 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
       const assign = nextAssignments.get(mid);
       if (assign) {
-        requests.push(create(VideoRequestSchema, { mid, trackId: assign.trackId, height: assign.height }));
+        requests.push(create(VideoRequestSchema, {
+          mid,
+          trackId: assign.trackId,
+          height: assign.height,
+          minHeight: assign.minHeight,
+          priority: assign.priority,
+        }));
       }
     }
 
@@ -852,6 +891,17 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 export interface DesiredVideoTrack {
   id: string;
   height: number;
+  /** Floor to keep under contention; defaults to 0 (droppable). */
+  minHeight?: number;
+  /** Contention importance; defaults to 0. */
+  priority?: number;
+}
+
+export interface VideoSlotAssignment {
+  trackId: string;
+  height: number;
+  minHeight: number;
+  priority: number;
 }
 
 export interface VideoSlotState {
@@ -877,12 +927,19 @@ export interface VideoSlotState {
 export function computeVideoSlotAssignments(
   desired: DesiredVideoTrack[],
   slots: VideoSlotState[],
-): Map<string, { trackId: string; height: number }> {
+): Map<string, VideoSlotAssignment> {
   const capacity = slots.length;
   const top = desired.slice(0, capacity);
   const topById = new Map(top.map(t => [t.id, t]));
 
-  const nextAssignments = new Map<string, { trackId: string; height: number }>();
+  const assign = (t: DesiredVideoTrack): VideoSlotAssignment => ({
+    trackId: t.id,
+    height: t.height,
+    minHeight: t.minHeight ?? 0,
+    priority: t.priority ?? 0,
+  });
+
+  const nextAssignments = new Map<string, VideoSlotAssignment>();
   const usedMids = new Set<string>();
 
   // Pass 1: Sticky assignments - keep a slot if its current track still
@@ -891,7 +948,7 @@ export function computeVideoSlotAssignments(
     const currentTrackId = slot.currentTrackId;
     const track = currentTrackId ? topById.get(currentTrackId) : undefined;
     if (track) {
-      nextAssignments.set(slot.mid, { trackId: track.id, height: track.height });
+      nextAssignments.set(slot.mid, assign(track));
       usedMids.add(slot.mid);
       topById.delete(track.id);
     }
@@ -902,7 +959,7 @@ export function computeVideoSlotAssignments(
   for (const track of topById.values()) {
     const freeSlot = slots.find(s => !usedMids.has(s.mid));
     if (!freeSlot) break;
-    nextAssignments.set(freeSlot.mid, { trackId: track.id, height: track.height });
+    nextAssignments.set(freeSlot.mid, assign(track));
     usedMids.add(freeSlot.mid);
   }
 
@@ -923,7 +980,9 @@ function areRequestsEqual(a: VideoRequest[], b: VideoRequest[]): boolean {
     if (
       reqA.mid !== reqB.mid ||
       reqA.trackId !== reqB.trackId ||
-      reqA.height !== reqB.height
+      reqA.height !== reqB.height ||
+      reqA.minHeight !== reqB.minHeight ||
+      reqA.priority !== reqB.priority
     ) {
       return false;
     }

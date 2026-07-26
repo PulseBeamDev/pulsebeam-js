@@ -40,30 +40,47 @@ export interface VideoProps extends VideoHTMLAttributes<HTMLVideoElement> {
   track: RemoteVideoTrack;
   className?: string;
   style?: CSSProperties;
+  /**
+   * Bandwidth-contention importance for this stream (higher keeps and gains
+   * quality first). Drive it from focus/active-speaker. Defaults to 0. The
+   * target resolution is auto-managed from the rendered size.
+   */
+  priority?: number;
+  /**
+   * Lowest render height (px) to keep under contention. 0 (default) makes the
+   * stream droppable; a small value keeps it a visible thumbnail.
+   */
+  minHeight?: number;
 }
 
-export function Video(props: VideoProps) {
-  const [paused, setPaused] = useState<boolean>(props.track ? props.track.paused : true);
+export function Video({ track, className, style, priority, minHeight, ...videoProps }: VideoProps) {
+  const [paused, setPaused] = useState<boolean>(track ? track.paused : true);
 
   useEffect(() => {
-    if (!props.track) return;
-    setPaused(props.track.paused);
-    props.track.onPausedChange = (p: boolean) => setPaused(p);
-    return () => { props.track.onPausedChange = undefined; };
-  }, [props.track]);
+    if (!track) return;
+    setPaused(track.paused);
+    track.onPausedChange = (p: boolean) => setPaused(p);
+    return () => { track.onPausedChange = undefined; };
+  }, [track]);
 
-  const ref = useBinder(props.track, VideoBinder);
+  // Declaratively drive the stream's QoS from render intent.
+  useEffect(() => {
+    track?.setPriority?.(priority ?? 0);
+    track?.setMinHeight?.(minHeight ?? 0);
+  }, [track, priority, minHeight]);
+
+  const ref = useBinder(track, VideoBinder);
 
   return (
     <div
-      className={props.className}
+      className={className}
       style={{
         position: "relative",
         overflow: "hidden",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        ...props.style
+        ...style
       }}
     >
       <video
@@ -71,7 +88,7 @@ export function Video(props: VideoProps) {
         autoPlay
         playsInline
         muted
-        {...props}
+        {...videoProps}
         style={{
           width: "100%",
           height: "100%",

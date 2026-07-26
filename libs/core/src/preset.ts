@@ -127,7 +127,7 @@ export function mapPresetToInternal(preset: VideoPreset) {
     encodings,
     // detail favors legibility (resolution) over smoothness under congestion;
     // motion favors smoothness (framerate) since blur matters less for faces/movement.
-    degradationPreference: preset.mode === "detail" ? "maintain-resolution" : "balanced",
+    degradationPreference: preset.mode === "detail" ? "maintain-resolution" : "maintain-framerate",
     contentHint: preset.mode === "detail" ? "text" : "motion",
   };
 }

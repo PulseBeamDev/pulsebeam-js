@@ -27,8 +27,8 @@ describe("computeVideoSlotAssignments", () => {
       slots(["m1", "m2"], { m1: "b", m2: "a" }),
     );
 
-    expect(result.get("m1")).toEqual({ trackId: "b", height: 360 });
-    expect(result.get("m2")).toEqual({ trackId: "a", height: 720 });
+    expect(result.get("m1")).toEqual({ trackId: "b", height: 360, minHeight: 0, priority: 0 });
+    expect(result.get("m2")).toEqual({ trackId: "a", height: 720, minHeight: 0, priority: 0 });
   });
 
   it("evicts a lower-priority sticky track to make room for a higher-priority new one when slots are full", () => {
@@ -75,7 +75,20 @@ describe("computeVideoSlotAssignments", () => {
       slots(["m1"], { m1: "a" }),
     );
 
-    expect(result.get("m1")).toEqual({ trackId: "b", height: 720 });
+    expect(result.get("m1")).toEqual({ trackId: "b", height: 720, minHeight: 0, priority: 0 });
+  });
+
+  it("carries per-track QoS (minHeight, priority) into the assignment", () => {
+    const desired: DesiredVideoTrack[] = [
+      { id: "a", height: 720, minHeight: 180, priority: 200 },
+    ];
+    const result = computeVideoSlotAssignments(desired, slots(["m1"]));
+    expect(result.get("m1")).toEqual({
+      trackId: "a",
+      height: 720,
+      minHeight: 180,
+      priority: 200,
+    });
   });
 
   it("assigns nothing when there are no slots", () => {
