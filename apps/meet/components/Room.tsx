@@ -12,7 +12,10 @@ import {
   Card,
   Select,
   SelectContent,
-  SelectItem,
+  SelectGroup,
+  SelectItemWithDescription,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
   cn,
@@ -53,6 +56,7 @@ const LATENCY_MODES: { label: string; min: number; max: number; description: str
     hint: "Bypasses the jitter buffer entirely — each frame is rendered the moment it arrives. For cloud gaming and remote desktop. Will stutter on any packet loss or reorder.",
   },
 ];
+
 
 interface RoomProps {
   roomId: string;
@@ -185,42 +189,55 @@ function RoomHeader({ roomId, state, screen, latencyMode, latencyLocked, onLaten
       </div>
 
       <div className="flex items-center gap-1">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center gap-1.5">
-              <Gauge className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-              <Select
-                value={latencyMode ?? "auto"}
-                onValueChange={(v) => v !== "auto" && onLatencyChange(v)}
-              >
-                <SelectTrigger className="h-7 text-xs border-muted bg-muted/50 w-44 gap-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto" disabled={latencyLocked}>
-                    <div className="flex flex-col">
-                      <span>Auto</span>
-                      <span className={cn("text-[10px] text-muted-foreground", latencyLocked && "text-destructive/70")}>
-                        {latencyLocked ? "Locked — reconnect to restore" : "Adaptive · browser managed"}
-                      </span>
-                    </div>
-                  </SelectItem>
-                  {LATENCY_MODES.map((m) => (
-                    <SelectItem key={m.label} value={m.label}>
-                      <div className="flex flex-col">
-                        <span>{m.label}</span>
-                        <span className="text-[10px] text-muted-foreground">{m.description}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent className="max-w-64 text-xs">
-            {activeHint}
-          </TooltipContent>
-        </Tooltip>
+        <div className="flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/40 px-2 h-8">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-1.5 cursor-default">
+                <Gauge className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <span className="text-xs text-muted-foreground select-none">Latency</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-64 text-xs">
+              {activeHint}
+            </TooltipContent>
+          </Tooltip>
+          <Select
+            value={latencyMode ?? "auto"}
+            onValueChange={(v) => v !== "auto" && onLatencyChange(v)}
+          >
+            <SelectTrigger
+              size="sm"
+              className="border-0 bg-transparent shadow-none focus-visible:ring-0 h-6 px-0 text-xs font-medium min-w-[72px] gap-1"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end" className="min-w-52">
+              <SelectGroup>
+                <SelectLabel>Adaptive</SelectLabel>
+                <SelectItemWithDescription
+                  value="auto"
+                  description={latencyLocked ? "Reconnect to restore" : "Browser managed"}
+                  disabled={latencyLocked}
+                >
+                  {latencyLocked ? "Auto (session locked)" : "Auto"}
+                </SelectItemWithDescription>
+              </SelectGroup>
+              <SelectSeparator />
+              <SelectGroup>
+                <SelectLabel>Fixed</SelectLabel>
+                {LATENCY_MODES.map((m) => (
+                  <SelectItemWithDescription
+                    key={m.label}
+                    value={m.label}
+                    description={m.description}
+                  >
+                    {m.label}
+                  </SelectItemWithDescription>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
         <Separator orientation="vertical" className="h-4 mx-1" />
         <Button
           variant="ghost" size="sm"
