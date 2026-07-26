@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file signaling.proto.
  */
 export const file_signaling: GenFile = /*@__PURE__*/
-  fileDesc("Cg9zaWduYWxpbmcucHJvdG8SCXNpZ25hbGluZyKmAQoFVHJhY2sSCgoCaWQYASABKAkSIgoEa2luZBgCIAEoDjIULnNpZ25hbGluZy5UcmFja0tpbmQSFgoOcGFydGljaXBhbnRfaWQYAyABKAkSKAoEbWV0YRgEIAMoCzIaLnNpZ25hbGluZy5UcmFjay5NZXRhRW50cnkaKwoJTWV0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiQAoPVmlkZW9Bc3NpZ25tZW50EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZwYXVzZWQYAyABKAgiwwEKC1N0YXRlVXBkYXRlEgsKA3NlcRgBIAEoBBITCgtpc19zbmFwc2hvdBgCIAEoCBInCg10cmFja3NfdXBzZXJ0GAMgAygLMhAuc2lnbmFsaW5nLlRyYWNrEhUKDXRyYWNrc19yZW1vdmUYBCADKAkSNgoSYXNzaWdubWVudHNfdXBzZXJ0GAUgAygLMhouc2lnbmFsaW5nLlZpZGVvQXNzaWdubWVudBIaChJhc3NpZ25tZW50c19yZW1vdmUYBiADKAkiYwoMVmlkZW9SZXF1ZXN0EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZoZWlnaHQYAyABKA0SEAoIcHJpb3JpdHkYBCABKA0SEgoKbWluX2hlaWdodBgFIAEoDSItCg5VcHN0cmVhbUludGVudBILCgNtaWQYASABKAkSDgoGYWN0aXZlGAIgASgIInkKDENsaWVudEludGVudBI0ChNkb3duc3RyZWFtX3JlcXVlc3RzGAEgAygLMhcuc2lnbmFsaW5nLlZpZGVvUmVxdWVzdBIzChB1cHN0cmVhbV9pbnRlbnRzGAIgAygLMhkuc2lnbmFsaW5nLlVwc3RyZWFtSW50ZW50Il0KDUNsaWVudE1lc3NhZ2USKQoGaW50ZW50GAEgASgLMhcuc2lnbmFsaW5nLkNsaWVudEludGVudEgAEhYKDHJlcXVlc3Rfc3luYxgCIAEoCEgAQgkKB3BheWxvYWQiVQoNU2VydmVyTWVzc2FnZRIoCgZ1cGRhdGUYASABKAsyFi5zaWduYWxpbmcuU3RhdGVVcGRhdGVIABIPCgVlcnJvchgCIAEoCUgAQgkKB3BheWxvYWQqPQoJVHJhY2tLaW5kEhoKFlRSQUNLX0tJTkRfVU5TUEVDSUZJRUQQABIJCgVWSURFTxABEgkKBUFVRElPEAJiBnByb3RvMw");
+  fileDesc("Cg9zaWduYWxpbmcucHJvdG8SCXNpZ25hbGluZyKmAQoFVHJhY2sSCgoCaWQYASABKAkSIgoEa2luZBgCIAEoDjIULnNpZ25hbGluZy5UcmFja0tpbmQSFgoOcGFydGljaXBhbnRfaWQYAyABKAkSKAoEbWV0YRgEIAMoCzIaLnNpZ25hbGluZy5UcmFjay5NZXRhRW50cnkaKwoJTWV0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiQAoPVmlkZW9Bc3NpZ25tZW50EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZwYXVzZWQYAyABKAgiwwEKC1N0YXRlVXBkYXRlEgsKA3NlcRgBIAEoBBITCgtpc19zbmFwc2hvdBgCIAEoCBInCg10cmFja3NfdXBzZXJ0GAMgAygLMhAuc2lnbmFsaW5nLlRyYWNrEhUKDXRyYWNrc19yZW1vdmUYBCADKAkSNgoSYXNzaWdubWVudHNfdXBzZXJ0GAUgAygLMhouc2lnbmFsaW5nLlZpZGVvQXNzaWdubWVudBIaChJhc3NpZ25tZW50c19yZW1vdmUYBiADKAkiYwoMVmlkZW9SZXF1ZXN0EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZoZWlnaHQYAyABKA0SEAoIcHJpb3JpdHkYBCABKA0SEgoKbWluX2hlaWdodBgFIAEoDSItCg5VcHN0cmVhbUludGVudBILCgNtaWQYASABKAkSDgoGYWN0aXZlGAIgASgIIrUBCgxDbGllbnRJbnRlbnQSNAoTZG93bnN0cmVhbV9yZXF1ZXN0cxgBIAMoCzIXLnNpZ25hbGluZy5WaWRlb1JlcXVlc3QSMwoQdXBzdHJlYW1faW50ZW50cxgCIAMoCzIZLnNpZ25hbGluZy5VcHN0cmVhbUludGVudBIcChRtaW5fcGxheW91dF9kZWxheV9tcxgDIAEoDRIcChRtYXhfcGxheW91dF9kZWxheV9tcxgEIAEoDSJdCg1DbGllbnRNZXNzYWdlEikKBmludGVudBgBIAEoCzIXLnNpZ25hbGluZy5DbGllbnRJbnRlbnRIABIWCgxyZXF1ZXN0X3N5bmMYAiABKAhIAEIJCgdwYXlsb2FkIlUKDVNlcnZlck1lc3NhZ2USKAoGdXBkYXRlGAEgASgLMhYuc2lnbmFsaW5nLlN0YXRlVXBkYXRlSAASDwoFZXJyb3IYAiABKAlIAEIJCgdwYXlsb2FkKj0KCVRyYWNrS2luZBIaChZUUkFDS19LSU5EX1VOU1BFQ0lGSUVEEAASCQoFVklERU8QARIJCgVBVURJTxACYgZwcm90bzM");
 
 /**
  * @generated from message signaling.Track
@@ -255,6 +255,34 @@ export type ClientIntent = Message<"signaling.ClientIntent"> & {
    * @generated from field: repeated signaling.UpstreamIntent upstream_intents = 2;
    */
   upstreamIntents: UpstreamIntent[];
+
+  /**
+   * Receiver jitter-buffer bounds, in milliseconds, that the server signals to
+   * THIS subscriber via the `playout-delay` RTP header extension. They cap
+   * glass-to-glass latency by constraining how long the browser may buffer a
+   * stream before playing it out. Applied to ALL streams this participant
+   * receives — audio and video together — so lip-sync cannot reintroduce the
+   * latency you shaved off one of them.
+   *
+   *   max_playout_delay_ms == 0 → unset: the browser uses its own adaptive
+   *                               jitter buffer (latency drifts up under jitter/
+   *                               loss and recovers slowly).
+   *   max_playout_delay_ms  > 0 → hard ceiling: rather than buffer longer than
+   *                               this, the receiver conceals/skips. Lower =
+   *                               tighter, more consistent latency, but more
+   *                               artifacts under jitter/loss.
+   *
+   * min_playout_delay_ms raises the floor (the receiver will not play out
+   * sooner than this); usually 0. Must be <= max when max > 0.
+   *
+   * @generated from field: uint32 min_playout_delay_ms = 3;
+   */
+  minPlayoutDelayMs: number;
+
+  /**
+   * @generated from field: uint32 max_playout_delay_ms = 4;
+   */
+  maxPlayoutDelayMs: number;
 };
 
 /**

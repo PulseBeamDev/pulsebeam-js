@@ -14,7 +14,7 @@ import {
 } from "@pulsebeam/ui";
 import {
   Monitor, MonitorOff, Mic, MicOff, Video as VideoIcon,
-  VideoOff, PhoneOff, RotateCcw, Loader2
+  VideoOff, PhoneOff, RotateCcw, Loader2, Gauge
 } from "lucide-react";
 import { LocalVideo } from "./LocalVideo";
 import { useScreenShare } from "@/hooks/media";
@@ -24,6 +24,16 @@ import { useScreenShare } from "@/hooks/media";
 // keep a small floor so they never go blank.
 const SPOTLIGHT_QOS = { priority: 200, minHeight: 360 };
 const THUMBNAIL_QOS = { priority: 10, minHeight: 90 };
+
+// Max receive-side jitter-buffer delay (ms) the SFU enforces via the
+// playout-delay extension. Lower = tighter, more consistent latency, but more
+// concealment under jitter/loss. 0 = the browser's adaptive default.
+const LATENCY_MODES: { label: string; ms: number; hint: string }[] = [
+  { label: "Auto", ms: 0, hint: "Browser default (adaptive)" },
+  { label: "Smooth", ms: 300, hint: "Prioritize smoothness (~300ms cap)" },
+  { label: "Low", ms: 150, hint: "Low latency (~150ms cap)" },
+  { label: "Ultra", ms: 50, hint: "Ultra-low latency (~50ms cap)" },
+];
 
 interface RoomProps {
   roomId: string;
@@ -38,11 +48,16 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
   const client = useParticipant(useMemo(() => ({ baseUrl: apiURL }), [apiURL]));
   const screen = useScreenShare(client.aux);
 
+  const [latencyMs, setLatencyMs] = useState(0);
+
   // Auto-connect and publish
   useEffect(() => { client.connect(roomId); }, [roomId]);
   useEffect(() => {
     client.main.publish(localStream, { videoPreset: "motion", audioPreset: "speech" });
   }, [localStream]);
+
+  // Bound receive-side latency for every remote stream (audio + video).
+  useEffect(() => { client.setLatency(latencyMs); }, [client, latencyMs]);
 
   // Handle spotlight fallback if participant leaves
   useEffect(() => {
@@ -60,6 +75,8 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
           roomId={roomId}
           state={client.connectionState}
           screen={screen}
+          latencyMs={latencyMs}
+          onLatencyChange={setLatencyMs}
           onLeave={onLeave}
           onReconnect={() => client.connect(roomId)}
         />
@@ -112,10 +129,12 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
 }
 
 
-function RoomHeader({ roomId, state, screen, onLeave, onReconnect }: {
+function RoomHeader({ roomId, state, screen, latencyMs, onLatencyChange, onLeave, onReconnect }: {
   roomId: string;
   state: string;
   screen: { isSharing: boolean; isLoading: boolean; start: () => void; stop: () => void };
+  latencyMs: number;
+  onLatencyChange: (ms: number) => void;
   onLeave: () => void;
   onReconnect: () => void;
 }) {
@@ -136,6 +155,30 @@ function RoomHeader({ roomId, state, screen, onLeave, onReconnect }: {
       </div>
 
       <div className="flex items-center gap-1">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-0.5 rounded-md bg-muted/50 p-0.5">
+              <Gauge className="w-3.5 h-3.5 mx-1.5 text-muted-foreground" />
+              {LATENCY_MODES.map((m) => (
+                <Button
+                  key={m.label}
+                  variant="ghost" size="sm"
+                  className={cn(
+                    "rounded h-7 px-2 text-xs",
+                    latencyMs === m.ms && "bg-primary/15 text-primary",
+                  )}
+                  onClick={() => onLatencyChange(m.ms)}
+                >
+                  {m.label}
+                </Button>
+              ))}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {LATENCY_MODES.find((m) => m.ms === latencyMs)?.hint ?? "Latency cap"}
+          </TooltipContent>
+        </Tooltip>
+        <Separator orientation="vertical" className="h-4 mx-1" />
         <Button
           variant="ghost" size="sm"
           className={cn("rounded-md h-8 px-3", screen.isSharing && "bg-primary/10 text-primary")}
