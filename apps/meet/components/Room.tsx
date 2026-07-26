@@ -10,6 +10,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
   Card,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   cn,
 } from "@pulsebeam/ui";
 import {
@@ -25,14 +30,28 @@ import { useScreenShare } from "@/hooks/media";
 const SPOTLIGHT_QOS = { priority: 200, minHeight: 360 };
 const THUMBNAIL_QOS = { priority: 10, minHeight: 90 };
 
-// Auto is the initial adaptive state (no extension sent). Once any fixed mode is
-// chosen, the playout-delay extension is stamped and sticky — there is no wire
-// "unset", so returning to true adaptive requires a new session. The UI reflects
-// this: Auto is disabled once a fixed mode has been activated.
-const LATENCY_MODES: { label: string; min: number; max: number; hint: string }[] = [
-  { label: "Smooth", min: 300, max: 600, hint: "Hold ≥300ms — smooth under jitter" },
-  { label: "Low", min: 100, max: 200, hint: "Hold ~100–200ms — low latency" },
-  { label: "Ultra", min: 0, max: 0, hint: "Render ASAP — interactive/gaming" },
+// Fixed latency modes (one-way from adaptive). Once chosen, the playout-delay
+// extension is sticky — there is no wire "unset" in libwebrtc; returning to
+// true adaptive requires a new session.
+const LATENCY_MODES: { label: string; min: number; max: number; description: string; hint: string }[] = [
+  {
+    label: "Smooth",
+    min: 400, max: 800,
+    description: "400–800 ms",
+    hint: "Maximum jitter resilience — absorbs heavy packet bursts. Best for unstable networks, webinars, and one-way live events where a few hundred milliseconds of delay is acceptable.",
+  },
+  {
+    label: "Balanced",
+    min: 100, max: 200,
+    description: "100–200 ms",
+    hint: "Low latency with solid jitter resilience — good for conversations, meetings, and live Q&A on typical home or office networks.",
+  },
+  {
+    label: "Zero-latency",
+    min: 0, max: 0,
+    description: "No buffer · render-as-received",
+    hint: "Bypasses the jitter buffer entirely — each frame is rendered the moment it arrives. For cloud gaming and remote desktop. Will stutter on any packet loss or reorder.",
+  },
 ];
 
 interface RoomProps {
@@ -146,7 +165,7 @@ function RoomHeader({ roomId, state, screen, latencyMode, latencyLocked, onLaten
   onReconnect: () => void;
 }) {
   const activeHint = latencyMode === null
-    ? "Adaptive — browser manages jitter buffer (initial state)"
+    ? "Auto — browser manages the jitter buffer adaptively. This is the initial session state; selecting any other mode is permanent until reconnect."
     : LATENCY_MODES.find(m => m.label === latencyMode)?.hint ?? "Latency";
 
   return (
@@ -168,40 +187,38 @@ function RoomHeader({ roomId, state, screen, latencyMode, latencyLocked, onLaten
       <div className="flex items-center gap-1">
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center gap-0.5 rounded-md bg-muted/50 p-0.5">
-              <Gauge className="w-3.5 h-3.5 mx-1.5 text-muted-foreground" />
-              {/* Auto is the initial adaptive state — shown selected until a fixed mode is chosen,
-                  then disabled (sticky extension; true adaptive requires a new session). */}
-              <Button
-                variant="ghost" size="sm"
-                disabled={latencyLocked}
-                className={cn(
-                  "rounded h-7 px-2 text-xs",
-                  latencyMode === null && "bg-primary/15 text-primary",
-                  latencyLocked && "opacity-40 cursor-not-allowed",
-                )}
+            <div className="flex items-center gap-1.5">
+              <Gauge className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <Select
+                value={latencyMode ?? "auto"}
+                onValueChange={(v) => v !== "auto" && onLatencyChange(v)}
               >
-                Auto
-              </Button>
-              {LATENCY_MODES.map((m) => (
-                <Button
-                  key={m.label}
-                  variant="ghost" size="sm"
-                  className={cn(
-                    "rounded h-7 px-2 text-xs",
-                    latencyMode === m.label && "bg-primary/15 text-primary",
-                  )}
-                  onClick={() => onLatencyChange(m.label)}
-                >
-                  {m.label}
-                </Button>
-              ))}
+                <SelectTrigger className="h-7 text-xs border-muted bg-muted/50 w-44 gap-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto" disabled={latencyLocked}>
+                    <div className="flex flex-col">
+                      <span>Auto</span>
+                      <span className={cn("text-[10px] text-muted-foreground", latencyLocked && "text-destructive/70")}>
+                        {latencyLocked ? "Locked — reconnect to restore" : "Adaptive · browser managed"}
+                      </span>
+                    </div>
+                  </SelectItem>
+                  {LATENCY_MODES.map((m) => (
+                    <SelectItem key={m.label} value={m.label}>
+                      <div className="flex flex-col">
+                        <span>{m.label}</span>
+                        <span className="text-[10px] text-muted-foreground">{m.description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </TooltipTrigger>
-          <TooltipContent>
-            {latencyLocked && latencyMode === null
-              ? "Auto disabled — playout-delay is sticky; reconnect to restore adaptive"
-              : activeHint}
+          <TooltipContent className="max-w-64 text-xs">
+            {activeHint}
           </TooltipContent>
         </Tooltip>
         <Separator orientation="vertical" className="h-4 mx-1" />
