@@ -4,7 +4,6 @@ import {
   Button,
   Badge,
   Separator,
-  ScrollArea,
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -98,7 +97,7 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col h-screen bg-background overflow-hidden font-sans">
+      <div className="flex h-dvh flex-col overflow-hidden bg-background font-sans">
         <RoomHeader
           roomId={roomId}
           state={client.connectionState}
@@ -110,19 +109,19 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
           onReconnect={() => client.connect(roomId)}
         />
 
-        <main className="flex-1 flex overflow-hidden p-4 gap-4">
+        <main className="meet-room-main flex min-h-0 flex-1 overflow-hidden">
           {/* Spotlight Area */}
-          <Card className="flex-[3] relative bg-black flex items-center justify-center overflow-hidden">
-            <div className="w-full aspect-video">
+          <Card className="meet-spotlight relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black">
+            <div className="meet-spotlight-frame relative w-full">
               {spotlightId === "local" ? (
-                <LocalVideo stream={localStream} mirror className="w-full h-full object-contain" />
+                <LocalVideo stream={localStream} mirror className="h-full w-full object-contain" />
               ) : (
                 spotlightTrack && (
                   <Video
                     track={spotlightTrack}
                     priority={SPOTLIGHT_QOS.priority}
                     minHeight={SPOTLIGHT_QOS.minHeight}
-                    className="w-full h-full object-contain"
+                    className="h-full w-full object-contain"
                   />
                 )
               )}
@@ -141,7 +140,7 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
           </Card>
 
           {/* Sidebar */}
-          <aside className="flex-1 flex flex-col gap-3 max-w-[280px]">
+          <aside className="meet-participants flex shrink-0 flex-col">
             <ParticipantSidebar
               tracks={client.videoTracks}
               localStream={localStream}
@@ -173,28 +172,28 @@ function RoomHeader({ roomId, state, screen, latencyMode, latencyLocked, onLaten
     : LATENCY_MODES.find(m => m.label === latencyMode)?.hint ?? "Latency";
 
   return (
-    <header className="h-14 px-4 border-b flex justify-between items-center bg-card/50 backdrop-blur-md z-20">
-      <div className="flex items-center gap-3">
+    <header className="meet-room-header z-20 flex shrink-0 items-center justify-between gap-2 border-b bg-card/50 backdrop-blur-md">
+      <div className="flex min-w-0 items-center gap-2">
         <Badge variant="outline" className="gap-2 px-2 py-0.5">
           <div className={cn("h-1.5 w-1.5 rounded-full", state === "connected" ? "bg-emerald-500 animate-pulse" : "bg-amber-500")} />
-          <span className="text-xs font-medium text-muted-foreground">Room: <span className="text-foreground">{roomId}</span></span>
+          <span className="meet-room-name truncate text-xs font-medium text-muted-foreground">Room: <span className="text-foreground">{roomId}</span></span>
         </Badge>
 
         {(state === "connecting" || screen.isLoading) && (
-          <Badge variant="secondary" className="gap-2 animate-in fade-in slide-in-from-left-2">
+          <Badge variant="secondary" className="meet-connection-status hidden gap-2 animate-in fade-in slide-in-from-left-2">
             <Loader2 className="h-3 w-3 animate-spin text-primary" />
             <span className="text-xs font-medium">{screen.isLoading ? "Starting screen..." : "Connecting..."}</span>
           </Badge>
         )}
       </div>
 
-      <div className="flex items-center gap-1">
-        <div className="flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/40 px-2 h-8">
+      <div className="meet-room-actions flex items-center gap-1">
+        <div className="flex h-8 min-w-0 items-center gap-1.5 rounded-md border border-border/60 bg-muted/40 px-2">
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="flex items-center gap-1.5 cursor-default">
                 <Gauge className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                <span className="text-xs text-muted-foreground select-none">Latency</span>
+                <span className="meet-latency-label text-xs text-muted-foreground select-none">Latency</span>
               </div>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-64 text-xs">
@@ -238,20 +237,20 @@ function RoomHeader({ roomId, state, screen, latencyMode, latencyLocked, onLaten
             </SelectContent>
           </Select>
         </div>
-        <Separator orientation="vertical" className="h-4 mx-1" />
+        <Separator orientation="vertical" className="mx-1 h-4" />
         <Button
           variant="ghost" size="sm"
-          className={cn("rounded-md h-8 px-3", screen.isSharing && "bg-primary/10 text-primary")}
+          className={cn("h-8 rounded-md px-2.5", screen.isSharing && "bg-primary/10 text-primary")}
           onClick={screen.isSharing ? screen.stop : screen.start}
         >
-          {screen.isSharing ? <MonitorOff className="w-4 h-4 mr-2" /> : <Monitor className="w-4 h-4 mr-2" />}
+          {screen.isSharing ? <MonitorOff className="mr-1.5 h-4 w-4" /> : <Monitor className="mr-1.5 h-4 w-4" />}
           <span className="text-xs">{screen.isSharing ? "Stop" : "Share"}</span>
         </Button>
-        <Separator orientation="vertical" className="h-4 mx-1" />
-        <Button variant="destructive" size="sm" className="h-8 px-4 text-xs" onClick={onLeave}>
-          <PhoneOff className="w-3.5 h-3.5 mr-1.5" /> End
+        <Separator orientation="vertical" className="mx-1 h-4" />
+        <Button variant="destructive" size="sm" className="h-8 px-2.5 text-xs" onClick={onLeave}>
+          <PhoneOff className="mr-1.5 h-3.5 w-3.5" /> <span>End</span>
         </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onReconnect}>
+        <Button variant="ghost" size="icon" className="meet-reconnect h-8 w-8" onClick={onReconnect}>
           <RotateCcw className="w-3.5 h-3.5" />
         </Button>
       </div>
@@ -263,10 +262,10 @@ function MediaControls({ audioMuted, videoMuted, onToggleMic, onToggleCam }: {
   audioMuted: boolean; videoMuted: boolean; onToggleMic: () => void; onToggleCam: () => void;
 }) {
   return (
-    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 p-1.5 bg-black/60 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl">
+    <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-2 rounded-xl border border-white/10 bg-black/60 p-1.5 shadow-2xl backdrop-blur-md sm:bottom-6 sm:gap-3">
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button size="icon" variant={audioMuted ? "destructive" : "secondary"} className="h-10 w-10" onClick={onToggleMic}>
+          <Button size="icon" variant={audioMuted ? "destructive" : "secondary"} className="h-11 w-11 sm:h-10 sm:w-10" onClick={onToggleMic}>
             {audioMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
           </Button>
         </TooltipTrigger>
@@ -275,7 +274,7 @@ function MediaControls({ audioMuted, videoMuted, onToggleMic, onToggleCam }: {
 
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button size="icon" variant={videoMuted ? "destructive" : "secondary"} className="h-10 w-10" onClick={onToggleCam}>
+          <Button size="icon" variant={videoMuted ? "destructive" : "secondary"} className="h-11 w-11 sm:h-10 sm:w-10" onClick={onToggleCam}>
             {videoMuted ? <VideoOff className="w-4 h-4" /> : <VideoIcon className="w-4 h-4" />}
           </Button>
         </TooltipTrigger>
@@ -295,11 +294,11 @@ function ParticipantSidebar({ tracks, localStream, spotlightId, onSelect }: {
         <Badge variant="secondary" className="text-[9px] h-4">{tracks.length + 1}</Badge>
       </div>
 
-      <ScrollArea className="flex-1 -mr-2 pr-2">
-        <div className="flex flex-col gap-2">
+      <div className="meet-participant-scroll min-h-0 flex-1">
+        <div className="meet-participant-list flex gap-2">
           {/* Local Thumbnail (Only show if not in spotlight) */}
           {spotlightId !== "local" && (
-            <div className="relative aspect-video rounded-lg overflow-hidden group cursor-pointer border-2 border-transparent hover:border-primary" onClick={() => onSelect("local")}>
+            <div className="meet-participant-tile relative aspect-video shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 border-transparent hover:border-primary" onClick={() => onSelect("local")}>
               <LocalVideo stream={localStream} className="w-full h-full object-contain opacity-90" />
               <div className="absolute bottom-1.5 left-1.5">
                 <Badge variant="secondary" className="bg-black/40 text-[8px] h-3.5 backdrop-blur-sm border-none text-white">You</Badge>
@@ -310,7 +309,7 @@ function ParticipantSidebar({ tracks, localStream, spotlightId, onSelect }: {
           {/* Remote Thumbnails */}
           {tracks.map((track) => (
             spotlightId !== track.id && (
-              <div key={track.id} className="relative aspect-video rounded-lg overflow-hidden group cursor-pointer border-2 border-transparent hover:border-primary bg-muted" onClick={() => onSelect(track.id)}>
+              <div key={track.id} className="meet-participant-tile relative aspect-video shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 border-transparent bg-muted hover:border-primary" onClick={() => onSelect(track.id)}>
                 <Video
                   track={track}
                   priority={THUMBNAIL_QOS.priority}
@@ -324,15 +323,15 @@ function ParticipantSidebar({ tracks, localStream, spotlightId, onSelect }: {
             )
           ))}
         </div>
-      </ScrollArea>
+      </div>
     </>
   );
 }
 
 function SpotlightBadge({ label }: { label: string }) {
   return (
-    <div className="absolute top-4 left-4">
-      <Badge className="bg-black/60 backdrop-blur-md border-white/10 px-3 py-1.5 h-8 rounded-lg flex gap-2 text-[10px] font-bold uppercase tracking-wider text-white">
+    <div className="absolute left-2 top-2 sm:left-4 sm:top-4">
+      <Badge className="flex h-7 max-w-48 gap-2 truncate rounded-lg border-white/10 bg-black/60 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-md sm:h-8 sm:max-w-none sm:px-3 sm:py-1.5 sm:text-[10px]">
         <div className="w-1.5 h-1.5 rounded-full bg-primary" />
         {label}
       </Badge>

@@ -48,9 +48,9 @@ export function Lobby({ onJoin, localStream, setLocalStream }: LobbyProps) {
   }, [localStream, media.isCamOn]); // isCamOn is a vital dependency here
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background p-4">
-      <Card className="w-full max-w-xl shadow-2xl">
-        <CardContent className="pt-6 space-y-6">
+    <div className="flex min-h-dvh items-center justify-center bg-background px-3 py-4 sm:p-6">
+      <Card className="w-full max-w-xl shadow-xl sm:shadow-2xl">
+        <CardContent className="space-y-5 px-4 pt-4 sm:space-y-6 sm:px-6 sm:pt-6">
           <MediaPreview
             videoRef={videoRef}
             isCamOn={media.isCamOn}
@@ -60,7 +60,7 @@ export function Lobby({ onJoin, localStream, setLocalStream }: LobbyProps) {
             hasStream={!!localStream}
           />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <DeviceSelector
               label="Camera"
               value={media.videoDeviceId}
@@ -75,10 +75,10 @@ export function Lobby({ onJoin, localStream, setLocalStream }: LobbyProps) {
             />
           </div>
 
-          <form onSubmit={(e) => { e.preventDefault(); onJoin(roomId, apiURL); }} className="space-y-4 pt-4 border-t">
-            <Input value={roomId} onChange={e => setRoomId(e.target.value)} placeholder="Room ID" required />
-            <Input value={apiURL} onChange={e => setApiURL(e.target.value)} placeholder="API URL (optional)" />
-            <Button type="submit" className="w-full" disabled={!localStream || isJoining}>Join Room</Button>
+          <form onSubmit={(e) => { e.preventDefault(); onJoin(roomId, apiURL); }} className="space-y-3 border-t pt-4 sm:space-y-4">
+            <Input className="h-11 sm:h-9" value={roomId} onChange={e => setRoomId(e.target.value)} placeholder="Room ID" required />
+            <Input className="h-11 sm:h-9" value={apiURL} onChange={e => setApiURL(e.target.value)} placeholder="API URL (optional)" inputMode="url" />
+            <Button type="submit" className="h-11 w-full sm:h-9" disabled={!localStream || isJoining}>Join Room</Button>
           </form>
         </CardContent>
       </Card>

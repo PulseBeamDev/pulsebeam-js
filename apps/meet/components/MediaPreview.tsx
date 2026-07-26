@@ -1,6 +1,6 @@
 import { Button } from "@pulsebeam/ui";
 import { Mic, MicOff, Video as VideoIcon, VideoOff } from "lucide-react";
-import { RefObject, useEffect } from "react";
+import { RefObject } from "react";
 
 interface MediaPreviewProps {
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -21,7 +21,7 @@ export function MediaPreview({
 }: MediaPreviewProps) {
   return (
     <div className="space-y-4">
-      <div className="aspect-video bg-black rounded-lg overflow-hidden relative border border-border shadow-inner">
+      <div className="relative aspect-video overflow-hidden rounded-lg border border-border bg-black shadow-inner">
         {hasStream && isCamOn ? (
           <video
             ref={videoRef}
@@ -42,12 +42,12 @@ export function MediaPreview({
         )}
 
         {/* Floating Controls Overlay */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3 z-10">
+        <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-3 sm:bottom-4">
           <Button
             type="button" // Important: prevents form submission
             size="icon"
             variant={isMicOn ? "secondary" : "destructive"}
-            className="rounded-full w-12 h-12 shadow-lg hover:scale-105 transition-transform"
+            className="h-11 w-11 rounded-full shadow-lg transition-transform hover:scale-105 sm:h-12 sm:w-12"
             onClick={onToggleMic}
           >
             {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
@@ -57,7 +57,7 @@ export function MediaPreview({
             type="button"
             size="icon"
             variant={isCamOn ? "secondary" : "destructive"}
-            className="rounded-full w-12 h-12 shadow-lg hover:scale-105 transition-transform"
+            className="h-11 w-11 rounded-full shadow-lg transition-transform hover:scale-105 sm:h-12 sm:w-12"
             onClick={onToggleCam}
           >
             {isCamOn ? <VideoIcon className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
