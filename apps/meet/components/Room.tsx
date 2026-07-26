@@ -10,11 +10,19 @@ import {
   TooltipProvider,
   TooltipTrigger,
   Card,
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItemWithDescription,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
   cn,
 } from "@pulsebeam/ui";
 import {
   Monitor, MonitorOff, Mic, MicOff, Video as VideoIcon,
-  VideoOff, PhoneOff, RotateCcw, Loader2
+  VideoOff, PhoneOff, RotateCcw, Loader2, Gauge
 } from "lucide-react";
 import { LocalVideo } from "./LocalVideo";
 import { useScreenShare } from "@/hooks/media";
@@ -24,6 +32,31 @@ import { useScreenShare } from "@/hooks/media";
 // keep a small floor so they never go blank.
 const SPOTLIGHT_QOS = { priority: 200, minHeight: 360 };
 const THUMBNAIL_QOS = { priority: 10, minHeight: 90 };
+
+// Fixed latency modes (one-way from adaptive). Once chosen, the playout-delay
+// extension is sticky — there is no wire "unset" in libwebrtc; returning to
+// true adaptive requires a new session.
+const LATENCY_MODES: { label: string; min: number; max: number; description: string; hint: string }[] = [
+  {
+    label: "Smooth",
+    min: 400, max: 800,
+    description: "400–800 ms",
+    hint: "Maximum jitter resilience — absorbs heavy packet bursts. Best for unstable networks, webinars, and one-way live events where a few hundred milliseconds of delay is acceptable.",
+  },
+  {
+    label: "Balanced",
+    min: 100, max: 200,
+    description: "100–200 ms",
+    hint: "Low latency with solid jitter resilience — good for conversations, meetings, and live Q&A on typical home or office networks.",
+  },
+  {
+    label: "Zero-latency",
+    min: 0, max: 0,
+    description: "No buffer · render-as-received",
+    hint: "Bypasses the jitter buffer entirely — each frame is rendered the moment it arrives. For cloud gaming and remote desktop. Will stutter on any packet loss or reorder.",
+  },
+];
+
 
 interface RoomProps {
   roomId: string;
@@ -38,11 +71,21 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
   const client = useParticipant(useMemo(() => ({ baseUrl: apiURL }), [apiURL]));
   const screen = useScreenShare(client.aux);
 
+  const [latencyMode, setLatencyMode] = useState<string | null>(null);
+
   // Auto-connect and publish
   useEffect(() => { client.connect(roomId); }, [roomId]);
   useEffect(() => {
     client.main.publish(localStream, { videoPreset: "motion", audioPreset: "speech" });
   }, [localStream]);
+
+  const handleLatencyChange = (label: string) => {
+    if (client.latencyLocked && latencyMode === null) return;
+    const m = LATENCY_MODES.find(x => x.label === label);
+    if (!m) return;
+    client.setLatency(m.min, m.max);
+    setLatencyMode(label);
+  };
 
   // Handle spotlight fallback if participant leaves
   useEffect(() => {
@@ -60,6 +103,9 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
           roomId={roomId}
           state={client.connectionState}
           screen={screen}
+          latencyMode={latencyMode}
+          latencyLocked={client.latencyLocked}
+          onLatencyChange={handleLatencyChange}
           onLeave={onLeave}
           onReconnect={() => client.connect(roomId)}
         />
@@ -112,13 +158,20 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
 }
 
 
-function RoomHeader({ roomId, state, screen, onLeave, onReconnect }: {
+function RoomHeader({ roomId, state, screen, latencyMode, latencyLocked, onLatencyChange, onLeave, onReconnect }: {
   roomId: string;
   state: string;
   screen: { isSharing: boolean; isLoading: boolean; start: () => void; stop: () => void };
+  latencyMode: string | null;
+  latencyLocked: boolean;
+  onLatencyChange: (label: string) => void;
   onLeave: () => void;
   onReconnect: () => void;
 }) {
+  const activeHint = latencyMode === null
+    ? "Auto — browser manages the jitter buffer adaptively. This is the initial session state; selecting any other mode is permanent until reconnect."
+    : LATENCY_MODES.find(m => m.label === latencyMode)?.hint ?? "Latency";
+
   return (
     <header className="h-14 px-4 border-b flex justify-between items-center bg-card/50 backdrop-blur-md z-20">
       <div className="flex items-center gap-3">
@@ -136,6 +189,56 @@ function RoomHeader({ roomId, state, screen, onLeave, onReconnect }: {
       </div>
 
       <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/40 px-2 h-8">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-1.5 cursor-default">
+                <Gauge className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <span className="text-xs text-muted-foreground select-none">Latency</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-64 text-xs">
+              {activeHint}
+            </TooltipContent>
+          </Tooltip>
+          <Select
+            value={latencyMode ?? "auto"}
+            onValueChange={(v) => v !== "auto" && onLatencyChange(v)}
+          >
+            <SelectTrigger
+              size="sm"
+              className="border-0 bg-transparent shadow-none focus-visible:ring-0 h-6 px-0 text-xs font-medium min-w-[72px] gap-1"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end" className="min-w-52">
+              <SelectGroup>
+                <SelectLabel>Adaptive</SelectLabel>
+                <SelectItemWithDescription
+                  value="auto"
+                  description={latencyLocked ? "Reconnect to restore" : "Browser managed"}
+                  disabled={latencyLocked}
+                >
+                  {latencyLocked ? "Auto (session locked)" : "Auto"}
+                </SelectItemWithDescription>
+              </SelectGroup>
+              <SelectSeparator />
+              <SelectGroup>
+                <SelectLabel>Fixed</SelectLabel>
+                {LATENCY_MODES.map((m) => (
+                  <SelectItemWithDescription
+                    key={m.label}
+                    value={m.label}
+                    description={m.description}
+                  >
+                    {m.label}
+                  </SelectItemWithDescription>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+        <Separator orientation="vertical" className="h-4 mx-1" />
         <Button
           variant="ghost" size="sm"
           className={cn("rounded-md h-8 px-3", screen.isSharing && "bg-primary/10 text-primary")}

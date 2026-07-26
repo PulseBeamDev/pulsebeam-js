@@ -127,6 +127,37 @@ function SelectItem({
   )
 }
 
+// Like SelectItem but accepts a `description` that appears only inside the
+// dropdown — not copied into the trigger's SelectValue display. Achieved by
+// keeping description outside SelectPrimitive.ItemText.
+function SelectItemWithDescription({
+  className,
+  children,
+  description,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Item> & { description?: React.ReactNode }) {
+  return (
+    <SelectPrimitive.Item
+      data-slot="select-item"
+      className={cn(
+        "focus:bg-accent focus:text-accent-foreground gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm relative flex w-full cursor-default items-center outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        className
+      )}
+      {...props}
+    >
+      <span className="pointer-events-none absolute right-2 flex size-4 items-center justify-center">
+        <SelectPrimitive.ItemIndicator>
+          <CheckIcon className="pointer-events-none" />
+        </SelectPrimitive.ItemIndicator>
+      </span>
+      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+      {description && (
+        <span className="ml-auto text-[10px] text-muted-foreground pl-4">{description}</span>
+      )}
+    </SelectPrimitive.Item>
+  )
+}
+
 function SelectSeparator({
   className,
   ...props
@@ -177,6 +208,7 @@ export {
   SelectContent,
   SelectGroup,
   SelectItem,
+  SelectItemWithDescription,
   SelectLabel,
   SelectScrollDownButton,
   SelectScrollUpButton,

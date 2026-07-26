@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file signaling.proto.
  */
 export const file_signaling: GenFile = /*@__PURE__*/
-  fileDesc("Cg9zaWduYWxpbmcucHJvdG8SCXNpZ25hbGluZyKmAQoFVHJhY2sSCgoCaWQYASABKAkSIgoEa2luZBgCIAEoDjIULnNpZ25hbGluZy5UcmFja0tpbmQSFgoOcGFydGljaXBhbnRfaWQYAyABKAkSKAoEbWV0YRgEIAMoCzIaLnNpZ25hbGluZy5UcmFjay5NZXRhRW50cnkaKwoJTWV0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiQAoPVmlkZW9Bc3NpZ25tZW50EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZwYXVzZWQYAyABKAgiwwEKC1N0YXRlVXBkYXRlEgsKA3NlcRgBIAEoBBITCgtpc19zbmFwc2hvdBgCIAEoCBInCg10cmFja3NfdXBzZXJ0GAMgAygLMhAuc2lnbmFsaW5nLlRyYWNrEhUKDXRyYWNrc19yZW1vdmUYBCADKAkSNgoSYXNzaWdubWVudHNfdXBzZXJ0GAUgAygLMhouc2lnbmFsaW5nLlZpZGVvQXNzaWdubWVudBIaChJhc3NpZ25tZW50c19yZW1vdmUYBiADKAkiYwoMVmlkZW9SZXF1ZXN0EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZoZWlnaHQYAyABKA0SEAoIcHJpb3JpdHkYBCABKA0SEgoKbWluX2hlaWdodBgFIAEoDSItCg5VcHN0cmVhbUludGVudBILCgNtaWQYASABKAkSDgoGYWN0aXZlGAIgASgIInkKDENsaWVudEludGVudBI0ChNkb3duc3RyZWFtX3JlcXVlc3RzGAEgAygLMhcuc2lnbmFsaW5nLlZpZGVvUmVxdWVzdBIzChB1cHN0cmVhbV9pbnRlbnRzGAIgAygLMhkuc2lnbmFsaW5nLlVwc3RyZWFtSW50ZW50Il0KDUNsaWVudE1lc3NhZ2USKQoGaW50ZW50GAEgASgLMhcuc2lnbmFsaW5nLkNsaWVudEludGVudEgAEhYKDHJlcXVlc3Rfc3luYxgCIAEoCEgAQgkKB3BheWxvYWQiVQoNU2VydmVyTWVzc2FnZRIoCgZ1cGRhdGUYASABKAsyFi5zaWduYWxpbmcuU3RhdGVVcGRhdGVIABIPCgVlcnJvchgCIAEoCUgAQgkKB3BheWxvYWQqPQoJVHJhY2tLaW5kEhoKFlRSQUNLX0tJTkRfVU5TUEVDSUZJRUQQABIJCgVWSURFTxABEgkKBUFVRElPEAJiBnByb3RvMw");
+  fileDesc("Cg9zaWduYWxpbmcucHJvdG8SCXNpZ25hbGluZyKmAQoFVHJhY2sSCgoCaWQYASABKAkSIgoEa2luZBgCIAEoDjIULnNpZ25hbGluZy5UcmFja0tpbmQSFgoOcGFydGljaXBhbnRfaWQYAyABKAkSKAoEbWV0YRgEIAMoCzIaLnNpZ25hbGluZy5UcmFjay5NZXRhRW50cnkaKwoJTWV0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiQAoPVmlkZW9Bc3NpZ25tZW50EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZwYXVzZWQYAyABKAgiwwEKC1N0YXRlVXBkYXRlEgsKA3NlcRgBIAEoBBITCgtpc19zbmFwc2hvdBgCIAEoCBInCg10cmFja3NfdXBzZXJ0GAMgAygLMhAuc2lnbmFsaW5nLlRyYWNrEhUKDXRyYWNrc19yZW1vdmUYBCADKAkSNgoSYXNzaWdubWVudHNfdXBzZXJ0GAUgAygLMhouc2lnbmFsaW5nLlZpZGVvQXNzaWdubWVudBIaChJhc3NpZ25tZW50c19yZW1vdmUYBiADKAkiYwoMVmlkZW9SZXF1ZXN0EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZoZWlnaHQYAyABKA0SEAoIcHJpb3JpdHkYBCABKA0SEgoKbWluX2hlaWdodBgFIAEoDSItCg5VcHN0cmVhbUludGVudBILCgNtaWQYASABKAkSDgoGYWN0aXZlGAIgASgIIi4KDFBsYXlvdXREZWxheRIOCgZtaW5fbXMYASABKA0SDgoGbWF4X21zGAIgASgNIsABCgxDbGllbnRJbnRlbnQSNAoTZG93bnN0cmVhbV9yZXF1ZXN0cxgBIAMoCzIXLnNpZ25hbGluZy5WaWRlb1JlcXVlc3QSMwoQdXBzdHJlYW1faW50ZW50cxgCIAMoCzIZLnNpZ25hbGluZy5VcHN0cmVhbUludGVudBIzCg1wbGF5b3V0X2RlbGF5GAMgASgLMhcuc2lnbmFsaW5nLlBsYXlvdXREZWxheUgAiAEBQhAKDl9wbGF5b3V0X2RlbGF5Il0KDUNsaWVudE1lc3NhZ2USKQoGaW50ZW50GAEgASgLMhcuc2lnbmFsaW5nLkNsaWVudEludGVudEgAEhYKDHJlcXVlc3Rfc3luYxgCIAEoCEgAQgkKB3BheWxvYWQiVQoNU2VydmVyTWVzc2FnZRIoCgZ1cGRhdGUYASABKAsyFi5zaWduYWxpbmcuU3RhdGVVcGRhdGVIABIPCgVlcnJvchgCIAEoCUgAQgkKB3BheWxvYWQqPQoJVHJhY2tLaW5kEhoKFlRSQUNLX0tJTkRfVU5TUEVDSUZJRUQQABIJCgVWSURFTxABEgkKBUFVRElPEAJiBnByb3RvMw");
 
 /**
  * @generated from message signaling.Track
@@ -243,6 +243,43 @@ export const UpstreamIntentSchema: GenMessage<UpstreamIntent> = /*@__PURE__*/
   messageDesc(file_signaling, 4);
 
 /**
+ * Fixed receiver jitter-buffer bounds, signaled via the `playout-delay` RTP
+ * header extension (ms, rounded to 10ms on wire).
+ *
+ *   min == max == 0 → render-ASAP: bypass the jitter buffer entirely
+ *                     (interactive/cloud-gaming). Lowest latency; no concealment.
+ *   min > 0, max    → clamp the buffer to [min, max]. `min` holds the buffer up;
+ *                     `max` is the hard latency ceiling — the receiver conceals
+ *                     rather than buffer past it.
+ *
+ * ONE-WAY: every session starts in adaptive mode (browser owns the jitter buffer;
+ * no extension is sent). This message transitions the session to FIXED mode.
+ * The extension is sticky in libwebrtc — there is no wire "unset" — so returning
+ * to true adaptive requires a new session. Client SDKs must encode this constraint
+ * in their API (e.g. `setLatency` is a one-way call; `latencyLocked` flag).
+ *
+ * @generated from message signaling.PlayoutDelay
+ */
+export type PlayoutDelay = Message<"signaling.PlayoutDelay"> & {
+  /**
+   * @generated from field: uint32 min_ms = 1;
+   */
+  minMs: number;
+
+  /**
+   * @generated from field: uint32 max_ms = 2;
+   */
+  maxMs: number;
+};
+
+/**
+ * Describes the message signaling.PlayoutDelay.
+ * Use `create(PlayoutDelaySchema)` to create a new message.
+ */
+export const PlayoutDelaySchema: GenMessage<PlayoutDelay> = /*@__PURE__*/
+  messageDesc(file_signaling, 5);
+
+/**
  * @generated from message signaling.ClientIntent
  */
 export type ClientIntent = Message<"signaling.ClientIntent"> & {
@@ -255,6 +292,20 @@ export type ClientIntent = Message<"signaling.ClientIntent"> & {
    * @generated from field: repeated signaling.UpstreamIntent upstream_intents = 2;
    */
   upstreamIntents: UpstreamIntent[];
+
+  /**
+   * Absent → adaptive (initial) state: browser owns the jitter buffer; SFU
+   *          stamps no extension. This is the ONLY way to get true adaptive
+   *          behavior — once `playout_delay` is sent it is permanent for the
+   *          session (sticky extension, no wire unset). Do NOT send this field
+   *          and then omit it hoping to reset; omission after a prior send does
+   *          nothing to the receiver's already-stamped bounds.
+   * Present → fixed mode: SFU stamps these bounds on ALL egress RTP (audio +
+   *           video together, preserving A/V lip-sync).
+   *
+   * @generated from field: optional signaling.PlayoutDelay playout_delay = 3;
+   */
+  playoutDelay?: PlayoutDelay;
 };
 
 /**
@@ -262,7 +313,7 @@ export type ClientIntent = Message<"signaling.ClientIntent"> & {
  * Use `create(ClientIntentSchema)` to create a new message.
  */
 export const ClientIntentSchema: GenMessage<ClientIntent> = /*@__PURE__*/
-  messageDesc(file_signaling, 5);
+  messageDesc(file_signaling, 6);
 
 /**
  * @generated from message signaling.ClientMessage
@@ -291,7 +342,7 @@ export type ClientMessage = Message<"signaling.ClientMessage"> & {
  * Use `create(ClientMessageSchema)` to create a new message.
  */
 export const ClientMessageSchema: GenMessage<ClientMessage> = /*@__PURE__*/
-  messageDesc(file_signaling, 6);
+  messageDesc(file_signaling, 7);
 
 /**
  * @generated from message signaling.ServerMessage
@@ -320,7 +371,7 @@ export type ServerMessage = Message<"signaling.ServerMessage"> & {
  * Use `create(ServerMessageSchema)` to create a new message.
  */
 export const ServerMessageSchema: GenMessage<ServerMessage> = /*@__PURE__*/
-  messageDesc(file_signaling, 7);
+  messageDesc(file_signaling, 8);
 
 /**
  * @generated from enum signaling.TrackKind
