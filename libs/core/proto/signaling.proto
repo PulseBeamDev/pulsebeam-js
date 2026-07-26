@@ -119,24 +119,20 @@ message UpstreamIntent {
   bool active = 2;
 }
 
-// Receiver jitter-buffer bounds the server signals to a subscriber via the
-// `playout-delay` RTP header extension, in milliseconds (rounded to 10ms on the
-// wire). Constrains how long the browser may buffer before playout.
+// Fixed receiver jitter-buffer bounds, signaled via the `playout-delay` RTP
+// header extension (ms, rounded to 10ms on wire).
 //
-//   min == max == 0 → disable ALL receiver smoothing: render each frame as soon
-//                     as it arrives (interactive streaming — gaming, remote
-//                     access). Lowest possible latency, no concealment buffer.
-//   min <  max      → clamp the jitter buffer to this window; `max` is the hard
-//                     latency ceiling (the receiver conceals rather than buffer
-//                     past it). Lower = tighter latency, more artifacts under
-//                     jitter/loss.
+//   min == max == 0 → render-ASAP: bypass the jitter buffer entirely
+//                     (interactive/cloud-gaming). Lowest latency; no concealment.
+//   min > 0, max    → clamp the buffer to [min, max]. `min` holds the buffer up;
+//                     `max` is the hard latency ceiling — the receiver conceals
+//                     rather than buffer past it.
 //
-// The extension is STICKY on the receiver: once applied, the bounds persist
-// until a new value arrives — omitting it does NOT revert to the default
-// dynamic jitter buffer. There is no "unset" on the wire (0 means 0ms, i.e.
-// disable). To restore the dynamic buffer you must send an explicit high ceiling
-// equal to the receiver default (min=0, max≈10000ms), NOT drop the field. Client
-// SDKs own that default and expose it as a reset call.
+// ONE-WAY: every session starts in adaptive mode (browser owns the jitter buffer;
+// no extension is sent). This message transitions the session to FIXED mode.
+// The extension is sticky in libwebrtc — there is no wire "unset" — so returning
+// to true adaptive requires a new session. Client SDKs must encode this constraint
+// in their API (e.g. `setLatency` is a one-way call; `latencyLocked` flag).
 message PlayoutDelay {
   uint32 min_ms = 1;
   uint32 max_ms = 2;
@@ -146,15 +142,15 @@ message ClientIntent {
   repeated VideoRequest downstream_requests = 1;
   repeated UpstreamIntent upstream_intents = 2;
 
-  // Absent → the client is not managing latency; the server stamps no extension.
-  //          Because the extension is sticky (see PlayoutDelay), this is NOT a
-  //          receiver reset — a receiver already constrained keeps its last
-  //          bounds. To return to the dynamic buffer, send an explicit
-  //          `{min:0, max:≈10000}`, don't drop the field.
-  // Present → the server stamps these bounds on ALL egress RTP for this
-  //           subscriber — audio and video together, so lip-sync cannot
-  //           reintroduce the latency you shaved off one of them.
-  PlayoutDelay playout_delay = 3;
+  // Absent → adaptive (initial) state: browser owns the jitter buffer; SFU
+  //          stamps no extension. This is the ONLY way to get true adaptive
+  //          behavior — once `playout_delay` is sent it is permanent for the
+  //          session (sticky extension, no wire unset). Do NOT send this field
+  //          and then omit it hoping to reset; omission after a prior send does
+  //          nothing to the receiver's already-stamped bounds.
+  // Present → fixed mode: SFU stamps these bounds on ALL egress RTP (audio +
+  //           video together, preserving A/V lip-sync).
+  optional PlayoutDelay playout_delay = 3;
 }
 
 // ========================================================================

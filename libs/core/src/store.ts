@@ -35,6 +35,7 @@ export type ParticipantSnapshot = ParticipantState & {
   aux: PublishClient;
   connect: Participant["connect"];
   setLatency: Participant["setLatency"];
+  latencyLocked: boolean;
   close: () => void;
   reset: (config: ParticipantConfig, force: boolean) => void;
 };
@@ -120,7 +121,11 @@ export function createParticipant(
       },
       // Proxies to the current instance variable
       connect: (...args) => participant.connect(...args),
-      setLatency: (...args) => participant.setLatency(...args),
+      setLatency: (...args) => {
+        participant.setLatency(...args);
+        $store.setKey("latencyLocked", participant.latencyLocked);
+      },
+      latencyLocked: participant.latencyLocked,
       close: () => setup(config),
       reset: (newConfig, force) => {
         if (force || !sameConfig(config, newConfig)) setup(newConfig);

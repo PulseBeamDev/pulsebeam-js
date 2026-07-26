@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file signaling.proto.
  */
 export const file_signaling: GenFile = /*@__PURE__*/
-  fileDesc("Cg9zaWduYWxpbmcucHJvdG8SCXNpZ25hbGluZyKmAQoFVHJhY2sSCgoCaWQYASABKAkSIgoEa2luZBgCIAEoDjIULnNpZ25hbGluZy5UcmFja0tpbmQSFgoOcGFydGljaXBhbnRfaWQYAyABKAkSKAoEbWV0YRgEIAMoCzIaLnNpZ25hbGluZy5UcmFjay5NZXRhRW50cnkaKwoJTWV0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiQAoPVmlkZW9Bc3NpZ25tZW50EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZwYXVzZWQYAyABKAgiwwEKC1N0YXRlVXBkYXRlEgsKA3NlcRgBIAEoBBITCgtpc19zbmFwc2hvdBgCIAEoCBInCg10cmFja3NfdXBzZXJ0GAMgAygLMhAuc2lnbmFsaW5nLlRyYWNrEhUKDXRyYWNrc19yZW1vdmUYBCADKAkSNgoSYXNzaWdubWVudHNfdXBzZXJ0GAUgAygLMhouc2lnbmFsaW5nLlZpZGVvQXNzaWdubWVudBIaChJhc3NpZ25tZW50c19yZW1vdmUYBiADKAkiYwoMVmlkZW9SZXF1ZXN0EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZoZWlnaHQYAyABKA0SEAoIcHJpb3JpdHkYBCABKA0SEgoKbWluX2hlaWdodBgFIAEoDSItCg5VcHN0cmVhbUludGVudBILCgNtaWQYASABKAkSDgoGYWN0aXZlGAIgASgIIi4KDFBsYXlvdXREZWxheRIOCgZtaW5fbXMYASABKA0SDgoGbWF4X21zGAIgASgNIqkBCgxDbGllbnRJbnRlbnQSNAoTZG93bnN0cmVhbV9yZXF1ZXN0cxgBIAMoCzIXLnNpZ25hbGluZy5WaWRlb1JlcXVlc3QSMwoQdXBzdHJlYW1faW50ZW50cxgCIAMoCzIZLnNpZ25hbGluZy5VcHN0cmVhbUludGVudBIuCg1wbGF5b3V0X2RlbGF5GAMgASgLMhcuc2lnbmFsaW5nLlBsYXlvdXREZWxheSJdCg1DbGllbnRNZXNzYWdlEikKBmludGVudBgBIAEoCzIXLnNpZ25hbGluZy5DbGllbnRJbnRlbnRIABIWCgxyZXF1ZXN0X3N5bmMYAiABKAhIAEIJCgdwYXlsb2FkIlUKDVNlcnZlck1lc3NhZ2USKAoGdXBkYXRlGAEgASgLMhYuc2lnbmFsaW5nLlN0YXRlVXBkYXRlSAASDwoFZXJyb3IYAiABKAlIAEIJCgdwYXlsb2FkKj0KCVRyYWNrS2luZBIaChZUUkFDS19LSU5EX1VOU1BFQ0lGSUVEEAASCQoFVklERU8QARIJCgVBVURJTxACYgZwcm90bzM");
+  fileDesc("Cg9zaWduYWxpbmcucHJvdG8SCXNpZ25hbGluZyKmAQoFVHJhY2sSCgoCaWQYASABKAkSIgoEa2luZBgCIAEoDjIULnNpZ25hbGluZy5UcmFja0tpbmQSFgoOcGFydGljaXBhbnRfaWQYAyABKAkSKAoEbWV0YRgEIAMoCzIaLnNpZ25hbGluZy5UcmFjay5NZXRhRW50cnkaKwoJTWV0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiQAoPVmlkZW9Bc3NpZ25tZW50EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZwYXVzZWQYAyABKAgiwwEKC1N0YXRlVXBkYXRlEgsKA3NlcRgBIAEoBBITCgtpc19zbmFwc2hvdBgCIAEoCBInCg10cmFja3NfdXBzZXJ0GAMgAygLMhAuc2lnbmFsaW5nLlRyYWNrEhUKDXRyYWNrc19yZW1vdmUYBCADKAkSNgoSYXNzaWdubWVudHNfdXBzZXJ0GAUgAygLMhouc2lnbmFsaW5nLlZpZGVvQXNzaWdubWVudBIaChJhc3NpZ25tZW50c19yZW1vdmUYBiADKAkiYwoMVmlkZW9SZXF1ZXN0EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZoZWlnaHQYAyABKA0SEAoIcHJpb3JpdHkYBCABKA0SEgoKbWluX2hlaWdodBgFIAEoDSItCg5VcHN0cmVhbUludGVudBILCgNtaWQYASABKAkSDgoGYWN0aXZlGAIgASgIIi4KDFBsYXlvdXREZWxheRIOCgZtaW5fbXMYASABKA0SDgoGbWF4X21zGAIgASgNIsABCgxDbGllbnRJbnRlbnQSNAoTZG93bnN0cmVhbV9yZXF1ZXN0cxgBIAMoCzIXLnNpZ25hbGluZy5WaWRlb1JlcXVlc3QSMwoQdXBzdHJlYW1faW50ZW50cxgCIAMoCzIZLnNpZ25hbGluZy5VcHN0cmVhbUludGVudBIzCg1wbGF5b3V0X2RlbGF5GAMgASgLMhcuc2lnbmFsaW5nLlBsYXlvdXREZWxheUgAiAEBQhAKDl9wbGF5b3V0X2RlbGF5Il0KDUNsaWVudE1lc3NhZ2USKQoGaW50ZW50GAEgASgLMhcuc2lnbmFsaW5nLkNsaWVudEludGVudEgAEhYKDHJlcXVlc3Rfc3luYxgCIAEoCEgAQgkKB3BheWxvYWQiVQoNU2VydmVyTWVzc2FnZRIoCgZ1cGRhdGUYASABKAsyFi5zaWduYWxpbmcuU3RhdGVVcGRhdGVIABIPCgVlcnJvchgCIAEoCUgAQgkKB3BheWxvYWQqPQoJVHJhY2tLaW5kEhoKFlRSQUNLX0tJTkRfVU5TUEVDSUZJRUQQABIJCgVWSURFTxABEgkKBUFVRElPEAJiBnByb3RvMw");
 
 /**
  * @generated from message signaling.Track
@@ -243,24 +243,20 @@ export const UpstreamIntentSchema: GenMessage<UpstreamIntent> = /*@__PURE__*/
   messageDesc(file_signaling, 4);
 
 /**
- * Receiver jitter-buffer bounds the server signals to a subscriber via the
- * `playout-delay` RTP header extension, in milliseconds (rounded to 10ms on the
- * wire). Constrains how long the browser may buffer before playout.
+ * Fixed receiver jitter-buffer bounds, signaled via the `playout-delay` RTP
+ * header extension (ms, rounded to 10ms on wire).
  *
- *   min == max == 0 → disable ALL receiver smoothing: render each frame as soon
- *                     as it arrives (interactive streaming — gaming, remote
- *                     access). Lowest possible latency, no concealment buffer.
- *   min <  max      → clamp the jitter buffer to this window; `max` is the hard
- *                     latency ceiling (the receiver conceals rather than buffer
- *                     past it). Lower = tighter latency, more artifacts under
- *                     jitter/loss.
+ *   min == max == 0 → render-ASAP: bypass the jitter buffer entirely
+ *                     (interactive/cloud-gaming). Lowest latency; no concealment.
+ *   min > 0, max    → clamp the buffer to [min, max]. `min` holds the buffer up;
+ *                     `max` is the hard latency ceiling — the receiver conceals
+ *                     rather than buffer past it.
  *
- * The extension is STICKY on the receiver: once applied, the bounds persist
- * until a new value arrives — omitting it does NOT revert to the default
- * dynamic jitter buffer. There is no "unset" on the wire (0 means 0ms, i.e.
- * disable). To restore the dynamic buffer you must send an explicit high ceiling
- * equal to the receiver default (min=0, max≈10000ms), NOT drop the field. Client
- * SDKs own that default and expose it as a reset call.
+ * ONE-WAY: every session starts in adaptive mode (browser owns the jitter buffer;
+ * no extension is sent). This message transitions the session to FIXED mode.
+ * The extension is sticky in libwebrtc — there is no wire "unset" — so returning
+ * to true adaptive requires a new session. Client SDKs must encode this constraint
+ * in their API (e.g. `setLatency` is a one-way call; `latencyLocked` flag).
  *
  * @generated from message signaling.PlayoutDelay
  */
@@ -298,16 +294,16 @@ export type ClientIntent = Message<"signaling.ClientIntent"> & {
   upstreamIntents: UpstreamIntent[];
 
   /**
-   * Absent → the client is not managing latency; the server stamps no extension.
-   *          Because the extension is sticky (see PlayoutDelay), this is NOT a
-   *          receiver reset — a receiver already constrained keeps its last
-   *          bounds. To return to the dynamic buffer, send an explicit
-   *          `{min:0, max:≈10000}`, don't drop the field.
-   * Present → the server stamps these bounds on ALL egress RTP for this
-   *           subscriber — audio and video together, so lip-sync cannot
-   *           reintroduce the latency you shaved off one of them.
+   * Absent → adaptive (initial) state: browser owns the jitter buffer; SFU
+   *          stamps no extension. This is the ONLY way to get true adaptive
+   *          behavior — once `playout_delay` is sent it is permanent for the
+   *          session (sticky extension, no wire unset). Do NOT send this field
+   *          and then omit it hoping to reset; omission after a prior send does
+   *          nothing to the receiver's already-stamped bounds.
+   * Present → fixed mode: SFU stamps these bounds on ALL egress RTP (audio +
+   *           video together, preserving A/V lip-sync).
    *
-   * @generated from field: signaling.PlayoutDelay playout_delay = 3;
+   * @generated from field: optional signaling.PlayoutDelay playout_delay = 3;
    */
   playoutDelay?: PlayoutDelay;
 };

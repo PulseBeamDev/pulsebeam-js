@@ -21,15 +21,6 @@ import { mapPresetToInternal, VIDEO_PRESETS, AUDIO_PRESETS, type VideoPreset, ty
 const SIGNALING_LABEL = "v1/sys/signaling";
 const SYNC_DEBOUNCE_MS = 300;
 
-// `playout-delay` is sticky on the receiver and has no "unset" on the wire, so
-// dropping the extension does NOT revert to the adaptive jitter buffer — the
-// receiver keeps the last bounds. To restore dynamic behavior we send a ceiling
-// high enough to leave the adaptive algorithm effectively unconstrained. This
-// equals libwebrtc's default max render delay; the browser exposes no way to
-// read it, so the SDK owns the constant (apps call `setLatency(null)` and never
-// see it). It is also the seam to swap for a native browser playout-max API if
-// one ever ships.
-const ADAPTIVE_MAX_PLAYOUT_MS = 10000;
 
 /**
  * Maximum number of video slots available per session.
@@ -555,12 +546,13 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   private lastSentRequests: VideoRequest[] = [];
   private lastSentUpstreamIntents: UpstreamIntent[] = [];
 
-  // null = adaptive default (no extension sent); { 0, 0 } = disable smoothing.
+  // null = adaptive (initial session state; SFU sends no extension).
+  // Once set to an object it is permanent for the session — the playout-delay
+  // extension is sticky in libwebrtc and there is no wire "unset". Reverting to
+  // adaptive requires a new session (new Participant instance).
   private playoutDelay: { minMs: number; maxMs: number } | null = null;
-  // Local receiver-side target (ms) that aims the jitter buffer at a delay.
-  // Complements the SFU playout-delay cap: the cap alone lets the buffer
-  // collapse to the adaptive low, so this is what actually holds e.g. ~300ms.
-  // null = adaptive. Capped at 4000ms (the `jitterBufferTarget` API limit).
+  // Floor hint for audio receivers (no playout-delay ext on audio).
+  // null = adaptive. Capped at 4000ms (jitterBufferTarget API limit).
   private jitterBufferTargetMs: number | null = null;
 
   private debounceTimer: any | null = null;
@@ -836,42 +828,45 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   }
 
   /**
-   * Set the receiver jitter-buffer delay window `[minMs, maxMs]` (ms) for every
-   * remote stream. Video is controlled precisely by the SFU `playout-delay` RTP
-   * extension, which maps 1:1 to libwebrtc's VCMTiming:
+   * Permanently constrain the receiver jitter-buffer for every remote stream.
    *
-   *     render_delay = clamp(adaptive_estimate, min, max)
+   * **This is a one-way transition.** Every session starts in adaptive mode
+   * (browser manages the jitter buffer; SFU sends no `playout-delay` extension).
+   * Calling this method stamps the `playout-delay` RTP header extension on all
+   * video egress, which is **sticky** in libwebrtc — there is no wire "unset".
+   * Returning to true adaptive requires a new session (new {@link Participant}).
    *
-   * so `min` is a floor, `max` a ceiling. libwebrtc combines the effective floor
-   * as `max(ext.min, jitterBufferTarget, avsync)` but the ceiling comes ONLY
-   * from the extension — which is why `max` needs the ext, not `jitterBufferTarget`.
-   * Audio has no such extension, so we set `jitterBufferTarget` (a floor) on the
-   * audio receivers and let A/V sync align it to the video.
+   * `render_delay = clamp(adaptive_estimate, minMs, maxMs)`:
+   * - `minMs` — floor; holds the buffer up to at least this many ms.
+   * - `maxMs` — ceiling; caps the worst-case latency.
+   * - `minMs == maxMs` — pins delay exactly.
+   * - `minMs == 0, maxMs == 0` — render ASAP (interactive/cloud-gaming; bypasses
+   *   the jitter buffer entirely via `UseLowLatencyRendering`).
+   * - `minMs == 0, maxMs <= 500` — also triggers render-ASAP; use `minMs > 0`
+   *   to actually hold a low non-zero delay.
    *
-   *   {0, 10000}   → adaptive (libwebrtc default).
-   *   {0, 0}       → render ASAP — interactive / cloud-gaming.
-   *   {X, X}       → hold exactly X ms.
-   *   {X, Y}, X<Y  → hold at least X, cap at Y (adaptive within the window).
-   *
-   * libwebrtc quirk: `min == 0 && max <= 500` activates "render ASAP" and the
-   * buffer is bypassed entirely — so to hold a *low* latency (not zero) you must
-   * use `min > 0`. `{0, <=500}` is only for the interactive/gaming case.
+   * Audio receivers are driven by `jitterBufferTarget = minMs` so A/V sync keeps
+   * audio aligned to video; video is bounded by the extension alone.
    */
   setLatency(minMs: number, maxMs: number): void {
     const min = Math.max(0, Math.trunc(minMs));
     const max = Math.max(min, Math.trunc(maxMs));
-    // Audio floor (no ext for audio). An adaptive window (min 0 + default-high
-    // max) → null so NetEQ stays fully adaptive.
-    const adaptive = min === 0 && max >= ADAPTIVE_MAX_PLAYOUT_MS;
-    const target = adaptive ? null : Math.min(min, 4000);
+    const target = Math.min(min, 4000);
 
-    if (min === this.playoutDelay?.minMs && max === this.playoutDelay?.maxMs
-      && target === this.jitterBufferTargetMs) return;
+    if (
+      this.playoutDelay !== null &&
+      this.playoutDelay.minMs === min && this.playoutDelay.maxMs === max &&
+      this.jitterBufferTargetMs === target
+    ) return;
+
     this.playoutDelay = { minMs: min, maxMs: max };
     this.jitterBufferTargetMs = target;
     this.applyJitterBufferTarget();
     this.reconcile(true);
   }
+
+  /** Whether {@link setLatency} has been called, locking the session out of true adaptive mode. */
+  get latencyLocked(): boolean { return this.playoutDelay !== null; }
 
   private applyJitterBufferTarget(): void {
     if (!this.transport) return;
@@ -942,7 +937,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     const intent: ClientIntent = create(ClientIntentSchema, {
       downstreamRequests: requests,
       upstreamIntents,
-      ...(this.playoutDelay && { playoutDelay: create(PlayoutDelaySchema, this.playoutDelay) }),
+      ...(this.playoutDelay !== null && { playoutDelay: create(PlayoutDelaySchema, this.playoutDelay) }),
     });
     this.send({ case: "intent", value: intent });
   }

@@ -25,13 +25,11 @@ import { useScreenShare } from "@/hooks/media";
 const SPOTLIGHT_QOS = { priority: 200, minHeight: 360 };
 const THUMBNAIL_QOS = { priority: 10, minHeight: 90 };
 
-// Receiver jitter-buffer delay window [min, max] ms, enforced via the SFU
-// playout-delay extension (video) + jitterBufferTarget (audio). render_delay =
-// clamp(estimate, min, max): min holds the buffer up, max caps it. NOTE
-// libwebrtc quirk: min==0 && max<=500 means "render ASAP" (buffer ignored), so a
-// held low-latency buffer needs min>0.
+// Auto is the initial adaptive state (no extension sent). Once any fixed mode is
+// chosen, the playout-delay extension is stamped and sticky — there is no wire
+// "unset", so returning to true adaptive requires a new session. The UI reflects
+// this: Auto is disabled once a fixed mode has been activated.
 const LATENCY_MODES: { label: string; min: number; max: number; hint: string }[] = [
-  { label: "Auto", min: 0, max: 10000, hint: "Adaptive (browser default)" },
   { label: "Smooth", min: 300, max: 600, hint: "Hold ≥300ms — smooth under jitter" },
   { label: "Low", min: 100, max: 200, hint: "Hold ~100–200ms — low latency" },
   { label: "Ultra", min: 0, max: 0, hint: "Render ASAP — interactive/gaming" },
@@ -50,7 +48,7 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
   const client = useParticipant(useMemo(() => ({ baseUrl: apiURL }), [apiURL]));
   const screen = useScreenShare(client.aux);
 
-  const [latencyMode, setLatencyMode] = useState("Auto");
+  const [latencyMode, setLatencyMode] = useState<string | null>(null);
 
   // Auto-connect and publish
   useEffect(() => { client.connect(roomId); }, [roomId]);
@@ -58,11 +56,13 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
     client.main.publish(localStream, { videoPreset: "motion", audioPreset: "speech" });
   }, [localStream]);
 
-  // Bound receive-side latency for every remote stream (audio + video).
-  useEffect(() => {
-    const m = LATENCY_MODES.find(x => x.label === latencyMode) ?? LATENCY_MODES[0];
+  const handleLatencyChange = (label: string) => {
+    if (client.latencyLocked && latencyMode === null) return;
+    const m = LATENCY_MODES.find(x => x.label === label);
+    if (!m) return;
     client.setLatency(m.min, m.max);
-  }, [client, latencyMode]);
+    setLatencyMode(label);
+  };
 
   // Handle spotlight fallback if participant leaves
   useEffect(() => {
@@ -81,7 +81,8 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
           state={client.connectionState}
           screen={screen}
           latencyMode={latencyMode}
-          onLatencyChange={setLatencyMode}
+          latencyLocked={client.latencyLocked}
+          onLatencyChange={handleLatencyChange}
           onLeave={onLeave}
           onReconnect={() => client.connect(roomId)}
         />
@@ -134,15 +135,20 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
 }
 
 
-function RoomHeader({ roomId, state, screen, latencyMode, onLatencyChange, onLeave, onReconnect }: {
+function RoomHeader({ roomId, state, screen, latencyMode, latencyLocked, onLatencyChange, onLeave, onReconnect }: {
   roomId: string;
   state: string;
   screen: { isSharing: boolean; isLoading: boolean; start: () => void; stop: () => void };
-  latencyMode: string;
+  latencyMode: string | null;
+  latencyLocked: boolean;
   onLatencyChange: (label: string) => void;
   onLeave: () => void;
   onReconnect: () => void;
 }) {
+  const activeHint = latencyMode === null
+    ? "Adaptive — browser manages jitter buffer (initial state)"
+    : LATENCY_MODES.find(m => m.label === latencyMode)?.hint ?? "Latency";
+
   return (
     <header className="h-14 px-4 border-b flex justify-between items-center bg-card/50 backdrop-blur-md z-20">
       <div className="flex items-center gap-3">
@@ -164,6 +170,19 @@ function RoomHeader({ roomId, state, screen, latencyMode, onLatencyChange, onLea
           <TooltipTrigger asChild>
             <div className="flex items-center gap-0.5 rounded-md bg-muted/50 p-0.5">
               <Gauge className="w-3.5 h-3.5 mx-1.5 text-muted-foreground" />
+              {/* Auto is the initial adaptive state — shown selected until a fixed mode is chosen,
+                  then disabled (sticky extension; true adaptive requires a new session). */}
+              <Button
+                variant="ghost" size="sm"
+                disabled={latencyLocked}
+                className={cn(
+                  "rounded h-7 px-2 text-xs",
+                  latencyMode === null && "bg-primary/15 text-primary",
+                  latencyLocked && "opacity-40 cursor-not-allowed",
+                )}
+              >
+                Auto
+              </Button>
               {LATENCY_MODES.map((m) => (
                 <Button
                   key={m.label}
@@ -180,7 +199,9 @@ function RoomHeader({ roomId, state, screen, latencyMode, onLatencyChange, onLea
             </div>
           </TooltipTrigger>
           <TooltipContent>
-            {LATENCY_MODES.find((m) => m.label === latencyMode)?.hint ?? "Latency"}
+            {latencyLocked && latencyMode === null
+              ? "Auto disabled — playout-delay is sticky; reconnect to restore adaptive"
+              : activeHint}
           </TooltipContent>
         </Tooltip>
         <Separator orientation="vertical" className="h-4 mx-1" />
