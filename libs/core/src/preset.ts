@@ -78,9 +78,9 @@ export const VIDEO_PRESETS: Record<VideoPresetName, VideoPreset> = {
     baseBitrate: 1_250_000,
   },
   detail: {
-    layers: 3,
+    layers: 2,
     mode: "detail",
-    minFps: 1,
+    minFps: 5,
     // Static screen content rarely needs 30fps; capping lower frees up
     // bitrate budget for resolution/quality instead.
     maxFps: 15,
@@ -94,31 +94,33 @@ export const SCREEN_SHARE_MIN_FPS = 2;
  * Internal mapper to translate our abstraction into WebRTC SendParameters.
  */
 export function mapPresetToInternal(preset: VideoPreset) {
-  // rid <-> scale is a fixed mapping (f=full, h=half, q=quarter), independent
-  // of preset.layers. The transceiver is always negotiated with all 3 rids
+  // The transceiver is always negotiated with all 3 rids
   // (see Transport's addTransceiver calls) and WebRTC does not allow the
   // number or order of encodings to change after negotiation - only which
   // ones are `active`. So we always emit exactly 3, correctly ordered
   // (ascending scaleResolutionDownBy, as required by
-  // https://datatracker.ietf.org/doc/html/rfc8853#section-5.2 and
-  // https://github.com/obsproject/obs-studio/pull/10885), and use `active`
-  // to hide layers beyond preset.layers instead of omitting them.
+  // and use `active` to hide layers beyond preset.layers instead of omitting
+  // them. Detail uses temporal-only simulcast: resolution stays native while
+  // frame rate and bitrate provide its quality ladder. Motion retains spatial
+  // simulcast so lower layers reduce resolution while preserving frame rate.
+  const detailMode = preset.mode === "detail";
+  const middleFramerate = detailMode && preset.layers === 2
+    ? preset.minFps
+    : Math.max(preset.minFps, Math.round(preset.maxFps / 2));
   const LAYERS = [
-    { rid: "f", scale: 1, weight: 1.0 },
-    { rid: "h", scale: 2, weight: 0.35 },
-    { rid: "q", scale: 4, weight: 0.15 },
+    { rid: "f", scale: 1, weight: 1.0, detailFramerate: preset.maxFps },
+    { rid: "h", scale: 2, weight: 0.35, detailFramerate: middleFramerate },
+    { rid: "q", scale: 4, weight: 0.15, detailFramerate: preset.minFps },
   ] as const;
 
-  const maxFramerate = Math.max(preset.maxFps, preset.minFps);
-
-  const encodings = LAYERS.map(({ rid, scale, weight }, i) => {
+  const encodings = LAYERS.map(({ rid, scale, weight, detailFramerate }, i) => {
     const calculatedBitrate = Math.floor(preset.baseBitrate * weight);
 
     return {
       rid,
-      scaleResolutionDownBy: scale,
+      scaleResolutionDownBy: detailMode ? 1 : scale,
       maxBitrate: calculatedBitrate,
-      maxFramerate,
+      maxFramerate: detailMode ? detailFramerate : preset.maxFps,
       active: i < preset.layers,
     } satisfies RTCRtpEncodingParameters;
   });

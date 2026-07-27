@@ -43,18 +43,21 @@ describe("mapPresetToInternal", () => {
     }
   });
 
-  it("scales resolution down and bitrate down monotonically from f -> h -> q", () => {
+  it("uses spatial layers at a consistent frame rate for motion", () => {
     const { encodings } = mapPresetToInternal(VIDEO_PRESETS.motion);
     const [f, h, q] = encodings;
-    expect(f.scaleResolutionDownBy).toBeLessThan(h!.scaleResolutionDownBy!);
-    expect(h!.scaleResolutionDownBy).toBeLessThan(q!.scaleResolutionDownBy!);
+    expect(encodings.map((encoding) => encoding.scaleResolutionDownBy)).toEqual([1, 2, 4]);
     expect(f!.maxBitrate!).toBeGreaterThan(h!.maxBitrate!);
     expect(h!.maxBitrate!).toBeGreaterThan(q!.maxBitrate!);
+    expect(encodings.map((encoding) => encoding.maxFramerate)).toEqual([30, 30, 30]);
   });
 
   it("detail preset (used by screen share) favors resolution stability under congestion", () => {
-    const { degradationPreference, contentHint } = mapPresetToInternal(VIDEO_PRESETS.detail);
+    const { encodings, degradationPreference, contentHint } = mapPresetToInternal(VIDEO_PRESETS.detail);
     expect(degradationPreference).toBe("maintain-resolution");
     expect(contentHint).toBe("text");
+    expect(encodings.map((encoding) => encoding.active)).toEqual([true, true, false]);
+    expect(encodings.map((encoding) => encoding.scaleResolutionDownBy)).toEqual([1, 1, 1]);
+    expect(encodings.map((encoding) => encoding.maxFramerate)).toEqual([15, 5, 5]);
   });
 });
