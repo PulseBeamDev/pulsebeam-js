@@ -291,7 +291,17 @@ class Transport {
     onSignal: (data: ArrayBuffer) => void,
     onState: (state: ConnectionState) => void
   ) {
-    this.pc = new this.adapter.RTCPeerConnection();
+    // The SFU is ICE-lite on a public address and hands us its complete
+    // candidate set in the answer, so there is nothing to discover: no STUN, no
+    // TURN, no candidate pool. Everything is bundled onto one transport, so say
+    // so up front rather than gathering per m-section until BUNDLE is confirmed —
+    // this connection carries a dozen or more of them.
+    this.pc = new this.adapter.RTCPeerConnection({
+      iceServers: [],
+      bundlePolicy: "max-bundle",
+      rtcpMuxPolicy: "require",
+      iceCandidatePoolSize: 0,
+    });
     this.pc.onconnectionstatechange = () => onState(this.pc.connectionState);
 
     this.dc = this.pc.createDataChannel(SIGNALING_LABEL, {
