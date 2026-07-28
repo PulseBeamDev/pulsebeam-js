@@ -100,10 +100,12 @@ export function mapPresetToInternal(preset: VideoPreset) {
   // ones are `active`. So we always emit exactly 3, correctly ordered
   // low-to-high (ascending resolution, descending scaleResolutionDownBy) to
   // match the browser/W3C webrtc-svc convention, and use `active` to hide
-  // layers beyond preset.layers instead of omitting them. Detail uses
-  // temporal-only simulcast: resolution stays native while frame rate and
-  // bitrate provide its quality ladder. Motion retains spatial simulcast so
-  // lower layers reduce resolution while preserving frame rate.
+  // layers beyond preset.layers instead of omitting them. Both modes use
+  // real spatial simulcast (q/h/f at quarter/half/full resolution) - an
+  // inactive-vs-active layer at the *same* resolution as another active
+  // layer would cost a whole extra full-resolution encoder for no
+  // bandwidth benefit. Detail additionally ramps frame rate per layer
+  // since static screen content rarely needs full fps at every layer.
   const detailMode = preset.mode === "detail";
   const middleFramerate = detailMode && preset.layers === 2
     ? preset.minFps
@@ -122,7 +124,7 @@ export function mapPresetToInternal(preset: VideoPreset) {
 
     return {
       rid,
-      scaleResolutionDownBy: detailMode ? 1 : scale,
+      scaleResolutionDownBy: scale,
       maxBitrate: calculatedBitrate,
       maxFramerate: detailMode ? detailFramerate : preset.maxFps,
       active: rankFromHighest < preset.layers,

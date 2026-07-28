@@ -94,7 +94,7 @@ describe("syncSenderState", () => {
     expect(videoSender.track).toBeNull();
   });
 
-  it("activates two native-resolution temporal encodings in the detail preset", async () => {
+  it("activates two spatial layers with a temporal framerate ladder in the detail preset", async () => {
     const videoSender = fakeSender();
     const audioSender = fakeSender();
     const desired = desiredState({ videoPreset: VIDEO_PRESETS.detail });
@@ -103,7 +103,7 @@ describe("syncSenderState", () => {
 
     const [params] = (videoSender.setParameters as any).mock.calls.at(-1);
     expect(params.encodings.map((e: any) => e.active)).toEqual([true, true, false]);
-    expect(params.encodings.map((e: any) => e.scaleResolutionDownBy)).toEqual([1, 1, 1]);
+    expect(params.encodings.map((e: any) => e.scaleResolutionDownBy)).toEqual([1, 2, 4]);
     expect(params.encodings.map((e: any) => e.maxFramerate)).toEqual([15, 5, 5]);
   });
 

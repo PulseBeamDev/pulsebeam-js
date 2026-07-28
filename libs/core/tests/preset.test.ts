@@ -57,7 +57,7 @@ describe("mapPresetToInternal", () => {
     expect(degradationPreference).toBe("maintain-resolution");
     expect(contentHint).toBe("text");
     expect(encodings.map((encoding) => encoding.active)).toEqual([false, true, true]);
-    expect(encodings.map((encoding) => encoding.scaleResolutionDownBy)).toEqual([1, 1, 1]);
+    expect(encodings.map((encoding) => encoding.scaleResolutionDownBy)).toEqual([4, 2, 1]);
     expect(encodings.map((encoding) => encoding.maxFramerate)).toEqual([5, 5, 15]);
   });
 });
