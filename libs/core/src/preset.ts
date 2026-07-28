@@ -98,30 +98,34 @@ export function mapPresetToInternal(preset: VideoPreset) {
   // (see Transport's addTransceiver calls) and WebRTC does not allow the
   // number or order of encodings to change after negotiation - only which
   // ones are `active`. So we always emit exactly 3, correctly ordered
-  // (ascending scaleResolutionDownBy, as required by
-  // and use `active` to hide layers beyond preset.layers instead of omitting
-  // them. Detail uses temporal-only simulcast: resolution stays native while
-  // frame rate and bitrate provide its quality ladder. Motion retains spatial
-  // simulcast so lower layers reduce resolution while preserving frame rate.
+  // low-to-high (ascending resolution, descending scaleResolutionDownBy) to
+  // match the browser/W3C webrtc-svc convention, and use `active` to hide
+  // layers beyond preset.layers instead of omitting them. Detail uses
+  // temporal-only simulcast: resolution stays native while frame rate and
+  // bitrate provide its quality ladder. Motion retains spatial simulcast so
+  // lower layers reduce resolution while preserving frame rate.
   const detailMode = preset.mode === "detail";
   const middleFramerate = detailMode && preset.layers === 2
     ? preset.minFps
     : Math.max(preset.minFps, Math.round(preset.maxFps / 2));
   const LAYERS = [
-    { rid: "f", scale: 1, weight: 1.0, detailFramerate: preset.maxFps },
-    { rid: "h", scale: 2, weight: 0.35, detailFramerate: middleFramerate },
     { rid: "q", scale: 4, weight: 0.15, detailFramerate: preset.minFps },
+    { rid: "h", scale: 2, weight: 0.35, detailFramerate: middleFramerate },
+    { rid: "f", scale: 1, weight: 1.0, detailFramerate: preset.maxFps },
   ] as const;
 
   const encodings = LAYERS.map(({ rid, scale, weight, detailFramerate }, i) => {
     const calculatedBitrate = Math.floor(preset.baseBitrate * weight);
+    // Layers are ordered low-to-high, but `preset.layers` counts down from the
+    // highest quality, so activation counts from the end of the array.
+    const rankFromHighest = LAYERS.length - 1 - i;
 
     return {
       rid,
       scaleResolutionDownBy: detailMode ? 1 : scale,
       maxBitrate: calculatedBitrate,
       maxFramerate: detailMode ? detailFramerate : preset.maxFps,
-      active: i < preset.layers,
+      active: rankFromHighest < preset.layers,
     } satisfies RTCRtpEncodingParameters;
   });
 

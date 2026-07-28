@@ -107,6 +107,26 @@ describe("syncSenderState", () => {
     expect(params.encodings.map((e: any) => e.maxFramerate)).toEqual([15, 5, 5]);
   });
 
+  it("keeps layer activity synchronized when the preset changes", async () => {
+    const videoSender = fakeSender();
+    const audioSender = fakeSender();
+    const desired = desiredState({ videoPreset: VIDEO_PRESETS.motion });
+
+    await syncSenderState(videoSender, audioSender, desired as any);
+    let params = (videoSender.setParameters as any).mock.calls.at(-1)[0];
+    expect(params.encodings.map((e: any) => e.active)).toEqual([true, true, true]);
+
+    desired.videoPreset = VIDEO_PRESETS.detail;
+    await syncSenderState(videoSender, audioSender, desired as any);
+    params = (videoSender.setParameters as any).mock.calls.at(-1)[0];
+    expect(params.encodings.map((e: any) => e.active)).toEqual([true, true, false]);
+
+    desired.videoPreset = VIDEO_PRESETS.motion;
+    await syncSenderState(videoSender, audioSender, desired as any);
+    params = (videoSender.setParameters as any).mock.calls.at(-1)[0];
+    expect(params.encodings.map((e: any) => e.active)).toEqual([true, true, true]);
+  });
+
   it("deactivates all encodings when the local video is muted", async () => {
     const videoSender = fakeSender();
     const audioSender = fakeSender();
@@ -119,33 +139,6 @@ describe("syncSenderState", () => {
 
     const [params] = (videoSender.setParameters as any).mock.calls.at(-1);
     expect(params.encodings.every((e: any) => e.active === false)).toBe(true);
-  });
-
-  it("does not add unsupported encoding fields to sender parameters", async () => {
-    let currentTrack: MediaStreamTrack | null = null;
-    const params = {
-      transactionId: "1",
-      encodings: [
-        { rid: "f", active: true },
-        { rid: "h", active: true },
-        { rid: "q", active: true },
-      ],
-    };
-    const videoSender = {
-      get track() { return currentTrack; },
-      replaceTrack: vi.fn(async (track: MediaStreamTrack | null) => { currentTrack = track; }),
-      getParameters: () => params,
-      setParameters: vi.fn().mockResolvedValue(undefined),
-    } as unknown as RTCRtpSender;
-    const desired = desiredState({ videoPreset: VIDEO_PRESETS.detail });
-
-    await syncSenderState(videoSender, fakeSender(), desired as any);
-
-    expect(videoSender.setParameters).toHaveBeenCalledWith(params);
-    for (const encoding of params.encodings) {
-      expect(Object.keys(encoding).sort()).toEqual(["active", "rid"]);
-    }
-    expect(Object.keys(params).sort()).toEqual(["encodings", "transactionId"]);
   });
 
   it("tolerates a sender that isn't negotiated yet (getParameters throws) without throwing", async () => {

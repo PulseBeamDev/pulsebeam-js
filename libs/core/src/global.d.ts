@@ -14,8 +14,6 @@ declare global {
     sdp: string;
   }
 
-  type RTCPriorityType = "very-low" | "low" | "medium" | "high";
-
   interface RTCRtpEncodingParameters {
     active?: boolean;
     maxBitrate?: number;

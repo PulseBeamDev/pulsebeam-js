@@ -284,6 +284,7 @@ class Transport {
   private auxAudioSender: RTCRtpSender;
   private mainVideoTransceiver: RTCRtpTransceiver;
   private auxVideoTransceiver: RTCRtpTransceiver;
+  private senderSync = Promise.resolve();
 
   constructor(
     private adapter: PlatformAdapter,
@@ -317,10 +318,12 @@ class Transport {
 
     this.mainVideoTransceiver = this.pc.addTransceiver("video", {
       direction: "sendonly",
+      // No track is attached yet. syncSenderState activates only the layers
+      // selected by the published preset (for example, detail leaves q off).
       sendEncodings: [
-        { rid: "f", active: true },
-        { rid: "h", active: true },
-        { rid: "q", active: true },
+        { rid: "q", active: false },
+        { rid: "h", active: false },
+        { rid: "f", active: false },
       ]
     });
     this.mainVideoSender = this.mainVideoTransceiver.sender;
@@ -331,10 +334,11 @@ class Transport {
 
     this.auxVideoTransceiver = this.pc.addTransceiver("video", {
       direction: "sendonly",
+      // Keep unused layers paused until a stream and preset are synchronized.
       sendEncodings: [
-        { rid: "f", active: true },
-        { rid: "h", active: true },
-        { rid: "q", active: true },
+        { rid: "q", active: false },
+        { rid: "h", active: false },
+        { rid: "f", active: false },
       ]
     });
     this.auxVideoSender = this.auxVideoTransceiver.sender;
@@ -389,8 +393,17 @@ class Transport {
 
   sync(main: UpstreamState, aux: UpstreamState) {
     if (this.pc.signalingState === "closed") return;
-    void syncSenderState(this.mainVideoSender, this.mainAudioSender, main);
-    void syncSenderState(this.auxVideoSender, this.auxAudioSender, aux);
+    // Serialize updates so an older setParameters call cannot finish after a
+    // newer preset change and restore stale layer activity. Reading the state
+    // inside the queued callback also coalesces pending work onto the latest
+    // desired presets.
+    this.senderSync = this.senderSync.then(async () => {
+      if (this.pc.signalingState === "closed") return;
+      await Promise.all([
+        syncSenderState(this.mainVideoSender, this.mainAudioSender, main),
+        syncSenderState(this.auxVideoSender, this.auxAudioSender, aux),
+      ]);
+    });
   }
 }
 
@@ -447,7 +460,6 @@ export async function syncSenderState(
     changed = setSupportedParameter(params, "degradationPreference", internal.degradationPreference) || changed;
 
     if (changed) {
-      console.log(params);
       await videoSender.setParameters(params).catch((e) => {
         console.warn("video setParameters failed", e, params);
       });

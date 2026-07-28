@@ -4,7 +4,7 @@ import { mapPresetToInternal, VIDEO_PRESETS } from "../src/preset";
 describe("mapPresetToInternal", () => {
   it("always emits exactly 3 encodings, matching the 3 rids Transport hardcodes on the sender", () => {
     // Regression guard: Transport's RTCRtpTransceiver is always negotiated with
-    // sendEncodings [f, h, q] and WebRTC does not allow adding/removing encodings
+    // sendEncodings [q, h, f] and WebRTC does not allow adding/removing encodings
     // after negotiation. If this function ever returns fewer than 3 encodings again,
     // Transport.syncStream's rid lookup silently leaves the missing slot(s) at their
     // unconfigured (active, full-resolution, unbounded-bitrate) defaults forever -
@@ -12,11 +12,11 @@ describe("mapPresetToInternal", () => {
     for (const preset of Object.values(VIDEO_PRESETS)) {
       const { encodings } = mapPresetToInternal(preset);
       expect(encodings).toHaveLength(3);
-      expect(encodings.map(e => e.rid)).toEqual(["f", "h", "q"]);
+      expect(encodings.map(e => e.rid)).toEqual(["q", "h", "f"]);
     }
   });
 
-  it("marks only the first `layers` encodings active, highest quality first", () => {
+  it("marks only the last `layers` encodings active, highest quality first", () => {
     for (const layers of [1, 2, 3] as const) {
       const { encodings } = mapPresetToInternal({
         layers,
@@ -27,7 +27,7 @@ describe("mapPresetToInternal", () => {
       });
 
       encodings.forEach((e, i) => {
-        expect(e.active).toBe(i < layers);
+        expect(e.active).toBe(encodings.length - 1 - i < layers);
       });
     }
   });
@@ -45,8 +45,8 @@ describe("mapPresetToInternal", () => {
 
   it("uses spatial layers at a consistent frame rate for motion", () => {
     const { encodings } = mapPresetToInternal(VIDEO_PRESETS.motion);
-    const [f, h, q] = encodings;
-    expect(encodings.map((encoding) => encoding.scaleResolutionDownBy)).toEqual([1, 2, 4]);
+    const [q, h, f] = encodings;
+    expect(encodings.map((encoding) => encoding.scaleResolutionDownBy)).toEqual([4, 2, 1]);
     expect(f!.maxBitrate!).toBeGreaterThan(h!.maxBitrate!);
     expect(h!.maxBitrate!).toBeGreaterThan(q!.maxBitrate!);
     expect(encodings.map((encoding) => encoding.maxFramerate)).toEqual([30, 30, 30]);
@@ -56,8 +56,8 @@ describe("mapPresetToInternal", () => {
     const { encodings, degradationPreference, contentHint } = mapPresetToInternal(VIDEO_PRESETS.detail);
     expect(degradationPreference).toBe("maintain-resolution");
     expect(contentHint).toBe("text");
-    expect(encodings.map((encoding) => encoding.active)).toEqual([true, true, false]);
+    expect(encodings.map((encoding) => encoding.active)).toEqual([false, true, true]);
     expect(encodings.map((encoding) => encoding.scaleResolutionDownBy)).toEqual([1, 1, 1]);
-    expect(encodings.map((encoding) => encoding.maxFramerate)).toEqual([15, 5, 5]);
+    expect(encodings.map((encoding) => encoding.maxFramerate)).toEqual([5, 5, 15]);
   });
 });

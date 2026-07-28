@@ -142,7 +142,10 @@ export function useMediaDevices(initialStream: MediaStream | null, onStreamChang
 
 
 type PublishClient = {
-  publish: (stream: MediaStream, options?: { videoPreset?: 'motion' | 'detail'; audioPreset?: 'speech' | 'music' }) => void;
+  publish: (stream: MediaStream, options?: {
+    videoPreset?: 'motion' | 'detail';
+    audioPreset?: 'speech' | 'music';
+  }) => void;
   unpublish: () => void;
 };
 
