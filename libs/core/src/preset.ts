@@ -78,7 +78,7 @@ export const VIDEO_PRESETS: Record<VideoPresetName, VideoPreset> = {
     baseBitrate: 1_250_000,
   },
   detail: {
-    layers: 2,
+    layers: 1,
     mode: "detail",
     minFps: 5,
     // Static screen content rarely needs 30fps; capping lower frees up
