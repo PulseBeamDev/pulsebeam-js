@@ -92,9 +92,16 @@ export function useMediaDevices(initialStream: MediaStream | null, onStreamChang
         aspectRatio: { ideal: 1.7777777778 }, // 16:9
         frameRate: { ideal: 30 }
       };
+      const audioConstraints: MediaTrackConstraints = {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        channelCount: 1,
+      };
+      if (aId) audioConstraints.deviceId = { exact: aId };
       const stream = await navigator.mediaDevices.getUserMedia({
         video: videoConstraints,
-        audio: aId ? { deviceId: { exact: aId } } : true,
+        audio: audioConstraints,
       });
 
       // Extract the REAL device IDs chosen by the browser

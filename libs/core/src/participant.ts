@@ -583,6 +583,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   private reconnectTimer: any = null;
   private ac = new AbortController();
   private generation = 0;
+  private emittedAudioTrackIds: string[] = [];
 
   public readonly main: StreamPublisher;
   public readonly aux: StreamPublisher;
@@ -638,8 +639,16 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       this.session.resourceUri = null;
     }
 
+    this.clearRemoteAudioTracks();
     this.transport?.close();
     this.updateState("closed");
+  }
+
+  private clearRemoteAudioTracks() {
+    for (const trackId of this.emittedAudioTrackIds) {
+      this.emit(ParticipantEvent.AudioTrackRemoved, { trackId });
+    }
+    this.emittedAudioTrackIds = [];
   }
 
   private async establishConnection(method: "POST" | "PATCH", uri: string) {
@@ -725,9 +734,12 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       this.retryCount = 0;
       this.isReconnecting = false;
 
+      this.clearRemoteAudioTracks();
       this.transport.audioSlots.forEach(t => {
         const stream = new this.adapter.MediaStream([t.receiver.track]);
-        this.emit(ParticipantEvent.AudioTrackAdded, { track: new RemoteAudioTrack(stream) });
+        const track = new RemoteAudioTrack(stream);
+        this.emittedAudioTrackIds.push(track.id);
+        this.emit(ParticipantEvent.AudioTrackAdded, { track });
       });
 
       // Re-apply the local jitter-buffer target to the fresh receivers.
