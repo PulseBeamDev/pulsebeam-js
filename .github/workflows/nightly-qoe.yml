@@ -1,0 +1,101 @@
+name: Nightly QoE E2E (server main)
+
+# Runs the browser QoE suite against the LATEST pulsebeam server (`main` image tag)
+# to catch server-side changes that break the client contract before they reach a
+# pinned release. Unlike the pinned `qoe-e2e` job in ci.yml, a failure here points
+# at the server, not this repo.
+on:
+  schedule:
+    # 07:00 UTC every day.
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'pulsebeam server image tag to test against'
+        default: 'main'
+        required: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  qoe-nightly:
+    timeout-minutes: 25
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 25
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Browsers
+        run: pnpm --filter @pulsebeam/web exec playwright install --with-deps chromium
+
+      - name: Run QoE E2E against server main
+        run: pnpm --filter @pulsebeam/web test:e2e:qoe
+        env:
+          IMAGE_TAG: ${{ github.event.inputs.image_tag || 'main' }}
+
+      - name: Upload QoE report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qoe-nightly-report
+          path: libs/web/playwright-report/
+          retention-days: 30
+
+      # Surface server-side breakage as a tracked issue (deduped by title) rather
+      # than only a red run in the Actions tab.
+      - name: Open issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = '${{ github.event.inputs.image_tag || 'main' }}';
+            const title = `Nightly QoE E2E failing against pulsebeam server \`${tag}\``;
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              `The nightly QoE E2E run against the \`${tag}\` pulsebeam server image failed.`,
+              ``,
+              `This usually means a **server-side change broke the client contract**`,
+              `(signaling protocol, WHIP handshake, media negotiation, or QoS behavior).`,
+              ``,
+              `- Failing run: ${runUrl}`,
+              `- Report artifact: \`qoe-nightly-report\` on that run`,
+              ``,
+              `If this is an intended protocol change, update the client and bump the`,
+              `pinned \`IMAGE_TAG\` in \`libs/web/tests/playwright.config.ts\` + \`.github/workflows/ci.yml\`.`,
+            ].join('\n');
+
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = open.find((i) => i.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body: `Still failing as of ${new Date().toISOString()}.\n\n${runUrl}`,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+              });
+            }

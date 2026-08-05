@@ -57,3 +57,46 @@ jobs:
           NPM_TOKEN: ''
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: false
+
+  # Browser QoE tests (real media via getStats) against a PINNED SFU build that
+  # matches the client's signaling.proto. Isolated from `ci` so it never blocks the
+  # release flow, and so a client-side regression is attributed clearly. The nightly
+  # workflow runs the same specs against server `main` to catch server breakage.
+  qoe-e2e:
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 25
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Browsers
+        run: pnpm --filter @pulsebeam/web exec playwright install --with-deps chromium
+
+      - name: Lint QoE test guardrails (no fixed sleeps)
+        run: pnpm --filter @pulsebeam/web lint
+
+      - name: Run QoE E2E (blocking lane, pinned SFU)
+        run: pnpm --filter @pulsebeam/web test:e2e:qoe
+        env:
+          # Pinned to the commit whose protocol matches this client. Bump together
+          # with signaling.proto changes (see tests/playwright.config.ts).
+          IMAGE_TAG: 60434c1
+
+      - name: Upload QoE report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qoe-playwright-report
+          path: libs/web/playwright-report/
+          retention-days: 30

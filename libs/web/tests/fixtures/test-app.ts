@@ -1,5 +1,44 @@
-import { createParticipant, createDeviceManager, createDisplayManager, VideoBinder, AudioBinder, type ParticipantConfig } from '../../src/lib';
+import { createDeviceManager, createDisplayManager, VideoBinder, AudioBinder, BrowserAdapter } from '../../src/lib';
+import { createParticipant as createCoreParticipant, type ParticipantConfig, type PlatformAdapter } from '@pulsebeam/core';
 import { MOCK_CONFIG } from './test-data';
+import { normalizeStatsReport, type QoeSnapshot } from '../utils/qoe';
+
+// ── Stats-capturing adapter ────────────────────────────────────────────────
+// The SDK keeps its RTCPeerConnection private, so we reach getStats() through the
+// PlatformAdapter seam: wrap BrowserAdapter's RTCPeerConnection to record every
+// instance the SDK creates (a fresh one is built per reconnect). getStats() then
+// reads from the most-recently-connected pc. Zero production-code changes.
+const capturedPCs: RTCPeerConnection[] = [];
+const BasePC = BrowserAdapter.RTCPeerConnection;
+class CapturingPC extends (BasePC as { new(config?: RTCConfiguration): RTCPeerConnection }) {
+  constructor(config?: RTCConfiguration) {
+    super(config);
+    capturedPCs.push(this as unknown as RTCPeerConnection);
+  }
+}
+const statsAdapter: PlatformAdapter = {
+  ...BrowserAdapter,
+  RTCPeerConnection: CapturingPC as unknown as PlatformAdapter['RTCPeerConnection'],
+  // Diagnostic: surface non-2xx handshake bodies (the SDK discards them). Test-only.
+  fetch: async (input: string, init?: RequestInit) => {
+    const res = await BrowserAdapter.fetch(input, init);
+    if (!res.ok) {
+      try {
+        const body = await res.clone().text();
+        console.error(`[Harness fetch] ${init?.method ?? 'GET'} ${input} -> ${res.status}: ${body}`);
+      } catch { /* ignore */ }
+    }
+    return res;
+  },
+};
+
+/** The live pc for stats: prefer a connected one, else the most recent. */
+function activePC(): RTCPeerConnection | null {
+  const live = [...capturedPCs].reverse().find(
+    (pc) => pc.connectionState === 'connected' || pc.connectionState === 'connecting',
+  );
+  return live ?? capturedPCs[capturedPCs.length - 1] ?? null;
+}
 
 // Global state
 let participant: any = null;
@@ -26,7 +65,7 @@ const audioTracksEl = document.getElementById('audio-tracks')!;
 
 // Initialize participant with default config
 function initParticipant(config: ParticipantConfig = MOCK_CONFIG) {
-  participant = createParticipant(config);
+  participant = createCoreParticipant(statsAdapter, config);
   deviceManager = createDeviceManager();
   displayManager = createDisplayManager();
 
@@ -210,3 +249,105 @@ initParticipant();
 
 // Expose init function for testing
 (window as any).__initParticipant = initParticipant;
+
+// ── Imperative harness API (window.__pb) ────────────────────────────────────
+// The stable contract for E2E tests: drives @pulsebeam/core directly, never the
+// demo UI. Every method returns structured-cloneable JSON so `page.evaluate` can
+// read it back. Remote tracks are still rendered via VideoBinder/AudioBinder
+// (renderVideoTracks/renderAudioTracks) so real decoding happens and inbound
+// getStats() advances.
+
+interface PublishOpts { video?: boolean; audio?: boolean; }
+interface SubscribeOpts { height?: number; minHeight?: number; priority?: number; }
+
+async function pbCreate(config: Partial<ParticipantConfig> = {}) {
+  if (participant) {
+    try { participant.get().close(); } catch { /* already closed */ }
+  }
+  if (publishedStream) {
+    publishedStream.getTracks().forEach((t) => t.stop());
+    publishedStream = null;
+  }
+  capturedPCs.length = 0;
+  initParticipant({ ...MOCK_CONFIG, ...config } as ParticipantConfig);
+}
+
+async function pbPublish(opts: PublishOpts = { video: true, audio: true }) {
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video: opts.video ? { width: 1280, height: 720 } : false,
+    audio: opts.audio ?? false,
+  });
+  publishedStream = stream;
+  participant.get().main.publish(stream);
+}
+
+function pbUnpublish() {
+  participant.get().main.unpublish();
+  if (publishedStream) {
+    publishedStream.getTracks().forEach((t) => t.stop());
+    publishedStream = null;
+  }
+}
+
+function pbConnect(room: string) {
+  participant.get().connect(room);
+}
+
+function pbClose() {
+  participant.get().close();
+  if (publishedStream) {
+    publishedStream.getTracks().forEach((t) => t.stop());
+    publishedStream = null;
+  }
+}
+
+function pbMute(opts: { video?: boolean; audio?: boolean }) {
+  participant.get().main.mute(opts);
+}
+
+/** Explicitly subscribe to a discovered publisher's video track(s) at a height. */
+function pbSubscribe(participantId: string, opts: SubscribeOpts = {}): number {
+  const tracks = (participant.get().videoTracks as any[]).filter(
+    (t) => t.participantId === participantId,
+  );
+  for (const t of tracks) {
+    if (opts.height !== undefined) t.setHeight(opts.height);
+    if (opts.minHeight !== undefined) t.setMinHeight(opts.minHeight);
+    if (opts.priority !== undefined) t.setPriority(opts.priority);
+  }
+  return tracks.length;
+}
+
+function pbGetState() {
+  const s = participant.get();
+  return {
+    connectionState: s.connectionState as string,
+    videoTracks: (s.videoTracks as any[]).map((t) => ({
+      id: t.id, participantId: t.participantId, height: t.height, paused: t.paused,
+    })),
+    audioTracks: (s.audioTracks as any[]).map((t) => ({ id: t.id })),
+    videoMuted: s.main.videoMuted as boolean,
+    audioMuted: s.main.audioMuted as boolean,
+  };
+}
+
+async function pbGetStats(): Promise<QoeSnapshot> {
+  const pc = activePC();
+  const connectionState = participant?.get()?.connectionState ?? 'new';
+  if (!pc) {
+    return { connectionState, inboundVideo: [], inboundAudio: [], outboundVideo: [], outboundAudio: [] };
+  }
+  return normalizeStatsReport(await pc.getStats(), connectionState);
+}
+
+(window as any).__pb = {
+  create: pbCreate,
+  connect: pbConnect,
+  publish: pbPublish,
+  unpublish: pbUnpublish,
+  close: pbClose,
+  mute: pbMute,
+  subscribe: pbSubscribe,
+  getState: pbGetState,
+  getStats: pbGetStats,
+};

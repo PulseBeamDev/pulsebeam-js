@@ -17,9 +17,13 @@
     "dev:local": "vite build --watch",
     "prepare": "tsc && vite build",
     "preview": "vite preview",
-    "test:e2e": "playwright test --config=tests/playwright.config.ts",
+    "test:serve": "vite",
+    "test:e2e": "playwright test --config=tests/playwright.config.ts --grep-invert \"QoE\"",
+    "test:e2e:qoe": "playwright test --config=tests/playwright.config.ts qoe.",
+    "test:e2e:qoe:flaky": "RUN_FLAKY=1 playwright test --config=tests/playwright.config.ts qoe. --project=chromium-flaky",
     "test:e2e:ui": "playwright test --config=tests/playwright.config.ts --ui",
-    "test:e2e:report": "playwright show-report playwright-report"
+    "test:e2e:report": "playwright show-report playwright-report",
+    "lint": "eslint tests"
   },
   "dependencies": {
     "@pulsebeam/core": "workspace:*",
@@ -28,8 +32,10 @@
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "@types/node": "^25.2.3",
+    "eslint": "^9.39.1",
     "fast-check": "^3.23.2",
     "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",
     "vite-plugin-dts": "^4.5.4"
   }

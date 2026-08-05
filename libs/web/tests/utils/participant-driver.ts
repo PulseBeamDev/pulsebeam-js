@@ -1,6 +1,77 @@
 import type { Page, Locator } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { TEST_TIMEOUTS } from '../fixtures/test-data';
+import type { QoeSnapshot } from './qoe';
+
+export interface HarnessState {
+  connectionState: string;
+  videoTracks: Array<{ id: string; participantId: string; height: number; paused: boolean }>;
+  audioTracks: Array<{ id: string }>;
+  videoMuted: boolean;
+  audioMuted: boolean;
+}
+
+/**
+ * Imperative driver over the `window.__pb` harness API — the stable, UI-free
+ * contract for QoE tests. Every method is a thin `page.evaluate` into the SDK, so
+ * tests never touch demo markup and never break on UI churn.
+ */
+export class SdkDriver {
+  readonly page: Page;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.page.on('console', (msg) => console.log(`[Browser ${msg.type()}] ${msg.text()}`));
+    this.page.on('pageerror', (err) => console.log(`[Browser pageerror] ${err.message}`));
+  }
+
+  async goto() {
+    await this.page.goto('/tests/fixtures/test-page.html');
+    await this.page.waitForFunction(() => !!(window as any).__pb, undefined, { timeout: 15_000 });
+  }
+
+  async create(config: Record<string, unknown> = {}) {
+    await this.page.evaluate((c) => (window as any).__pb.create(c), config);
+  }
+
+  async connect(room: string) {
+    await this.page.evaluate((r) => (window as any).__pb.connect(r), room);
+  }
+
+  async publish(opts: { video?: boolean; audio?: boolean } = { video: true, audio: true }) {
+    await this.page.evaluate((o) => (window as any).__pb.publish(o), opts);
+  }
+
+  async unpublish() {
+    await this.page.evaluate(() => (window as any).__pb.unpublish());
+  }
+
+  async mute(opts: { video?: boolean; audio?: boolean }) {
+    await this.page.evaluate((o) => (window as any).__pb.mute(o), opts);
+  }
+
+  async subscribe(
+    participantId: string,
+    opts: { height?: number; minHeight?: number; priority?: number } = {},
+  ): Promise<number> {
+    return this.page.evaluate(
+      ([id, o]) => (window as any).__pb.subscribe(id, o),
+      [participantId, opts] as const,
+    );
+  }
+
+  async close() {
+    await this.page.evaluate(() => (window as any).__pb.close());
+  }
+
+  async getState(): Promise<HarnessState> {
+    return this.page.evaluate(() => (window as any).__pb.getState());
+  }
+
+  async getStats(): Promise<QoeSnapshot> {
+    return this.page.evaluate(() => (window as any).__pb.getStats());
+  }
+}
 
 /**
  * High-level driver for participant interactions in vanilla TS E2E tests
