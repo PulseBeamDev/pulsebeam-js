@@ -17,6 +17,7 @@ import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 import type { PlatformAdapter } from "./platform";
 import { EventEmitter } from "./event";
 import { mapPresetToInternal, VIDEO_PRESETS, AUDIO_PRESETS, type VideoPreset, type VideoPresetName, type AudioPresetConfig, type AudioPresetName } from "./preset";
+import { Topic, type TopicTransportHandle } from "./topic";
 
 const SIGNALING_LABEL = "v1/sys/signaling";
 const SYNC_DEBOUNCE_MS = 300;
@@ -363,6 +364,10 @@ class Transport {
     await this.pc.setRemoteDescription({ type: "answer", sdp });
   }
 
+  createTopicDataChannel(label: string, init: RTCDataChannelInit): RTCDataChannel {
+    return this.pc.createDataChannel(label, init);
+  }
+
   close() {
     this.pc.close();
     this.dc.close();
@@ -588,6 +593,11 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   public readonly main: StreamPublisher;
   public readonly aux: StreamPublisher;
 
+  // Topic pub/sub registry — persists across transport swaps so publishers
+  // and subscribers survive reconnects without the caller re-registering.
+  // Both publishers and subscribers register DCs (the SFU routes between them by label).
+  private topicDcEntries = new Map<string, { init: RTCDataChannelInit; onNewDc: (dc: RTCDataChannel) => void }>();
+
   constructor(private adapter: PlatformAdapter, private config: ParticipantConfig) {
     super();
     this.session = new SessionState(adapter);
@@ -722,6 +732,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       // ATOMIC SWAP: The new transport is ready.
       if (this.transport) this.transport.close();
       this.transport = newTransport;
+      this.wireTopicsToTransport(newTransport);
       newTransport.sync(this.main._upstream, this.aux._upstream);
 
       // Reset the sent requests cache, as we have a fresh transport/session context
@@ -901,6 +912,52 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
   /** Whether {@link setLatency} has been called, locking the session out of true adaptive mode. */
   get latencyLocked(): boolean { return this.playoutDelay !== null; }
+
+  /**
+   * Returns a builder for publishing and subscribing to raw-byte data topics.
+   *
+   * Two delivery modes mirror the Rust agent API:
+   * - **latest** — unreliable, zero-retransmit (like UDP). Best for high-frequency
+   *   state where only the newest value matters (cursor positions, sensor readings).
+   * - **ordered** — reliable, ordered with NACK-based retransmission. Best for
+   *   sequenced events where every message must arrive in order.
+   *
+   * @example
+   * ```ts
+   * // Publisher side
+   * const pub = participant.topic("cursor").publisher().latest();
+   * pub.send(new Uint8Array([1, 2, 3]));
+   *
+   * // Subscriber side
+   * const sub = participant.topic("cursor").subscriber().latest();
+   * for await (const payload of sub) { ... }
+   * ```
+   */
+  topic(name: string): Topic {
+    const self = this;
+    const handle: TopicTransportHandle = {
+      registerDataChannel(label, init, onNewDc) {
+        self.topicDcEntries.set(label, { init, onNewDc });
+        if (self.transport) {
+          // Post-connect: SCTP association already exists (signaling DC guarantees
+          // it), so DCEP establishes this channel without SDP renegotiation.
+          const dc = self.transport.createTopicDataChannel(label, init);
+          onNewDc(dc);
+        }
+      },
+    };
+    return new Topic(name, handle);
+  }
+
+  // Re-create all registered topic DCs on the new transport. Once the signaling
+  // DC's SCTP association is up, DCEP establishes these channels without any
+  // SDP renegotiation (mirrors the Rust agent's behavior).
+  private wireTopicsToTransport(transport: Transport) {
+    for (const [label, { init, onNewDc }] of this.topicDcEntries) {
+      const dc = transport.createTopicDataChannel(label, init);
+      onNewDc(dc);
+    }
+  }
 
   private applyJitterBufferTarget(): void {
     if (!this.transport) return;

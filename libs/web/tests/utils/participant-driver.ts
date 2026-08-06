@@ -71,6 +71,28 @@ export class SdkDriver {
   async getStats(): Promise<QoeSnapshot> {
     return this.page.evaluate(() => (window as any).__pb.getStats());
   }
+
+  async declareTopic(name: string, mode: 'latest' | 'ordered') {
+    await this.page.evaluate(
+      ([n, m]) => (window as any).__pb.declareTopic(n, m),
+      [name, mode] as const,
+    );
+  }
+
+  async publishData(name: string, payload: number[]) {
+    await this.page.evaluate(
+      ([n, p]) => (window as any).__pb.publishData(n, p),
+      [name, payload] as const,
+    );
+  }
+
+  async getReceivedData(name: string): Promise<number[][]> {
+    return this.page.evaluate((n) => (window as any).__pb.getReceivedData(n), name);
+  }
+
+  async clearReceivedData(name: string) {
+    await this.page.evaluate((n) => (window as any).__pb.clearReceivedData(n), name);
+  }
 }
 
 /**

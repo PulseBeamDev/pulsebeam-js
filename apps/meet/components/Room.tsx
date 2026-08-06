@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useParticipant, Video, Audio } from "@pulsebeam/react";
 import {
   Button,
@@ -17,14 +17,17 @@ import {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
+  Input,
+  ScrollArea,
   cn,
 } from "@pulsebeam/ui";
 import {
   Monitor, MonitorOff, Mic, MicOff, Video as VideoIcon,
-  VideoOff, PhoneOff, RotateCcw, Loader2, Gauge
+  VideoOff, PhoneOff, RotateCcw, Loader2, Gauge, MessageCircle, Send, SmilePlus,
 } from "lucide-react";
 import { LocalVideo } from "./LocalVideo";
 import { useScreenShare } from "@/hooks/media";
+import { useChat, useReactions } from "@/hooks/topics";
 
 // Conferencing QoS: the spotlight is what the user is watching, so it wins
 // bandwidth under contention and stays watchable; thumbnails yield first but
@@ -66,9 +69,14 @@ interface RoomProps {
 
 export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
   const [spotlightId, setSpotlightId] = useState<string | "local">("local");
+  const [chatOpen, setChatOpen] = useState(false);
 
   const client = useParticipant(useMemo(() => ({ baseUrl: apiURL }), [apiURL]));
   const screen = useScreenShare(client.aux);
+
+  const participant = client.participant ?? null;
+  const { messages, sendMessage } = useChat(participant);
+  const { reactions, sendReaction } = useReactions(participant);
 
   const [latencyMode, setLatencyMode] = useState<string | null>(null);
 
@@ -102,11 +110,13 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
           roomId={roomId}
           state={client.connectionState}
           screen={screen}
+          chatOpen={chatOpen}
           latencyMode={latencyMode}
           latencyLocked={client.latencyLocked}
           onLatencyChange={handleLatencyChange}
           onLeave={onLeave}
           onReconnect={() => client.connect(roomId)}
+          onToggleChat={() => setChatOpen((v) => !v)}
         />
 
         <main className="meet-room-main flex min-h-0 flex-1 overflow-hidden">
@@ -135,7 +145,10 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
                 videoMuted={client.main.videoMuted}
                 onToggleMic={() => client.main.mute({ audio: !client.main.audioMuted })}
                 onToggleCam={() => client.main.mute({ video: !client.main.videoMuted })}
+                onReaction={sendReaction}
               />
+
+              <ReactionsOverlay reactions={reactions} />
             </div>
           </Card>
 
@@ -148,6 +161,13 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
               onSelect={setSpotlightId}
             />
           </aside>
+
+          {/* Chat panel */}
+          {chatOpen && (
+            <aside className="flex w-72 shrink-0 flex-col border-l bg-card">
+              <ChatPanel messages={messages} onSend={sendMessage} />
+            </aside>
+          )}
         </main>
 
         {client.audioTracks.map((t: any) => <Audio key={t.id} track={t} />)}
@@ -157,15 +177,17 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
 }
 
 
-function RoomHeader({ roomId, state, screen, latencyMode, latencyLocked, onLatencyChange, onLeave, onReconnect }: {
+function RoomHeader({ roomId, state, screen, chatOpen, latencyMode, latencyLocked, onLatencyChange, onLeave, onReconnect, onToggleChat }: {
   roomId: string;
   state: string;
   screen: { isSharing: boolean; isLoading: boolean; start: () => void; stop: () => void };
+  chatOpen: boolean;
   latencyMode: string | null;
   latencyLocked: boolean;
   onLatencyChange: (label: string) => void;
   onLeave: () => void;
   onReconnect: () => void;
+  onToggleChat: () => void;
 }) {
   const activeHint = latencyMode === null
     ? "Auto — browser manages the jitter buffer adaptively. This is the initial session state; selecting any other mode is permanent until reconnect."
@@ -247,6 +269,15 @@ function RoomHeader({ roomId, state, screen, latencyMode, latencyLocked, onLaten
           <span className="text-xs">{screen.isSharing ? "Stop" : "Share"}</span>
         </Button>
         <Separator orientation="vertical" className="mx-1 h-4" />
+        <Button
+          variant="ghost" size="sm"
+          className={cn("h-8 rounded-md px-2.5", chatOpen && "bg-primary/10 text-primary")}
+          onClick={onToggleChat}
+        >
+          <MessageCircle className="mr-1.5 h-4 w-4" />
+          <span className="text-xs">Chat</span>
+        </Button>
+        <Separator orientation="vertical" className="mx-1 h-4" />
         <Button variant="destructive" size="sm" className="h-8 px-2.5 text-xs" onClick={onLeave}>
           <PhoneOff className="mr-1.5 h-3.5 w-3.5" /> <span>End</span>
         </Button>
@@ -258,9 +289,14 @@ function RoomHeader({ roomId, state, screen, latencyMode, latencyLocked, onLaten
   );
 }
 
-function MediaControls({ audioMuted, videoMuted, onToggleMic, onToggleCam }: {
+const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "👏", "🔥"];
+
+function MediaControls({ audioMuted, videoMuted, onToggleMic, onToggleCam, onReaction }: {
   audioMuted: boolean; videoMuted: boolean; onToggleMic: () => void; onToggleCam: () => void;
+  onReaction: (emoji: string) => void;
 }) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+
   return (
     <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-2 rounded-xl border border-white/10 bg-black/60 p-1.5 shadow-2xl backdrop-blur-md sm:bottom-6 sm:gap-3">
       <Tooltip>
@@ -280,6 +316,30 @@ function MediaControls({ audioMuted, videoMuted, onToggleMic, onToggleCam }: {
         </TooltipTrigger>
         <TooltipContent><p>{videoMuted ? "Camera on" : "Camera off"}</p></TooltipContent>
       </Tooltip>
+
+      <div className="relative">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button size="icon" variant="secondary" className="h-11 w-11 sm:h-10 sm:w-10" onClick={() => setPickerOpen((v) => !v)}>
+              <SmilePlus className="w-4 h-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent><p>React</p></TooltipContent>
+        </Tooltip>
+        {pickerOpen && (
+          <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 flex gap-1 rounded-xl border border-white/10 bg-black/80 px-2 py-1.5 backdrop-blur-md">
+            {REACTION_EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                className="text-xl transition-transform hover:scale-125 active:scale-110"
+                onClick={() => { onReaction(emoji); setPickerOpen(false); }}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -335,6 +395,81 @@ function SpotlightBadge({ label }: { label: string }) {
         <div className="w-1.5 h-1.5 rounded-full bg-primary" />
         {label}
       </Badge>
+    </div>
+  );
+}
+
+function ReactionsOverlay({ reactions }: { reactions: { id: string; emoji: string }[] }) {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {reactions.map((r) => (
+        <span
+          key={r.id}
+          className="absolute bottom-24 animate-[floatUp_3s_ease-out_forwards] text-4xl"
+          style={{ left: `${20 + Math.random() * 60}%` }}
+        >
+          {r.emoji}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ChatPanel({ messages, onSend }: {
+  messages: { id: string; text: string; self: boolean }[];
+  onSend: (text: string) => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const submit = useCallback(() => {
+    if (!draft.trim()) return;
+    onSend(draft);
+    setDraft("");
+  }, [draft, onSend]);
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-2 border-b px-3 py-2">
+        <MessageCircle className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm font-medium">Chat</span>
+      </div>
+
+      <ScrollArea className="min-h-0 flex-1 px-3 py-2">
+        <div className="flex flex-col gap-2">
+          {messages.length === 0 && (
+            <p className="py-8 text-center text-xs text-muted-foreground">No messages yet</p>
+          )}
+          {messages.map((m) => (
+            <div key={m.id} className={cn("flex flex-col", m.self ? "items-end" : "items-start")}>
+              <div className={cn(
+                "max-w-[85%] rounded-2xl px-3 py-1.5 text-sm",
+                m.self ? "rounded-br-sm bg-primary text-primary-foreground" : "rounded-bl-sm bg-muted",
+              )}>
+                {m.text}
+              </div>
+            </div>
+          ))}
+          <div ref={bottomRef} />
+        </div>
+      </ScrollArea>
+
+      <div className="flex gap-2 border-t px-3 py-2">
+        <Input
+          className="h-8 text-sm"
+          placeholder="Message…"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
+        />
+        <Button size="icon" className="h-8 w-8 shrink-0" onClick={submit}>
+          <Send className="h-3.5 w-3.5" />
+        </Button>
+      </div>
     </div>
   );
 }

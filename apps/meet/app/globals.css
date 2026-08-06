@@ -143,6 +143,12 @@ select {
   }
 }
 
+@keyframes floatUp {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  80%  { opacity: 0.8; transform: translateY(-120px) scale(1.2); }
+  100% { opacity: 0; transform: translateY(-160px) scale(0.9); }
+}
+
 @media (min-width: 640px) and (max-width: 767px) {
   .meet-room-main {
     padding: 0.75rem;

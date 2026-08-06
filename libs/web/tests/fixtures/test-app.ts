@@ -1,5 +1,5 @@
 import { createDeviceManager, createDisplayManager, VideoBinder, AudioBinder, BrowserAdapter } from '../../src/lib';
-import { createParticipant as createCoreParticipant, type ParticipantConfig, type PlatformAdapter } from '@pulsebeam/core';
+import { createParticipant as createCoreParticipant, type ParticipantConfig, type PlatformAdapter, type DataPublisher, type OrderedTopicPublisher } from '@pulsebeam/core';
 import { MOCK_CONFIG } from './test-data';
 import { normalizeStatsReport, type QoeSnapshot } from '../utils/qoe';
 
@@ -47,6 +47,11 @@ let displayManager: any = null;
 let publishedStream: MediaStream | null = null;
 let videoBinders: Map<string, any> = new Map();
 let audioBinders: Map<string, any> = new Map();
+
+// Topic pub/sub state — publishers and received-data buffers survive across pbCreate
+// because they are reset inside pbCreate/pbClose.
+const topicPublishers = new Map<string, DataPublisher | OrderedTopicPublisher>();
+const topicReceivedData = new Map<string, number[][]>();
 
 // DOM elements
 const connectionStateEl = document.getElementById('connection-state')!;
@@ -268,6 +273,8 @@ async function pbCreate(config: Partial<ParticipantConfig> = {}) {
     publishedStream.getTracks().forEach((t) => t.stop());
     publishedStream = null;
   }
+  topicPublishers.clear();
+  topicReceivedData.clear();
   capturedPCs.length = 0;
   initParticipant({ ...MOCK_CONFIG, ...config } as ParticipantConfig);
 }
@@ -340,6 +347,55 @@ async function pbGetStats(): Promise<QoeSnapshot> {
   return normalizeStatsReport(await pc.getStats(), connectionState);
 }
 
+/**
+ * Declare a topic publisher and/or subscriber on the current participant.
+ * `mode: 'latest'` = unreliable/fire-and-forget; `mode: 'ordered'` = reliable+NACK.
+ * Received payloads accumulate in `getReceivedData(name)`.
+ */
+function pbDeclareTopic(name: string, mode: 'latest' | 'ordered') {
+  const raw = participant.get().participant;
+  const t = raw.topic(name);
+
+  // Publisher
+  const pub = mode === 'ordered' ? t.publisher().ordered() : t.publisher().latest();
+  topicPublishers.set(name, pub);
+
+  // Subscriber — collect received payloads
+  if (!topicReceivedData.has(name)) topicReceivedData.set(name, []);
+  const buf = topicReceivedData.get(name)!;
+  const sub = mode === 'ordered' ? t.subscriber().ordered() : t.subscriber().latest();
+
+  if (mode === 'ordered') {
+    (async () => {
+      for await (const delivery of sub as AsyncIterable<any>) {
+        if (delivery.type === 'message') {
+          buf.push(Array.from(delivery.payload as Uint8Array));
+        }
+      }
+    })().catch(() => { /* closed */ });
+  } else {
+    (async () => {
+      for await (const payload of sub as AsyncIterable<Uint8Array>) {
+        buf.push(Array.from(payload));
+      }
+    })().catch(() => { /* closed */ });
+  }
+}
+
+function pbPublishData(name: string, payload: number[]) {
+  const pub = topicPublishers.get(name);
+  if (!pub) throw new Error(`No publisher for topic: ${name}`);
+  pub.send(new Uint8Array(payload));
+}
+
+function pbGetReceivedData(name: string): number[][] {
+  return topicReceivedData.get(name) ?? [];
+}
+
+function pbClearReceivedData(name: string) {
+  topicReceivedData.set(name, []);
+}
+
 (window as any).__pb = {
   create: pbCreate,
   connect: pbConnect,
@@ -350,4 +406,8 @@ async function pbGetStats(): Promise<QoeSnapshot> {
   subscribe: pbSubscribe,
   getState: pbGetState,
   getStats: pbGetStats,
+  declareTopic: pbDeclareTopic,
+  publishData: pbPublishData,
+  getReceivedData: pbGetReceivedData,
+  clearReceivedData: pbClearReceivedData,
 };
