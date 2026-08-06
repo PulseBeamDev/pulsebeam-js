@@ -57,15 +57,17 @@ describe("mapPresetToInternal", () => {
     const { encodings, degradationPreference, contentHint } = mapPresetToInternal(VIDEO_PRESETS.detail);
     expect(degradationPreference).toBe("maintain-resolution");
     expect(contentHint).toBe("text");
-    expect(encodings.map((encoding) => encoding.active)).toEqual([false, true, true]);
+    expect(encodings.map((encoding) => encoding.active)).toEqual([false, false, true]);
     expect(encodings.map((encoding) => encoding.scaleResolutionDownBy)).toEqual([4, 2, 1]);
-    expect(encodings.map((encoding) => encoding.maxFramerate)).toEqual([5, 5, 15]);
+    expect(encodings.map((encoding) => encoding.maxFramerate)).toEqual([1, 8, 15]);
   });
 
-  it("declares H.264 L1T3 temporal scalability on every encoding so the SFU can shed frame rate", () => {
-    for (const preset of Object.values(VIDEO_PRESETS)) {
+  it("declares each preset's H.264 temporal scalability on every encoding so the SFU can shed frame rate", () => {
+    const expectedMode: Record<string, string> = { motion: "L1T3", detail: "L1T2" };
+    for (const [name, preset] of Object.entries(VIDEO_PRESETS)) {
       const { encodings } = mapPresetToInternal(preset);
-      expect(encodings.map((e) => e.scalabilityMode)).toEqual(["L1T3", "L1T3", "L1T3"]);
+      const mode = expectedMode[name];
+      expect(encodings.map((e) => e.scalabilityMode)).toEqual([mode, mode, mode]);
     }
   });
 });

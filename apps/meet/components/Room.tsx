@@ -64,14 +64,18 @@ interface RoomProps {
   roomId: string;
   apiURL?: string;
   localStream: MediaStream;
+  encryptionKey?: Uint8Array;
   onLeave: () => void;
 }
 
-export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
+export function Room({ roomId, apiURL, localStream, encryptionKey, onLeave }: RoomProps) {
   const [spotlightId, setSpotlightId] = useState<string | "local">("local");
   const [chatOpen, setChatOpen] = useState(false);
 
-  const client = useParticipant(useMemo(() => ({ baseUrl: apiURL }), [apiURL]));
+  const client = useParticipant(useMemo(
+    () => (encryptionKey ? { baseUrl: apiURL, encryptionKey } : { baseUrl: apiURL }),
+    [apiURL, encryptionKey],
+  ));
   const screen = useScreenShare(client.aux);
 
   const participant = client.participant ?? null;

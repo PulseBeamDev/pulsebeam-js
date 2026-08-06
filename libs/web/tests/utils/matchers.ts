@@ -5,12 +5,15 @@
  * tolerance-based (monotonic growth / coarse floors), never exact fps/bitrate —
  * that is what keeps them robust against libwebrtc's non-determinism.
  */
+import { expect } from '@playwright/test';
 import type { SdkDriver } from './participant-driver';
 import { waitForStats, waitFor, type WaitOpts } from './wait';
 import {
   totalFramesDecoded,
   maxInboundFrameHeight,
   totalAudioEnergy,
+  totalFreezeCount,
+  totalFreezeDuration,
   type QoeSnapshot,
 } from './qoe';
 
@@ -64,6 +67,54 @@ export async function expectAudioFlowing(
     (s) => totalAudioEnergy(s) - baseline >= minEnergyDelta,
     { timeout: opts.timeout ?? 25_000, message: `audio: expected audio energy to grow` },
   );
+}
+
+export interface SmoothVideoOpts {
+  /** Observation window (ms) over which freezes are counted. */
+  window?: number;
+  /** Max new freeze events allowed in the window (libwebrtc: a freeze is an
+   * inter-frame gap past ~max(3×avg, avg+150ms)). */
+  maxFreezes?: number;
+  /** Max added frozen time (seconds) allowed in the window. */
+  maxFreezeSeconds?: number;
+  /** Video must keep decoding this many frames, so "no freeze" can't be
+   * satisfied by simply having no video. */
+  minFramesDelta?: number;
+}
+
+/**
+ * Assert video stays SMOOTH across a disruption: run `disrupt` (e.g. a simulcast
+ * layer switch), then over a window require decoded frames to keep growing while
+ * freeze events and frozen time stay within budget. This is the browser-side
+ * guard for the no-freeze property the Rust simulator's EgressGuard protects —
+ * a botched switch or stall shows up here as freezeCount/totalFreezesDuration.
+ */
+export async function expectSmoothVideo(
+  driver: SdkDriver,
+  disrupt: () => Promise<void>,
+  opts: SmoothVideoOpts = {},
+): Promise<void> {
+  const window = opts.window ?? 8_000;
+  const maxFreezes = opts.maxFreezes ?? 1;
+  const maxFreezeSeconds = opts.maxFreezeSeconds ?? 1.0;
+  const minFramesDelta = opts.minFramesDelta ?? 30;
+
+  const before = await driver.getStats();
+  const freezeBase = totalFreezeCount(before);
+  const durBase = totalFreezeDuration(before);
+  const framesBase = totalFramesDecoded(before);
+
+  await disrupt();
+  await new Promise((r) => setTimeout(r, window));
+
+  const after = await driver.getStats();
+  const freezes = totalFreezeCount(after) - freezeBase;
+  const frozenSeconds = totalFreezeDuration(after) - durBase;
+  const frames = totalFramesDecoded(after) - framesBase;
+
+  expect(frames, `video kept decoding over ${window}ms`).toBeGreaterThanOrEqual(minFramesDelta);
+  expect(freezes, `freeze events over ${window}ms`).toBeLessThanOrEqual(maxFreezes);
+  expect(frozenSeconds, `frozen seconds over ${window}ms`).toBeLessThanOrEqual(maxFreezeSeconds);
 }
 
 export async function expectConnected(driver: SdkDriver, opts: WaitOpts = {}): Promise<void> {

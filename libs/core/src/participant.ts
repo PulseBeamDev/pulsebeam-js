@@ -18,6 +18,7 @@ import type { PlatformAdapter } from "./platform";
 import { EventEmitter } from "./event";
 import { mapPresetToInternal, VIDEO_PRESETS, AUDIO_PRESETS, type VideoPreset, type VideoPresetName, type AudioPresetConfig, type AudioPresetName } from "./preset";
 import { Topic, type TopicTransportHandle } from "./topic";
+import { createE2EEContext, isE2EESupported, type E2EEContext, type UnencryptedHeaderBytes } from "./e2ee";
 
 const SIGNALING_LABEL = "v1/sys/signaling";
 const SYNC_DEBOUNCE_MS = 300;
@@ -76,6 +77,19 @@ export interface ParticipantConfig {
    * @example { "displayName": "Alice", "role": "host" }
    */
   metadata?: Record<string, string>;
+
+  /**
+   * Raw AES-GCM key (16 or 32 bytes) enabling end-to-end media encryption.
+   * Every participant sharing this key can decrypt each other's media; the SFU
+   * holds no key and forwards only ciphertext, routing on the Dependency
+   * Descriptor. Key exchange/rotation is the application's responsibility.
+   * Equivalent to calling {@link Participant.enableEncryption} before connect;
+   * ignored where {@link isE2EESupported} is false.
+   */
+  encryptionKey?: Uint8Array;
+
+  /** Optional per-frame-type cleartext prefix sizes for {@link encryptionKey}. */
+  encryptionHeaderBytes?: Partial<UnencryptedHeaderBytes>;
 }
 
 export type ConnectionState = RTCPeerConnectionState;
@@ -299,7 +313,8 @@ class Transport {
     private adapter: PlatformAdapter,
     config: ParticipantConfig,
     onSignal: (data: ArrayBuffer) => void,
-    onState: (state: ConnectionState) => void
+    onState: (state: ConnectionState) => void,
+    private e2ee: E2EEContext | null = null,
   ) {
     // The SFU is ICE-lite on a public address and hands us its complete
     // candidate set in the answer, so there is nothing to discover: no STUN, no
@@ -362,6 +377,24 @@ class Transport {
     const videoSlots = Math.min(config.videoSlots ?? MAX_VIDEO_SLOTS, MAX_VIDEO_SLOTS);
     for (let i = 0; i < videoSlots; i++) {
       this.videoSlots.push(this.pc.addTransceiver("video", { direction: "recvonly" }));
+    }
+
+    // Attach the encoded transforms before any media flows. The SFU forwards the
+    // resulting ciphertext and never holds the key; keyframe detection and
+    // temporal shedding fall to the Dependency Descriptor, which rides in the
+    // clear as a header extension added after this transform runs.
+    if (this.e2ee) {
+      for (const sender of [
+        this.mainVideoSender,
+        this.mainAudioSender,
+        this.auxVideoSender,
+        this.auxAudioSender,
+      ]) {
+        this.e2ee.applyToSender(sender);
+      }
+      for (const slot of [...this.videoSlots, ...this.audioSlots]) {
+        this.e2ee.applyToReceiver(slot.receiver);
+      }
     }
   }
 
@@ -472,16 +505,33 @@ export async function syncSenderState(
       changed = setSupportedParameter(slot, "scaleResolutionDownBy", config.scaleResolutionDownBy) || changed;
       changed = setSupportedParameter(slot, "maxBitrate", config.maxBitrate) || changed;
       changed = setSupportedParameter(slot, "maxFramerate", config.maxFramerate) || changed;
-      // Normally a no-op: the encoding already carries this from addTransceiver.
-      // Kept so a browser that does honour scalabilityMode changes stays in sync
-      // with the preset, without risking the call on those that do not.
-      changed = setSupportedParameter(slot, "scalabilityMode", config.scalabilityMode) || changed;
     });
     changed = setSupportedParameter(params, "degradationPreference", internal.degradationPreference) || changed;
 
     if (changed) {
       await videoSender.setParameters(params).catch((e) => {
         console.warn("video setParameters failed", e, params);
+      });
+    }
+
+    // scalabilityMode is retuned in its own setParameters call. We have no
+    // renegotiation, so this live setParameters is the only way to change the
+    // temporal structure after connect — but some browsers reject a
+    // scalabilityMode change, and that rejection must not take the
+    // active/bitrate/framerate reconciliation above down with it. On browsers
+    // that reject it the mode stays at the addTransceiver default (L1T3) and the
+    // SFU still adapts frame rate by shedding temporal layers via the DD.
+    const smParams = videoSender.getParameters();
+    let smChanged = false;
+    smParams.encodings.forEach((slot, i) => {
+      const config = (slot.rid && encodingByRid.get(slot.rid)) ?? internal.encodings[i];
+      if (config) {
+        smChanged = setSupportedParameter(slot, "scalabilityMode", config.scalabilityMode) || smChanged;
+      }
+    });
+    if (smChanged) {
+      await videoSender.setParameters(smParams).catch((e) => {
+        console.warn("scalabilityMode change rejected; keeping negotiated mode", e);
       });
     }
   } catch (e) { /* sender not yet negotiated */ }
@@ -597,6 +647,8 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   // null = adaptive. Capped at 4000ms (jitterBufferTarget API limit).
   private jitterBufferTargetMs: number | null = null;
 
+  private e2ee: E2EEContext | null = null;
+
   private debounceTimer: any | null = null;
   private isReconnecting = false;
   private retryCount = 0;
@@ -630,10 +682,43 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     this.main = new StreamPublisher("main", sync, emitLocal);
     this.aux = new StreamPublisher("aux", sync, emitLocal);
 
+    if (config.encryptionKey && isE2EESupported()) {
+      this.e2ee = createE2EEContext(
+        config.encryptionKey,
+        config.encryptionHeaderBytes
+          ? { unencryptedHeaderBytes: config.encryptionHeaderBytes }
+          : {},
+      );
+    }
   }
 
   get state() { return this._state; }
   get participantId() { return this.session.participantId; }
+
+  /**
+   * Enable end-to-end media encryption for this session. Every participant that
+   * shares `keyBytes` (a raw AES-GCM key, 16 or 32 bytes) can decrypt each
+   * other's audio and video; the SFU, holding no key, forwards only ciphertext
+   * and relies on the Dependency Descriptor for routing. Key exchange and
+   * rotation are the application's responsibility.
+   *
+   * Must be called before {@link connect}, and only where {@link isE2EESupported}
+   * returns true — the transforms are installed on the peer connection's senders
+   * and receivers at construction, before any media flows.
+   */
+  enableEncryption(
+    keyBytes: Uint8Array,
+    options?: { unencryptedHeaderBytes?: Partial<UnencryptedHeaderBytes> },
+  ) {
+    if (this.transport) {
+      throw new Error("enableEncryption must be called before connect()");
+    }
+    if (!isE2EESupported()) {
+      throw new Error("End-to-end encryption is not supported in this environment");
+    }
+    this.e2ee?.close();
+    this.e2ee = createE2EEContext(keyBytes, options);
+  }
 
   connect(room: string) {
     if (this._state === "closed") throw new Error("Participant closed");
@@ -666,6 +751,8 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
     this.clearRemoteAudioTracks();
     this.transport?.close();
+    this.e2ee?.close();
+    this.e2ee = null;
     this.updateState("closed");
   }
 
@@ -692,7 +779,8 @@ export class Participant extends EventEmitter<ParticipantEvents> {
           this.updateState(state);
           this.handleTransportState(state);
         }
-      }
+      },
+      this.e2ee,
     );
 
     try {

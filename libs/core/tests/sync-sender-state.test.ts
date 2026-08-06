@@ -94,7 +94,7 @@ describe("syncSenderState", () => {
     expect(videoSender.track).toBeNull();
   });
 
-  it("activates two spatial layers with a temporal framerate ladder in the detail preset", async () => {
+  it("activates the single detail spatial layer with a temporal framerate ladder", async () => {
     const videoSender = fakeSender();
     const audioSender = fakeSender();
     const desired = desiredState({ videoPreset: VIDEO_PRESETS.detail });
@@ -102,9 +102,46 @@ describe("syncSenderState", () => {
     await syncSenderState(videoSender, audioSender, desired as any);
 
     const [params] = (videoSender.setParameters as any).mock.calls.at(-1);
-    expect(params.encodings.map((e: any) => e.active)).toEqual([true, true, false]);
+    expect(params.encodings.map((e: any) => e.active)).toEqual([true, false, false]);
     expect(params.encodings.map((e: any) => e.scaleResolutionDownBy)).toEqual([1, 2, 4]);
-    expect(params.encodings.map((e: any) => e.maxFramerate)).toEqual([15, 5, 5]);
+    expect(params.encodings.map((e: any) => e.maxFramerate)).toEqual([15, 8, 1]);
+  });
+
+  it("changes scalabilityMode live in its own setParameters call when the preset changes", async () => {
+    const videoSender = fakeSender();
+    const audioSender = fakeSender();
+    const desired = desiredState({ videoPreset: VIDEO_PRESETS.detail });
+
+    await syncSenderState(videoSender, audioSender, desired as any);
+    // detail declares L1T2; without renegotiation this must be applied via setParameters.
+    let params = (videoSender.setParameters as any).mock.calls.at(-1)[0];
+    expect(params.encodings.map((e: any) => e.scalabilityMode)).toEqual(["L1T2", "L1T2", "L1T2"]);
+
+    desired.videoPreset = VIDEO_PRESETS.motion;
+    await syncSenderState(videoSender, audioSender, desired as any);
+    params = (videoSender.setParameters as any).mock.calls.at(-1)[0];
+    expect(params.encodings.map((e: any) => e.scalabilityMode)).toEqual(["L1T3", "L1T3", "L1T3"]);
+  });
+
+  it("keeps active layers reconciled even when the scalabilityMode change is rejected", async () => {
+    // No renegotiation: some browsers reject a live scalabilityMode change. That
+    // rejection is isolated into its own setParameters call so the active/bitrate
+    // reconciliation still lands.
+    const videoSender = fakeSender();
+    let call = 0;
+    (videoSender.setParameters as any) = vi.fn(async () => {
+      call += 1;
+      if (call >= 2) throw new Error("InvalidModificationError: cannot change scalabilityMode");
+    });
+    const audioSender = fakeSender();
+    const desired = desiredState({ videoPreset: VIDEO_PRESETS.detail });
+
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await syncSenderState(videoSender, audioSender, desired as any);
+    warning.mockRestore();
+
+    const params = (videoSender.getParameters as any)();
+    expect(params.encodings.map((e: any) => e.active)).toEqual([true, false, false]);
   });
 
   it("keeps layer activity synchronized when the preset changes", async () => {
@@ -119,7 +156,7 @@ describe("syncSenderState", () => {
     desired.videoPreset = VIDEO_PRESETS.detail;
     await syncSenderState(videoSender, audioSender, desired as any);
     params = (videoSender.setParameters as any).mock.calls.at(-1)[0];
-    expect(params.encodings.map((e: any) => e.active)).toEqual([true, true, false]);
+    expect(params.encodings.map((e: any) => e.active)).toEqual([true, false, false]);
 
     desired.videoPreset = VIDEO_PRESETS.motion;
     await syncSenderState(videoSender, audioSender, desired as any);

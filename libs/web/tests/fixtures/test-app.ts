@@ -276,7 +276,13 @@ async function pbCreate(config: Partial<ParticipantConfig> = {}) {
   topicPublishers.clear();
   topicReceivedData.clear();
   capturedPCs.length = 0;
-  initParticipant({ ...MOCK_CONFIG, ...config } as ParticipantConfig);
+  // page.evaluate may deliver the key as a plain array; the SDK expects a
+  // Uint8Array. Coerce so E2EE can be configured from a Playwright test.
+  const merged = { ...MOCK_CONFIG, ...config } as Record<string, unknown>;
+  if (merged.encryptionKey && !(merged.encryptionKey instanceof Uint8Array)) {
+    merged.encryptionKey = new Uint8Array(merged.encryptionKey as ArrayLike<number>);
+  }
+  initParticipant(merged as ParticipantConfig);
 }
 
 async function pbPublish(opts: PublishOpts = { video: true, audio: true }) {
@@ -396,8 +402,42 @@ function pbClearReceivedData(name: string) {
   topicReceivedData.set(name, []);
 }
 
+function pbGetSdp(): { local: string; remote: string } {
+  const pc = activePC();
+  return {
+    local: pc?.localDescription?.sdp ?? '',
+    remote: pc?.remoteDescription?.sdp ?? '',
+  };
+}
+
+// Raw inbound-rtp video fields (beyond the QoE snapshot) for diagnosing WHERE a
+// stream breaks: assembly vs decode.
+async function pbGetRawInboundVideo(): Promise<any[]> {
+  const pc = activePC();
+  if (!pc) return [];
+  const out: any[] = [];
+  (await pc.getStats()).forEach((s: any) => {
+    if (s.type === 'inbound-rtp' && s.kind === 'video') {
+      out.push({
+        packetsReceived: s.packetsReceived,
+        framesReceived: s.framesReceived,
+        framesAssembledFromMultiplePackets: s.framesAssembledFromMultiplePackets,
+        framesDecoded: s.framesDecoded,
+        keyFramesDecoded: s.keyFramesDecoded,
+        framesDropped: s.framesDropped,
+        framesPerSecond: s.framesPerSecond,
+        pliCount: s.pliCount,
+        nackCount: s.nackCount,
+      });
+    }
+  });
+  return out;
+}
+
 (window as any).__pb = {
   create: pbCreate,
+  getSdp: pbGetSdp,
+  getRawInboundVideo: pbGetRawInboundVideo,
   connect: pbConnect,
   publish: pbPublish,
   unpublish: pbUnpublish,

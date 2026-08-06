@@ -12,6 +12,9 @@ export interface InboundVideoStat {
   ssrc: number;
   framesDecoded: number;
   framesReceived: number;
+  /** Current decode frame rate. Collapses toward ~1 when the receiver cannot
+   * decode (e.g. E2EE that breaks the codec's packetization). */
+  framesPerSecond: number;
   frameWidth: number;
   frameHeight: number;
   freezeCount: number;
@@ -39,6 +42,9 @@ export interface OutboundVideoStat {
   frameHeight: number;
   bytesSent: number;
   packetsSent: number;
+  /** PLI (keyframe) requests this sender has received. A climbing count is the
+   * "PLI storm" — downstream cannot decode and keeps asking for keyframes. */
+  pliCount: number;
 }
 
 export interface OutboundAudioStat {
@@ -77,6 +83,7 @@ export function normalizeStatsReport(
         ssrc: n(s.ssrc),
         framesDecoded: n(s.framesDecoded),
         framesReceived: n(s.framesReceived),
+        framesPerSecond: n(s.framesPerSecond),
         frameWidth: n(s.frameWidth),
         frameHeight: n(s.frameHeight),
         freezeCount: n(s.freezeCount),
@@ -103,6 +110,7 @@ export function normalizeStatsReport(
         frameHeight: n(s.frameHeight),
         bytesSent: n(s.bytesSent),
         packetsSent: n(s.packetsSent),
+        pliCount: n(s.pliCount),
       });
     } else if (s.type === 'outbound-rtp' && s.kind === 'audio') {
       outboundAudio.push({
@@ -128,6 +136,19 @@ export const maxInboundFrameHeight = (s: QoeSnapshot): number =>
 
 export const totalFreezeCount = (s: QoeSnapshot): number =>
   s.inboundVideo.reduce((acc, v) => acc + v.freezeCount, 0);
+
+/** Cumulative frozen time (seconds) across all inbound video SSRCs. */
+export const totalFreezeDuration = (s: QoeSnapshot): number =>
+  s.inboundVideo.reduce((acc, v) => acc + v.totalFreezesDuration, 0);
+
+/** Highest current decode frame rate across inbound video SSRCs. */
+export const maxInboundFps = (s: QoeSnapshot): number =>
+  s.inboundVideo.reduce((acc, v) => Math.max(acc, v.framesPerSecond), 0);
+
+/** Total PLI (keyframe) requests received across outbound video SSRCs — the
+ * publisher-side view of a "PLI storm". */
+export const totalPliCount = (s: QoeSnapshot): number =>
+  s.outboundVideo.reduce((acc, v) => acc + v.pliCount, 0);
 
 /** Cumulative audio energy across all inbound audio SSRCs. */
 export const totalAudioEnergy = (s: QoeSnapshot): number =>

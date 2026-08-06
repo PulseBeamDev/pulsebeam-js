@@ -72,6 +72,14 @@ export class SdkDriver {
     return this.page.evaluate(() => (window as any).__pb.getStats());
   }
 
+  async getSdp(): Promise<{ local: string; remote: string }> {
+    return this.page.evaluate(() => (window as any).__pb.getSdp());
+  }
+
+  async getRawInboundVideo(): Promise<any[]> {
+    return this.page.evaluate(() => (window as any).__pb.getRawInboundVideo());
+  }
+
   async declareTopic(name: string, mode: 'latest' | 'ordered') {
     await this.page.evaluate(
       ([n, m]) => (window as any).__pb.declareTopic(n, m),
