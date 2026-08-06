@@ -17,7 +17,7 @@ declare global {
   interface RTCRtpEncodingParameters {
     active?: boolean;
     maxBitrate?: number;
-    scalabilityMode?: 'L1T2';
+    scalabilityMode?: 'L1T1' | 'L1T2' | 'L1T3';
     dtx?: "enabled" | "disabled";
     maxFramerate?: number;
     scaleResolutionDownBy?: number;

@@ -24,6 +24,7 @@ describe("mapPresetToInternal", () => {
         minFps: 1,
         maxFps: 15,
         baseBitrate: 1_600_000,
+        temporalLayers: 2,
       });
 
       encodings.forEach((e, i) => {
@@ -59,5 +60,13 @@ describe("mapPresetToInternal", () => {
     expect(encodings.map((encoding) => encoding.active)).toEqual([false, true, true]);
     expect(encodings.map((encoding) => encoding.scaleResolutionDownBy)).toEqual([4, 2, 1]);
     expect(encodings.map((encoding) => encoding.maxFramerate)).toEqual([5, 5, 15]);
+  });
+
+  it("declares H.264 temporal scalability per encoding so the SFU can shed frame rate", () => {
+    const motion = mapPresetToInternal(VIDEO_PRESETS.motion);
+    expect(motion.encodings.map((e) => e.scalabilityMode)).toEqual(["L1T3", "L1T3", "L1T3"]);
+
+    const detail = mapPresetToInternal(VIDEO_PRESETS.detail);
+    expect(detail.encodings.map((e) => e.scalabilityMode)).toEqual(["L1T2", "L1T2", "L1T2"]);
   });
 });

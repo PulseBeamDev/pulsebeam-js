@@ -62,6 +62,16 @@ export interface VideoPreset {
   minFps: number;
   maxFps: number;
   baseBitrate: number;
+  /**
+   * Temporal layers per spatial encoding (H.264 `L1T{n}` scalability).
+   *
+   * Each temporal layer roughly doubles the frame rate: `L1T3` sends the base at
+   * `maxFps/4`, then `maxFps/2`, then `maxFps`. libwebrtc encodes these for H.264
+   * and attaches the Dependency Descriptor, which lets the SFU shed frame rate
+   * one temporal step at a time under congestion — far finer than dropping a whole
+   * simulcast layer. `1` disables temporal scalability.
+   */
+  temporalLayers: 1 | 2 | 3;
 }
 
 export type VideoPresetName = "motion" | "detail";
@@ -76,6 +86,9 @@ export const VIDEO_PRESETS: Record<VideoPresetName, VideoPreset> = {
     minFps: 1,
     maxFps: 30,
     baseBitrate: 1_250_000,
+    // Camera/motion benefits most from smooth frame-rate adaptation: L1T3 gives
+    // the SFU 30/15/7.5fps temporal steps to shed under congestion.
+    temporalLayers: 3,
   },
   detail: {
     layers: 2,
@@ -85,6 +98,9 @@ export const VIDEO_PRESETS: Record<VideoPresetName, VideoPreset> = {
     // bitrate budget for resolution/quality instead.
     maxFps: 15,
     baseBitrate: 2_500_000,
+    // Screen content is low-motion; a single temporal step (15/7.5fps) is enough
+    // to shed a little frame rate without spending encoder overhead on a third.
+    temporalLayers: 2,
   },
 };
 
@@ -116,6 +132,12 @@ export function mapPresetToInternal(preset: VideoPreset) {
     { rid: "f", scale: 1, weight: 1.0, detailFramerate: preset.maxFps },
   ] as const;
 
+  // Temporal scalability per spatial encoding. H.264 supports L1T1/L1T2/L1T3;
+  // libwebrtc attaches the Dependency Descriptor so the SFU can shed temporal
+  // layers (frame rate) within a simulcast layer instead of only between layers.
+  const TEMPORAL_MODE = { 1: "L1T1", 2: "L1T2", 3: "L1T3" } as const;
+  const scalabilityMode = TEMPORAL_MODE[preset.temporalLayers];
+
   const encodings = LAYERS.map(({ rid, scale, weight, detailFramerate }, i) => {
     const calculatedBitrate = Math.floor(preset.baseBitrate * weight);
     // Layers are ordered low-to-high, but `preset.layers` counts down from the
@@ -127,6 +149,7 @@ export function mapPresetToInternal(preset: VideoPreset) {
       scaleResolutionDownBy: scale,
       maxBitrate: calculatedBitrate,
       maxFramerate: detailMode ? detailFramerate : preset.maxFps,
+      scalabilityMode,
       active: rankFromHighest < preset.layers,
     } satisfies RTCRtpEncodingParameters;
   });
