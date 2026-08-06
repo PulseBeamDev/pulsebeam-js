@@ -75,8 +75,9 @@ export function Room({ roomId, apiURL, localStream, onLeave }: RoomProps) {
   const screen = useScreenShare(client.aux);
 
   const participant = client.participant ?? null;
-  const { messages, sendMessage } = useChat(participant);
-  const { reactions, sendReaction } = useReactions(participant);
+  const myId = client.participantId ?? null;
+  const { messages, sendMessage } = useChat(participant, myId);
+  const { reactions, sendReaction } = useReactions(participant, myId);
 
   const [latencyMode, setLatencyMode] = useState<string | null>(null);
 
@@ -416,7 +417,7 @@ function ReactionsOverlay({ reactions }: { reactions: { id: string; emoji: strin
 }
 
 function ChatPanel({ messages, onSend }: {
-  messages: { id: string; text: string; self: boolean }[];
+  messages: { id: string; sender: string; text: string; self: boolean }[];
   onSend: (text: string) => void;
 }) {
   const [draft, setDraft] = useState("");
@@ -445,7 +446,10 @@ function ChatPanel({ messages, onSend }: {
             <p className="py-8 text-center text-xs text-muted-foreground">No messages yet</p>
           )}
           {messages.map((m) => (
-            <div key={m.id} className={cn("flex flex-col", m.self ? "items-end" : "items-start")}>
+            <div key={m.id} className={cn("flex flex-col gap-0.5", m.self ? "items-end" : "items-start")}>
+              <span className="px-1 text-[10px] text-muted-foreground">
+                {m.self ? "You" : m.sender}
+              </span>
               <div className={cn(
                 "max-w-[85%] rounded-2xl px-3 py-1.5 text-sm",
                 m.self ? "rounded-br-sm bg-primary text-primary-foreground" : "rounded-bl-sm bg-muted",

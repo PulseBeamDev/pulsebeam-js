@@ -31,6 +31,7 @@ export type PublishClient = StreamPublisherSnapshot;
 
 export type ParticipantSnapshot = ParticipantState & {
   participant: Participant;
+  participantId: string | null;
   main: PublishClient;
   aux: PublishClient;
   connect: Participant["connect"];
@@ -78,7 +79,12 @@ export function createParticipant(
 
     // Bind event listeners
     unsubs = [
-      participant.on(ParticipantEvent.State, (s) => $store.setKey("connectionState", s)),
+      participant.on(ParticipantEvent.State, (s) => {
+        $store.setKey("connectionState", s);
+        // participantId is set after the first successful handshake; sync it here
+        // so React components see it without waiting for a separate event.
+        $store.setKey("participantId", participant.participantId);
+      }),
       participant.on(ParticipantEvent.LocalStreamUpdate, ({ label, audioMuted, videoMuted }) => {
         const publisher = participant[label as "main" | "aux"];
         $store.setKey(label, {
@@ -105,6 +111,7 @@ export function createParticipant(
       videoTracks: [],
       audioTracks: [],
       participant,
+      participantId: participant.participantId,
       main: {
         audioMuted: participant.main.audioMuted,
         videoMuted: participant.main.videoMuted,

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import type { Participant, OrderedTopicPublisher, DataPublisher } from "@pulsebeam/react";
 
 export interface ChatMessage {
@@ -27,9 +27,7 @@ function decode<T>(bytes: Uint8Array): T {
   return JSON.parse(decoder.decode(bytes)) as T;
 }
 
-const MY_ID = Math.random().toString(36).slice(2, 8);
-
-export function useChat(participant: Participant | null) {
+export function useChat(participant: Participant | null, myId: string | null) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const pubRef = useRef<OrderedTopicPublisher | null>(null);
 
@@ -50,7 +48,13 @@ export function useChat(participant: Participant | null) {
           const data = decode<{ sender: string; text: string; ts: number }>(delivery.payload);
           setMessages((prev) => [
             ...prev,
-            { id: `${delivery.publisherId}-${delivery.seq}`, ...data, self: data.sender === MY_ID },
+            {
+              id: `${delivery.publisherId}-${delivery.seq}`,
+              sender: data.sender,
+              text: data.text,
+              ts: data.ts,
+              self: false,
+            },
           ]);
         } catch { /* ignore bad frames */ }
       }
@@ -63,15 +67,21 @@ export function useChat(participant: Participant | null) {
     };
   }, [participant]);
 
-  const sendMessage = (text: string) => {
-    if (!pubRef.current || !text.trim()) return;
-    pubRef.current.send(encode({ sender: MY_ID, text: text.trim(), ts: Date.now() }));
-  };
+  const sendMessage = useCallback((text: string) => {
+    if (!pubRef.current || !text.trim() || !myId) return;
+    const ts = Date.now();
+    pubRef.current.send(encode({ sender: myId, text: text.trim(), ts }));
+    // SFU does not echo your own pub back to your sub — add locally.
+    setMessages((prev) => [
+      ...prev,
+      { id: `self-${ts}`, sender: myId, text: text.trim(), ts, self: true },
+    ]);
+  }, [myId]);
 
   return { messages, sendMessage };
 }
 
-export function useReactions(participant: Participant | null) {
+export function useReactions(participant: Participant | null, myId: string | null) {
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const pubRef = useRef<DataPublisher | null>(null);
 
@@ -103,10 +113,15 @@ export function useReactions(participant: Participant | null) {
     };
   }, [participant]);
 
-  const sendReaction = (emoji: string) => {
-    if (!pubRef.current) return;
-    pubRef.current.send(encode({ emoji, sender: MY_ID, ts: Date.now() }));
-  };
+  const sendReaction = useCallback((emoji: string) => {
+    if (!pubRef.current || !myId) return;
+    const ts = Date.now();
+    pubRef.current.send(encode({ emoji, sender: myId, ts }));
+    // SFU does not echo latest pub back to own sub — add locally.
+    const id = `${myId}-${ts}`;
+    setReactions((prev) => [...prev.slice(-19), { id, emoji, sender: myId, ts }]);
+    setTimeout(() => setReactions((prev) => prev.filter((r) => r.id !== id)), 3000);
+  }, [myId]);
 
   return { reactions, sendReaction };
 }

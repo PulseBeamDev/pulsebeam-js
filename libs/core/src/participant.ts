@@ -217,6 +217,7 @@ export class RemoteVideoTrack {
 class SessionState extends EventEmitter<SessionEvents> {
   resourceUri: string | null = null;
   etag: string | null = null;
+  participantId: string | null = null;
   seq: bigint = 0n;
   tracks: Map<string, Track> = new Map();
   assignments: Map<string, VideoAssignment> = new Map();
@@ -632,7 +633,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   }
 
   get state() { return this._state; }
-  get participantId() { return null; }
+  get participantId() { return this.session.participantId; }
 
   connect(room: string) {
     if (this._state === "closed") throw new Error("Participant closed");
@@ -734,6 +735,11 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
       this.session.resourceUri = location;
       this.session.etag = etag;
+      // Server sends pb-participant-id; fall back to last path segment of Location.
+      this.session.participantId =
+        res.headers.get("pb-participant-id") ??
+        location.split("/").filter(Boolean).at(-1) ??
+        null;
 
       await newTransport.setAnswer(await res.text());
 
