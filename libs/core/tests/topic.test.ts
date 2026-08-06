@@ -277,6 +277,38 @@ describe("OrderedTopicSubscriber", () => {
     expect(result.done).toBe(true);
   });
 
+  it("late-join: does not NACK for history before subscription (no replay)", () => {
+    // Regression: initializing expectedSeq=0n caused a NACK for all messages
+    // the publisher had already sent, replaying them to a subscriber that just joined.
+    const sub = new OrderedTopicSubscriber("events");
+    const dc = makeDc();
+    sub._attachDc(dc as unknown as RTCDataChannel);
+
+    // First message this subscriber ever sees is seq=42 (publisher already has history)
+    dc.receive(encodeDelivery("alice", { streamId: 1n, seq: 42n, payload: new Uint8Array([42]) }));
+
+    // Must NOT have sent a NACK — subscriber starts from seq=42, not 0
+    expect(dc.send).not.toHaveBeenCalled();
+  });
+
+  it("late-join: delivers the first seen message immediately without gap handling", async () => {
+    const sub = new OrderedTopicSubscriber("events");
+    const dc = makeDc();
+    sub._attachDc(dc as unknown as RTCDataChannel);
+
+    dc.receive(encodeDelivery("alice", { streamId: 1n, seq: 42n, payload: new Uint8Array([42]) }));
+    dc.receive(encodeDelivery("alice", { streamId: 1n, seq: 43n, payload: new Uint8Array([43]) }));
+
+    const iter = sub[Symbol.asyncIterator]();
+    const a = await iter.next();
+    const b = await iter.next();
+    expect(a.value.type).toBe("message");
+    expect(b.value.type).toBe("message");
+    if (a.value.type === "message") expect(a.value.seq).toBe(42n);
+    if (b.value.type === "message") expect(b.value.seq).toBe(43n);
+    expect(dc.send).not.toHaveBeenCalled();
+  });
+
   it("ignores duplicate / out-of-order messages", async () => {
     const sub = new OrderedTopicSubscriber("events");
     const dc = makeDc();

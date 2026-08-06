@@ -191,7 +191,11 @@ export class OrderedTopicSubscriber implements AsyncIterable<TopicDelivery> {
       let state = this.perPublisher.get(publisherId);
 
       if (!state) {
-        state = { expectedSeq: 0n, streamId: msg.streamId };
+        // Start from wherever the publisher currently is — no catch-up replay.
+        // Initializing to 0n would trigger a NACK for every message already
+        // sent, replaying the publisher's buffer to a subscriber that never
+        // asked for history.
+        state = { expectedSeq: msg.seq, streamId: msg.streamId };
         this.perPublisher.set(publisherId, state);
       }
 
