@@ -91,16 +91,14 @@ export const VIDEO_PRESETS: Record<VideoPresetName, VideoPreset> = {
     temporalLayers: 3,
   },
   detail: {
-    layers: 2,
+    layers: 1,
     mode: "detail",
-    minFps: 5,
+    minFps: 1,
     // Static screen content rarely needs 30fps; capping lower frees up
     // bitrate budget for resolution/quality instead.
     maxFps: 15,
     baseBitrate: 2_500_000,
-    // Matches the transport's fixed L1T3 (scalabilityMode is set at addTransceiver,
-    // not per preset). Screen at 15fps then sheds to 7.5/3.75fps under congestion.
-    temporalLayers: 3,
+    temporalLayers: 2,
   },
 };
 
