@@ -22,6 +22,13 @@ import { Topic, type TopicTransportHandle } from "./topic";
 const SIGNALING_LABEL = "v1/sys/signaling";
 const SYNC_DEBOUNCE_MS = 300;
 
+// H.264 temporal scalability applied to every send encoding. Fixed at
+// addTransceiver time because Chrome does not reliably let setParameters change
+// scalabilityMode after negotiation; L1T3 gives the SFU 30/15/7.5fps temporal
+// steps to shed. Video presets declare this same value so setParameters stays a
+// no-op for it.
+const DEFAULT_SCALABILITY_MODE = "L1T3" as const;
+
 
 /**
  * Maximum number of video slots available per session.
@@ -321,10 +328,13 @@ class Transport {
       direction: "sendonly",
       // No track is attached yet. syncSenderState activates only the layers
       // selected by the published preset (for example, detail leaves q off).
+      // scalabilityMode must be fixed at negotiation time (Chrome does not reliably
+      // let setParameters change it), so every encoding gets H.264 L1T3 temporal
+      // scalability up front — the SFU then sheds temporal layers via the DD.
       sendEncodings: [
-        { rid: "q", active: false },
-        { rid: "h", active: false },
-        { rid: "f", active: false },
+        { rid: "q", active: false, scalabilityMode: DEFAULT_SCALABILITY_MODE },
+        { rid: "h", active: false, scalabilityMode: DEFAULT_SCALABILITY_MODE },
+        { rid: "f", active: false, scalabilityMode: DEFAULT_SCALABILITY_MODE },
       ]
     });
     this.mainVideoSender = this.mainVideoTransceiver.sender;
@@ -337,9 +347,9 @@ class Transport {
       direction: "sendonly",
       // Keep unused layers paused until a stream and preset are synchronized.
       sendEncodings: [
-        { rid: "q", active: false },
-        { rid: "h", active: false },
-        { rid: "f", active: false },
+        { rid: "q", active: false, scalabilityMode: DEFAULT_SCALABILITY_MODE },
+        { rid: "h", active: false, scalabilityMode: DEFAULT_SCALABILITY_MODE },
+        { rid: "f", active: false, scalabilityMode: DEFAULT_SCALABILITY_MODE },
       ]
     });
     this.auxVideoSender = this.auxVideoTransceiver.sender;
@@ -461,6 +471,10 @@ export async function syncSenderState(
       changed = setSupportedParameter(slot, "scaleResolutionDownBy", config.scaleResolutionDownBy) || changed;
       changed = setSupportedParameter(slot, "maxBitrate", config.maxBitrate) || changed;
       changed = setSupportedParameter(slot, "maxFramerate", config.maxFramerate) || changed;
+      // Normally a no-op: the encoding already carries this from addTransceiver.
+      // Kept so a browser that does honour scalabilityMode changes stays in sync
+      // with the preset, without risking the call on those that do not.
+      changed = setSupportedParameter(slot, "scalabilityMode", config.scalabilityMode) || changed;
     });
     changed = setSupportedParameter(params, "degradationPreference", internal.degradationPreference) || changed;
 

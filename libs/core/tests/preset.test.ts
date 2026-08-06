@@ -62,11 +62,10 @@ describe("mapPresetToInternal", () => {
     expect(encodings.map((encoding) => encoding.maxFramerate)).toEqual([5, 5, 15]);
   });
 
-  it("declares H.264 temporal scalability per encoding so the SFU can shed frame rate", () => {
-    const motion = mapPresetToInternal(VIDEO_PRESETS.motion);
-    expect(motion.encodings.map((e) => e.scalabilityMode)).toEqual(["L1T3", "L1T3", "L1T3"]);
-
-    const detail = mapPresetToInternal(VIDEO_PRESETS.detail);
-    expect(detail.encodings.map((e) => e.scalabilityMode)).toEqual(["L1T2", "L1T2", "L1T2"]);
+  it("declares H.264 L1T3 temporal scalability on every encoding so the SFU can shed frame rate", () => {
+    for (const preset of Object.values(VIDEO_PRESETS)) {
+      const { encodings } = mapPresetToInternal(preset);
+      expect(encodings.map((e) => e.scalabilityMode)).toEqual(["L1T3", "L1T3", "L1T3"]);
+    }
   });
 });

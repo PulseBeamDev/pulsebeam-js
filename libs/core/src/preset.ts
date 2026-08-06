@@ -98,9 +98,9 @@ export const VIDEO_PRESETS: Record<VideoPresetName, VideoPreset> = {
     // bitrate budget for resolution/quality instead.
     maxFps: 15,
     baseBitrate: 2_500_000,
-    // Screen content is low-motion; a single temporal step (15/7.5fps) is enough
-    // to shed a little frame rate without spending encoder overhead on a third.
-    temporalLayers: 2,
+    // Matches the transport's fixed L1T3 (scalabilityMode is set at addTransceiver,
+    // not per preset). Screen at 15fps then sheds to 7.5/3.75fps under congestion.
+    temporalLayers: 3,
   },
 };
 
