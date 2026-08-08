@@ -29,16 +29,24 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # `pnpm dlx playwright` would fetch the LATEST playwright and install browser
+      # revisions for it, which need not match the workspace's pinned
+      # @playwright/test — the mismatch surfaces as "Executable doesn't exist at
+      # .../chromium-XXXX" at run time. Install via each package that runs tests so
+      # the binaries always match the version those tests resolve.
       - name: Install Playwright Browsers
-        run: pnpm dlx playwright install --with-deps chromium
+        run: |
+          pnpm --filter @pulsebeam/web exec playwright install --with-deps chromium
+          pnpm --filter @pulsebeam/react exec playwright install --with-deps chromium
 
       - name: Run Playwright tests
         run: pnpm test
 
+      # The SFU image is pinned by digest in libs/web/tests/playwright.config.ts.
+      # Do NOT set IMAGE_TAG here — a second pin only drifts (this job used to force
+      # `latest`, which does not match the client's signaling.proto).
       - name: Run Playwright tests e2e
         run: pnpm test:e2e
-        env:
-          IMAGE_TAG: latest
 
       - name: Upload All Reports
         uses: actions/upload-artifact@v4
@@ -86,12 +94,11 @@ jobs:
       - name: Lint QoE test guardrails (no fixed sleeps)
         run: pnpm --filter @pulsebeam/web lint
 
+      # No IMAGE_TAG: the SFU is pinned by immutable digest in
+      # libs/web/tests/playwright.config.ts, which is the single source of truth.
+      # Bump it there (and re-run this suite) when the proto or SFU behaviour changes.
       - name: Run QoE E2E (blocking lane, pinned SFU)
         run: pnpm --filter @pulsebeam/web test:e2e:qoe
-        env:
-          # Pinned to the commit whose protocol matches this client. Bump together
-          # with signaling.proto changes (see tests/playwright.config.ts).
-          IMAGE_TAG: 60434c1
 
       - name: Upload QoE report
         uses: actions/upload-artifact@v4

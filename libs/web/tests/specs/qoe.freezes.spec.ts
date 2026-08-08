@@ -1,7 +1,8 @@
 import { test } from '../fixtures';
 import type { SdkDriver } from '../utils/participant-driver';
-import { waitFor } from '../utils/wait';
+import { waitFor, waitForStats } from '../utils/wait';
 import { expectReceivingVideo, expectSmoothVideo, expectConnected } from '../utils/matchers';
+import { maxInboundFrameHeight } from '../utils/qoe';
 
 /**
  * Freeze QA — the property users actually feel. libwebrtc reports a freeze when
@@ -74,7 +75,13 @@ test.describe('QoE — freeze budget', () => {
       subscriber,
       async () => {
         await subscriber.subscribe(publisherId, { height: 180 });
-        await new Promise((r) => setTimeout(r, 2_500));
+        // Wait for the downswitch to actually land rather than guessing at a
+        // duration — on a slow runner a fixed sleep can expire before the SFU has
+        // switched, so the "switch back up" would test nothing.
+        await waitForStats(subscriber, (s) => maxInboundFrameHeight(s) <= 360, {
+          timeout: 15_000,
+          message: 'SFU never switched down to the low simulcast layer',
+        });
         await subscriber.subscribe(publisherId, { height: 720 });
       },
       { window: 10_000, maxFreezes: 2, maxFreezeSeconds: 1.5, minFramesDelta: 120 },

@@ -123,7 +123,22 @@ test.describe('Participant Manager', () => {
     expect(pageErrors).toHaveLength(0);
   });
 
-  test('publishing local media yields tracks and cleans up on leave', async ({ driver }) => {
+  // The track counters render `state.videoTracks`, which is RemoteVideoTrack[]
+  // (libs/core/src/store.ts) — REMOTE tracks only. A lone participant therefore
+  // never sees a track of its own, so this needs a second participant publishing
+  // into the same room, and that room must be unique: relying on the shared
+  // default room made this pass only when an earlier test happened to leave a
+  // participant behind, which is exactly the "1 flaky" this lane reported on
+  // every run. Same shape as tracks.spec.ts.
+  test('publishing local media yields tracks and cleans up on leave', async ({ driver, createDriver }) => {
+    const roomId = `participant-media-${Math.random().toString(36).substring(7)}`;
+
+    const publisher = await createDriver();
+    await publisher.setRoomId(roomId);
+    await publisher.join();
+    await publisher.waitForConnectionState(/connected/);
+
+    await driver.setRoomId(roomId);
     await driver.join();
     await driver.waitForConnectionState(/connecting|connected|failed/);
 

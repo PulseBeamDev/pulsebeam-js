@@ -1,8 +1,8 @@
 import { test, expect } from '../fixtures';
 import type { SdkDriver } from '../utils/participant-driver';
-import { waitFor } from '../utils/wait';
+import { waitFor, waitForStats } from '../utils/wait';
 import { expectConnected } from '../utils/matchers';
-import { maxInboundFps, totalPliCount } from '../utils/qoe';
+import { maxInboundFps, totalFramesDecoded, totalPliCount } from '../utils/qoe';
 
 /**
  * End-to-end media encryption via encoded transforms.
@@ -29,6 +29,11 @@ const KEY = Array.from({ length: 16 }, (_, i) => (i * 17 + 3) & 0xff);
 // Default on: assume the SFU under test forwards on the Dependency Descriptor.
 // Set SFU_HAS_DD_NATIVE=0 for a legacy (bitstream-inspecting) SFU image.
 const DD_NATIVE_SFU = process.env.SFU_HAS_DD_NATIVE !== '0';
+
+// Frames the subscriber must actually decode before fps/PLI are judged — a
+// condition-based stand-in for "let it run a few seconds" (~5s at 30fps). Fixed
+// sleeps are ESLint-banned in this suite because they are the top cause of flake.
+const DECODE_WINDOW_FRAMES = 150;
 
 async function firstDiscoveredPublisher(sub: SdkDriver): Promise<string> {
   let participantId = '';
@@ -98,12 +103,38 @@ test.describe('QoE — E2EE encoded transforms', () => {
 
     // The payload is opaque, so the SFU can only forward this by reading keyframes
     // from the Dependency Descriptor. Bytes arriving prove that path works.
-    await expect
-      .poll(async () => {
-        const s = await subscriber.getStats();
-        return s.inboundVideo.reduce((acc, v) => acc + v.bytesReceived, 0);
-      }, { timeout: 20_000 })
-      .toBeGreaterThan(0);
+    //
+    // Staged so a failure names the broken hop instead of reporting a bare
+    // "Received: 0" that could mean any of three different regressions.
+    await waitForStats(
+      publisher,
+      (s) => s.outboundVideo.reduce((acc, v) => acc + v.bytesSent, 0) > 0,
+      {
+        timeout: 20_000,
+        message:
+          'publisher never sent encrypted video — the encrypt transform is dropping ' +
+          'every frame (client-side bug, the SFU is not involved yet)',
+      },
+    );
+
+    // NOTE: deliberately NOT staged on packetsReceived. Verified against the
+    // pre-DD-native SFU (IMAGE_TAG=60434c1): packets still arrive (padding and
+    // bandwidth-probe RTP), so packetsReceived > 0 holds even when zero media is
+    // forwarded. bytesReceived is the only stat that discriminates here.
+    await waitForStats(
+      subscriber,
+      (s) => s.inboundVideo.reduce((acc, v) => acc + v.bytesReceived, 0) > 0,
+      {
+        timeout: 20_000,
+        message:
+          'the SFU forwarded no media for an opaque stream. The pinned SFU is ' +
+          'probably not DD-native: a bitstream-inspecting build never finds a ' +
+          'keyframe in the ciphertext and forwards nothing. Bump SFU_DIGEST in ' +
+          'tests/playwright.config.ts to a DD-native build (or set ' +
+          'SFU_HAS_DD_NATIVE=0 to skip this test against a legacy SFU). If ' +
+          'qoe.dd.spec.ts also fails, the regression is client-side instead.',
+      },
+    );
   });
 
   // KNOWN-FAILING GUARD for the browser E2EE bug users hit: with encryption on,
@@ -135,9 +166,23 @@ test.describe('QoE — E2EE encoded transforms', () => {
     const publisherId = await firstDiscoveredPublisher(subscriber);
     await subscriber.subscribe(publisherId, { height: 720 });
 
-    // Let the stream run so decode fps and PLI counts stabilize.
+    // Observe a real decode window instead of sleeping: wait until the subscriber
+    // has actually decoded DECODE_WINDOW_FRAMES frames, which both proves the
+    // stream ran and scales with the machine. When decode has collapsed (the
+    // tracked bug) the frames never arrive and this fails — which is the point.
     const pliBefore = totalPliCount(await publisher.getStats());
-    await new Promise((r) => setTimeout(r, 10_000));
+    const framesBefore = totalFramesDecoded(await subscriber.getStats());
+    await waitForStats(
+      subscriber,
+      (s) => totalFramesDecoded(s) - framesBefore >= DECODE_WINDOW_FRAMES,
+      {
+        timeout: 20_000,
+        message:
+          `subscriber never decoded ${DECODE_WINDOW_FRAMES} encrypted frames — ` +
+          'H.264 decode is collapsed (encrypting the payload breaks the ' +
+          'packetize→depacketize round-trip)',
+      },
+    );
 
     const sub = await subscriber.getStats();
     const pub = await publisher.getStats();
@@ -175,7 +220,17 @@ test.describe('QoE — E2EE encoded transforms', () => {
     await subscriber.subscribe(publisherId, { height: 720 });
 
     const pliBefore = totalPliCount(await publisher.getStats());
-    await new Promise((r) => setTimeout(r, 10_000));
+    const framesBefore = totalFramesDecoded(await subscriber.getStats());
+    await waitForStats(
+      subscriber,
+      (s) => totalFramesDecoded(s) - framesBefore >= DECODE_WINDOW_FRAMES,
+      {
+        timeout: 20_000,
+        message:
+          `subscriber never decoded ${DECODE_WINDOW_FRAMES} encrypted VP9 frames — ` +
+          'DD-based frame assembly is not working',
+      },
+    );
 
     const raw = await subscriber.getRawInboundVideo();
     const sub = await subscriber.getStats();

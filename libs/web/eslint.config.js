@@ -29,6 +29,15 @@ export default tseslint.config({
         message:
           'No promise-wrapped setTimeout sleeps. Use waitForStats()/waitFor()/expect.poll().',
       },
+      {
+        // The form the rule above misses: `await new Promise(r => setTimeout(r, n))`
+        // is a NewExpression, not a CallExpression, so it slipped past the guardrail
+        // and put two 10s sleeps into qoe.e2ee.spec.ts unnoticed.
+        selector: "NewExpression[callee.name='Promise'] CallExpression[callee.name='setTimeout']",
+        message:
+          'No promise-wrapped setTimeout sleeps (`await new Promise(r => setTimeout(r, n))`). ' +
+          'Use waitForStats()/waitFor()/expect.poll() to wait on a condition.',
+      },
     ],
   },
 });

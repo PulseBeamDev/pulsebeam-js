@@ -24,8 +24,14 @@ export default defineConfig({
         },
     ],
     webServer: {
-        command: 'npm run dev',
+        // `pnpm dev` is `vite build --watch` (a library build) and never binds a
+        // port — `playground` is the dev server that serves index.html. --strictPort
+        // so a port clash fails loudly instead of silently moving the app.
+        command: 'pnpm playground --port 5173 --strictPort',
         url: 'http://localhost:5173',
         reuseExistingServer: !process.env.CI,
+        timeout: 120000,
+        stdout: 'pipe',
+        stderr: 'pipe',
     },
 });

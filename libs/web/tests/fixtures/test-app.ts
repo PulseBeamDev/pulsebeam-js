@@ -354,6 +354,31 @@ async function pbGetStats(): Promise<QoeSnapshot> {
 }
 
 /**
+ * The scalabilityMode the browser ACTUALLY applied to each video send encoding.
+ * The preset asks for L1T{n} at negotiation time, but a later setParameters retune
+ * can be rejected (the SDK only warns), so the applied value is the only
+ * trustworthy source — and it decides whether libwebrtc attaches a Dependency
+ * Descriptor at all.
+ */
+function pbGetVideoEncodings(): Array<{ rid?: string; active: boolean; scalabilityMode?: string }> {
+  const pc = activePC();
+  if (!pc) return [];
+  const out: Array<{ rid?: string; active: boolean; scalabilityMode?: string }> = [];
+  for (const sender of pc.getSenders()) {
+    if (sender.track?.kind !== 'video') continue;
+    for (const enc of sender.getParameters().encodings ?? []) {
+      out.push({
+        rid: enc.rid,
+        active: enc.active !== false,
+        scalabilityMode: (enc as RTCRtpEncodingParameters & { scalabilityMode?: string })
+          .scalabilityMode,
+      });
+    }
+  }
+  return out;
+}
+
+/**
  * Declare a topic publisher and/or subscriber on the current participant.
  * `mode: 'latest'` = unreliable/fire-and-forget; `mode: 'ordered'` = reliable+NACK.
  * Received payloads accumulate in `getReceivedData(name)`.
@@ -438,6 +463,7 @@ async function pbGetRawInboundVideo(): Promise<any[]> {
   create: pbCreate,
   getSdp: pbGetSdp,
   getRawInboundVideo: pbGetRawInboundVideo,
+  getVideoEncodings: pbGetVideoEncodings,
   connect: pbConnect,
   publish: pbPublish,
   unpublish: pbUnpublish,

@@ -1,11 +1,21 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// Pin the SFU to a specific commit build — the protocol has breaking changes, so
-// `latest`/`v0.4.6` will not match the client's signaling.proto. The registry tags
-// each build with its short commit hash, so the tag IS the commit. Bump this pin
-// deliberately whenever the proto changes.
-const imageTag = process.env.IMAGE_TAG || '60434c1';
-const imageName = `ghcr.io/pulsebeamdev/pulsebeam:${imageTag}`;
+// Pin the SFU by DIGEST, not tag. The protocol has breaking changes (so
+// `latest`/`v0.4.6` will not match the client's signaling.proto), and tags are
+// mutable — `main` moves under us and branch tags like `dd-native` disappear once
+// merged. A digest is immutable, so what CI runs is exactly what was verified here.
+//
+// This pin is the SINGLE source of truth: the workflows deliberately do NOT set
+// IMAGE_TAG. Bump it only after running the QoE suite green against the new digest.
+// Requirements of the pinned build: signaling.proto compatible, and DD-native
+// forwarding (forwards on the Dependency Descriptor) — see qoe.e2ee.spec.ts.
+const SFU_DIGEST =
+  'sha256:abc4ca7d7c25ef9fdfd32e6d96ac14c8220e0fa934077834fca8bcb75871c7bd';
+// Escape hatch for the nightly drift-detector, which deliberately tests a moving
+// tag (`main`) to catch server-side breakage before it reaches a pin.
+const imageName = process.env.IMAGE_TAG
+  ? `ghcr.io/pulsebeamdev/pulsebeam:${process.env.IMAGE_TAG}`
+  : `ghcr.io/pulsebeamdev/pulsebeam@${SFU_DIGEST}`;
 
 // The @flaky lane (netem/chaos) runs only when explicitly requested, so the default
 // (blocking) run stays near-zero flake. CI runs the flaky job with RUN_FLAKY=1.
@@ -66,9 +76,16 @@ export default defineConfig({
       timeout: 120000,
     },
     {
-      command: `podman run --rm --name sfu-test --net=host ${imageName} --dev`,
+      // --replace so a leftover container from an interrupted run (or a concurrent
+      // turbo lane) fails the run with a real error instead of "name already in use".
+      command: `podman run --rm --replace --name sfu-test --net=host ${imageName} --dev`,
       url: 'http://localhost:6060/healthz',
-      reuseExistingServer: !process.env.CI,
+      // NEVER reuse, not even locally. /healthz reports liveness but not identity
+      // (no version/build endpoint exists), so reusing "whatever is listening on
+      // 6060" silently tests an unknown image — a stale container from another
+      // image made this suite look green locally while CI failed. --replace makes
+      // taking the port over safe, so always start the pinned image.
+      reuseExistingServer: false,
       timeout: 120000,
     }
   ],

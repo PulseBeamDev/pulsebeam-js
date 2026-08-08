@@ -82,6 +82,9 @@ export interface SmoothVideoOpts {
   minFramesDelta?: number;
 }
 
+/** How often freeze counters are sampled inside a measurement window. */
+const SAMPLE_TICK_MS = 250;
+
 /**
  * Assert video stays SMOOTH across a disruption: run `disrupt` (e.g. a simulcast
  * layer switch), then over a window require decoded frames to keep growing while
@@ -105,9 +108,32 @@ export async function expectSmoothVideo(
   const framesBase = totalFramesDecoded(before);
 
   await disrupt();
-  await new Promise((r) => setTimeout(r, window));
 
-  const after = await driver.getStats();
+  // `window` is a MEASUREMENT interval, not a readiness sleep: freezes have to be
+  // observed over a span of time, and ending early the moment enough frames decode
+  // would blind us to a freeze later in the window. So we sample continuously for
+  // the full window rather than sleeping through it — same coverage, but a blown
+  // freeze budget aborts immediately with a precise message instead of surfacing
+  // as an opaque assertion at the end.
+  const deadline = Date.now() + window;
+  let after = before;
+  while (Date.now() < deadline) {
+    // Sampling tick inside a measurement window, not a wait-for-readiness sleep:
+    // the banned pattern is sleeping INSTEAD of polling a condition, whereas this
+    // polls the freeze counters on every tick.
+    // eslint-disable-next-line no-restricted-syntax
+    await driver.page.waitForTimeout(Math.min(SAMPLE_TICK_MS, deadline - Date.now()));
+    after = await driver.getStats();
+    const frozenSoFar = totalFreezeDuration(after) - durBase;
+    expect(
+      totalFreezeCount(after) - freezeBase,
+      `freeze events within ${window}ms window`,
+    ).toBeLessThanOrEqual(maxFreezes);
+    expect(frozenSoFar, `frozen seconds within ${window}ms window`).toBeLessThanOrEqual(
+      maxFreezeSeconds,
+    );
+  }
+
   const freezes = totalFreezeCount(after) - freezeBase;
   const frozenSeconds = totalFreezeDuration(after) - durBase;
   const frames = totalFramesDecoded(after) - framesBase;

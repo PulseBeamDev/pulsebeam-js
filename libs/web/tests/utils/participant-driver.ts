@@ -80,6 +80,13 @@ export class SdkDriver {
     return this.page.evaluate(() => (window as any).__pb.getRawInboundVideo());
   }
 
+  /** scalabilityMode actually applied per video send encoding (see qoe.dd.spec.ts). */
+  async getVideoEncodings(): Promise<
+    Array<{ rid?: string; active: boolean; scalabilityMode?: string }>
+  > {
+    return this.page.evaluate(() => (window as any).__pb.getVideoEncodings());
+  }
+
   async declareTopic(name: string, mode: 'latest' | 'ordered') {
     await this.page.evaluate(
       ([n, m]) => (window as any).__pb.declareTopic(n, m),
