@@ -334,6 +334,7 @@ function pbSubscribe(participantId: string, opts: SubscribeOpts = {}): number {
 function pbGetState() {
   const s = participant.get();
   return {
+    participantId: participant.get().participantId,
     connectionState: s.connectionState as string,
     videoTracks: (s.videoTracks as any[]).map((t) => ({
       id: t.id, participantId: t.participantId, height: t.height, paused: t.paused,
@@ -342,6 +343,15 @@ function pbGetState() {
     videoMuted: s.main.videoMuted as boolean,
     audioMuted: s.main.audioMuted as boolean,
   };
+}
+
+function pbGetVideoBindings() {
+  return (participant.get().videoTracks as any[]).map((t) => ({
+    id: t.id,
+    participantId: t.participantId,
+    paused: t.paused,
+    streamTracks: t.stream.getVideoTracks().length,
+  }));
 }
 
 async function pbGetStats(): Promise<QoeSnapshot> {
@@ -471,6 +481,7 @@ async function pbGetRawInboundVideo(): Promise<any[]> {
   mute: pbMute,
   subscribe: pbSubscribe,
   getState: pbGetState,
+  getVideoBindings: pbGetVideoBindings,
   getStats: pbGetStats,
   declareTopic: pbDeclareTopic,
   publishData: pbPublishData,

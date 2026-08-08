@@ -261,6 +261,9 @@ class SessionState extends EventEmitter<SessionEvents> {
       this.emit("track_removed", { trackId: id });
     }
     this.tracks.delete(id);
+    for (const [mid, assignment] of this.assignments) {
+      if (assignment.trackId === id) this.assignments.delete(mid);
+    }
   }
 
   applyUpdate(u: StateUpdate) {
@@ -946,7 +949,6 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   private routePhysicalToVirtual() {
     if (!this.transport) return;
     const activeStreams = new Map<string, MediaStreamTrack>();
-    const pausedTrackIds = new Set<string>();
 
     for (const slot of this.transport.videoSlots) {
       const mid = slot.mid;
@@ -955,16 +957,14 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       const assign = this.session.assignments.get(mid);
       if (!assign || !this.session.tracks.has(assign.trackId)) continue;
 
-      if (assign.paused) {
-        pausedTrackIds.add(assign.trackId);
-      } else {
+      if (!assign.paused) {
         activeStreams.set(assign.trackId, slot.receiver.track);
       }
     }
 
     for (const rvt of this.session.remoteVideoTracks.values()) {
       const track = activeStreams.get(rvt.id);
-      const isPaused = pausedTrackIds.has(rvt.id);
+      const isPaused = track === undefined;
 
       if (rvt.paused !== isPaused) {
         rvt.paused = isPaused;

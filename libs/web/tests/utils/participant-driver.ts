@@ -4,11 +4,19 @@ import { TEST_TIMEOUTS } from '../fixtures/test-data';
 import type { QoeSnapshot } from './qoe';
 
 export interface HarnessState {
+  participantId: string | null;
   connectionState: string;
   videoTracks: Array<{ id: string; participantId: string; height: number; paused: boolean }>;
   audioTracks: Array<{ id: string }>;
   videoMuted: boolean;
   audioMuted: boolean;
+}
+
+export interface VideoBindingState {
+  id: string;
+  participantId: string;
+  paused: boolean;
+  streamTracks: number;
 }
 
 /**
@@ -66,6 +74,10 @@ export class SdkDriver {
 
   async getState(): Promise<HarnessState> {
     return this.page.evaluate(() => (window as any).__pb.getState());
+  }
+
+  async getVideoBindings(): Promise<VideoBindingState[]> {
+    return this.page.evaluate(() => (window as any).__pb.getVideoBindings());
   }
 
   async getStats(): Promise<QoeSnapshot> {

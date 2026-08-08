@@ -16,6 +16,7 @@ const SFU_DIGEST =
 const imageName = process.env.IMAGE_TAG
   ? `ghcr.io/pulsebeamdev/pulsebeam:${process.env.IMAGE_TAG}`
   : `ghcr.io/pulsebeamdev/pulsebeam@${SFU_DIGEST}`;
+const useLocalSfu = process.env.PULSEBEAM_LOCAL_SFU === '1';
 
 // The @flaky lane (netem/chaos) runs only when explicitly requested, so the default
 // (blocking) run stays near-zero flake. CI runs the flaky job with RUN_FLAKY=1.
@@ -75,7 +76,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 120000,
     },
-    {
+    ...(!useLocalSfu ? [{
       // --replace so a leftover container from an interrupted run (or a concurrent
       // turbo lane) fails the run with a real error instead of "name already in use".
       command: `podman run --rm --replace --name sfu-test --net=host ${imageName} --dev`,
@@ -87,6 +88,6 @@ export default defineConfig({
       // taking the port over safe, so always start the pinned image.
       reuseExistingServer: false,
       timeout: 120000,
-    }
+    }] : [])
   ],
 });
