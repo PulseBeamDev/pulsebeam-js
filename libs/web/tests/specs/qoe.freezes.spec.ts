@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures';
+import { test } from '../fixtures';
 import type { SdkDriver } from '../utils/participant-driver';
 import { waitFor } from '../utils/wait';
 import { expectReceivingVideo, expectSmoothVideo, expectConnected } from '../utils/matchers';
@@ -44,7 +44,7 @@ test.describe('QoE — freeze budget', () => {
     await expectReceivingVideo(subscriber, { minFramesDelta: 30, minHeight: 240 });
 
     // No disruption — just soak and confirm smoothness.
-    await expectSmoothVideo(subscriber, async () => {}, {
+    await expectSmoothVideo(subscriber, async () => { }, {
       window: 8_000,
       maxFreezes: 1,
       maxFreezeSeconds: 1.0,
