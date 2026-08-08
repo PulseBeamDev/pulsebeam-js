@@ -16,6 +16,13 @@ export interface Reaction {
   ts: number;
 }
 
+interface ReactionPayload {
+  id?: string;
+  emoji: string;
+  sender: string;
+  ts: number;
+}
+
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -25,6 +32,11 @@ function encode(obj: unknown): Uint8Array {
 
 function decode<T>(bytes: Uint8Array): T {
   return JSON.parse(decoder.decode(bytes)) as T;
+}
+
+function reactionId(data: ReactionPayload): string {
+  // Keep accepting payloads from older clients that did not include an id.
+  return data.id ?? `${data.sender}-${data.ts}`;
 }
 
 export function useChat(participant: Participant | null, myId: string | null) {
@@ -84,6 +96,25 @@ export function useChat(participant: Participant | null, myId: string | null) {
 export function useReactions(participant: Participant | null, myId: string | null) {
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const pubRef = useRef<DataPublisher | null>(null);
+  const reactionCounterRef = useRef(0);
+  const reactionTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+
+  const showReaction = useCallback((data: ReactionPayload) => {
+    const id = reactionId(data);
+    setReactions((prev) => {
+      // The SFU forwards an unscoped subscription back to its publisher. The
+      // local optimistic render and that echoed frame represent one event.
+      if (prev.some((reaction) => reaction.id === id)) return prev;
+      return [...prev.slice(-19), { id, emoji: data.emoji, sender: data.sender, ts: data.ts }];
+    });
+
+    if (reactionTimersRef.current.has(id)) return;
+    const timer = setTimeout(() => {
+      reactionTimersRef.current.delete(id);
+      setReactions((prev) => prev.filter((reaction) => reaction.id !== id));
+    }, 3000);
+    reactionTimersRef.current.set(id, timer);
+  }, []);
 
   useEffect(() => {
     if (!participant) return;
@@ -98,10 +129,7 @@ export function useReactions(participant: Participant | null, myId: string | nul
       for await (const bytes of sub) {
         if (!active) break;
         try {
-          const data = decode<{ emoji: string; sender: string; ts: number }>(bytes);
-          const id = `${data.sender}-${data.ts}`;
-          setReactions((prev) => [...prev.slice(-19), { id, ...data }]);
-          setTimeout(() => setReactions((prev) => prev.filter((r) => r.id !== id)), 3000);
+          showReaction(decode<ReactionPayload>(bytes));
         } catch { /* ignore bad frames */ }
       }
     })();
@@ -110,18 +138,24 @@ export function useReactions(participant: Participant | null, myId: string | nul
       active = false;
       sub.close();
       pubRef.current = null;
+      for (const timer of reactionTimersRef.current.values()) clearTimeout(timer);
+      reactionTimersRef.current.clear();
+      setReactions([]);
     };
-  }, [participant]);
+  }, [participant, showReaction]);
 
   const sendReaction = useCallback((emoji: string) => {
     if (!pubRef.current || !myId) return;
     const ts = Date.now();
-    pubRef.current.send(encode({ emoji, sender: myId, ts }));
-    // SFU does not echo latest pub back to own sub — add locally.
-    const id = `${myId}-${ts}`;
-    setReactions((prev) => [...prev.slice(-19), { id, emoji, sender: myId, ts }]);
-    setTimeout(() => setReactions((prev) => prev.filter((r) => r.id !== id)), 3000);
-  }, [myId]);
+    const reaction = {
+      id: `${myId}-${ts}-${reactionCounterRef.current++}`,
+      emoji,
+      sender: myId,
+      ts,
+    };
+    pubRef.current.send(encode(reaction));
+    showReaction(reaction);
+  }, [myId, showReaction]);
 
   return { reactions, sendReaction };
 }
