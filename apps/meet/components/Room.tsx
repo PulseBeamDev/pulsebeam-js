@@ -69,7 +69,8 @@ interface RoomProps {
 }
 
 export function Room({ roomId, apiURL, localStream, encryptionKey, onLeave }: RoomProps) {
-  const [spotlightId, setSpotlightId] = useState<string | "local">("local");
+  // null = auto: prefer a remote participant, fall back to local self-view
+  const [pinnedId, setPinnedId] = useState<string | "local" | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
 
   const client = useParticipant(useMemo(
@@ -99,12 +100,13 @@ export function Room({ roomId, apiURL, localStream, encryptionKey, onLeave }: Ro
     setLatencyMode(label);
   };
 
-  // Handle spotlight fallback if participant leaves
-  useEffect(() => {
-    if (spotlightId !== "local" && !client.videoTracks.some((t: any) => t.id === spotlightId)) {
-      setSpotlightId("local");
-    }
-  }, [client.videoTracks, spotlightId]);
+  // Remote participants get the big screen; local is only a fallback. An explicit
+  // pin wins until that feed goes away.
+  const spotlightId = useMemo<string | "local">(() => {
+    if (pinnedId === "local") return "local";
+    if (pinnedId && client.videoTracks.some((t: any) => t.id === pinnedId)) return pinnedId;
+    return client.videoTracks[0]?.id ?? "local";
+  }, [client.videoTracks, pinnedId]);
 
   const spotlightTrack = client.videoTracks.find((t: any) => t.id === spotlightId);
 
@@ -163,7 +165,7 @@ export function Room({ roomId, apiURL, localStream, encryptionKey, onLeave }: Ro
               tracks={client.videoTracks}
               localStream={localStream}
               spotlightId={spotlightId}
-              onSelect={setSpotlightId}
+              onSelect={setPinnedId}
             />
           </aside>
 
