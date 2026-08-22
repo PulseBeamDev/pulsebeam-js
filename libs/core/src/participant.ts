@@ -1,17 +1,21 @@
 import {
   ClientMessageSchema,
   ServerMessageSchema,
-  VideoRequestSchema,
-  type VideoAssignment,
-  type StateUpdate,
-  type VideoRequest,
-  type Track,
+  VideoIntentSchema,
+  type AudioBinding,
+  type Publication,
+  type ServerState,
+  type VideoBinding,
+  type VideoIntent,
   type ClientMessage,
   type ClientIntent,
-  type UpstreamIntent,
-  UpstreamIntentSchema,
+  type PublishIntent,
+  PublishIntentSchema,
+  AudioIntentSchema,
   ClientIntentSchema,
+  ExtensionsSchema,
   PlayoutDelaySchema,
+  TrackKind,
 } from "./gen/signaling_pb";
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 import type { PlatformAdapter } from "./platform";
@@ -157,9 +161,14 @@ export class LocalMediaStream {
 }
 
 export class RemoteAudioTrack {
-  constructor(public readonly stream: MediaStream) { }
+  constructor(
+    public readonly stream: MediaStream,
+    public readonly trackId: string = stream.id,
+    public readonly participantId: string | null = null,
+    public levelDbov: number = 0,
+  ) { }
 
-  get id() { return this.stream.id; }
+  get id() { return this.trackId; }
 }
 
 const VIDEO_LAYERS = [0, 90, 180, 360, 540, 720, 1080];
@@ -172,18 +181,20 @@ export class RemoteVideoTrack {
   public height: number = 0;
   /** Floor render height (px) to keep under contention; 0 = droppable. */
   public minHeight: number = 0;
-  /** Contention importance; higher keeps/gains quality first. See VideoRequest. */
+  /** Floor frame rate for temporal scalability; 0 = no temporal floor. */
+  public minFps: number = 0;
+  /** Contention importance; higher keeps/gains quality first. See VideoIntent. */
   public priority: number = 0;
   public paused: boolean = true;
   public onLayoutChange?: () => void;
   public onPausedChange?: (paused: boolean) => void;
 
   constructor(
-    public readonly track: Track,
+    public readonly track: Publication,
     public readonly stream: MediaStream
   ) { }
 
-  get id() { return this.track.id; }
+  get id() { return this.track.trackId; }
   get participantId() { return this.track.participantId; }
 
   setHeight(h: number) {
@@ -205,9 +216,17 @@ export class RemoteVideoTrack {
     this.onLayoutChange?.();
   }
 
+  /** Lowest frame rate to keep for a scalable stream under contention. */
+  setMinFps(fps: number) {
+    const minFps = Math.max(0, Math.trunc(fps));
+    if (this.minFps === minFps) return;
+    this.minFps = minFps;
+    this.onLayoutChange?.();
+  }
+
   /**
    * Relative importance for bandwidth contention (higher = keeps/gains quality
-   * first). Drive it from focus/active-speaker/etc. See `VideoRequest.priority`.
+   * first). Drive it from focus/active-speaker/etc. See `VideoIntent.priority`.
    */
   setPriority(p: number) {
     const priority = Math.max(0, Math.trunc(p));
@@ -232,20 +251,20 @@ class SessionState extends EventEmitter<SessionEvents> {
   resourceUri: string | null = null;
   etag: string | null = null;
   participantId: string | null = null;
-  seq: bigint = 0n;
-  tracks: Map<string, Track> = new Map();
-  assignments: Map<string, VideoAssignment> = new Map();
+  publications: Map<string, Publication> = new Map();
+  videoBindings: Map<string, VideoBinding> = new Map();
+  audioBindings: Map<string, AudioBinding> = new Map();
   remoteVideoTracks: Map<string, RemoteVideoTrack> = new Map();
 
   constructor(private adapter: PlatformAdapter) {
     super();
   }
 
-  getOrCreateVideoTrack(trackData: Track): RemoteVideoTrack {
-    let remoteTrack = this.remoteVideoTracks.get(trackData.id);
+  getOrCreateVideoTrack(publication: Publication): RemoteVideoTrack {
+    let remoteTrack = this.remoteVideoTracks.get(publication.trackId);
     if (!remoteTrack) {
       const stream = new this.adapter.MediaStream();
-      remoteTrack = new RemoteVideoTrack(trackData, stream);
+      remoteTrack = new RemoteVideoTrack(publication, stream);
       remoteTrack.onLayoutChange = () => this.emit("update_needed", {});
       this.remoteVideoTracks.set(remoteTrack.id, remoteTrack);
       this.emit("track_added", { track: remoteTrack });
@@ -253,42 +272,45 @@ class SessionState extends EventEmitter<SessionEvents> {
     return remoteTrack;
   }
 
-  removeTrack(id: string) {
+  removePublication(id: string) {
     const track = this.remoteVideoTracks.get(id);
     if (track) {
       track.clearStream();
       this.remoteVideoTracks.delete(id);
       this.emit("track_removed", { trackId: id });
     }
-    this.tracks.delete(id);
-    for (const [mid, assignment] of this.assignments) {
-      if (assignment.trackId === id) this.assignments.delete(mid);
-    }
+    this.publications.delete(id);
+    this.videoBindings.forEach((binding, mid) => {
+      if (binding.trackId === id) this.videoBindings.delete(mid);
+    });
+    this.audioBindings.forEach((binding, mid) => {
+      if (binding.trackId === id) this.audioBindings.delete(mid);
+    });
   }
 
-  applyUpdate(u: StateUpdate) {
-    const seq = u.seq;
-
-    if (u.isSnapshot) {
-      const incomingIds = new Set(u.tracksUpsert.map((t) => t.id));
-      for (const id of this.tracks.keys()) {
-        if (!incomingIds.has(id)) this.removeTrack(id);
+  applyState(state: ServerState) {
+    for (const id of state.publicationsRemoved) {
+      this.removePublication(id);
+    }
+    for (const publication of state.publicationsAdded) {
+      this.publications.set(publication.trackId, publication);
+      if (publication.kind === TrackKind.VIDEO) {
+        this.getOrCreateVideoTrack(publication);
       }
-      this.assignments.clear();
     }
 
-    u.tracksRemove.forEach((id) => this.removeTrack(id));
-    u.tracksUpsert.forEach((t) => {
-      if (!this.tracks.has(t.id) && !this.remoteVideoTracks.has(t.id)) {
-        this.getOrCreateVideoTrack(t);
+    if (state.video) {
+      this.videoBindings.clear();
+      for (const binding of state.video.items) {
+        this.videoBindings.set(binding.mid, binding);
       }
-      this.tracks.set(t.id, t);
-    });
-
-    u.assignmentsRemove.forEach((mid) => this.assignments.delete(mid));
-    u.assignmentsUpsert.forEach((a) => this.assignments.set(a.mid, a));
-
-    this.seq = seq;
+    }
+    if (state.audio) {
+      this.audioBindings.clear();
+      for (const binding of state.audio.items) {
+        this.audioBindings.set(binding.mid, binding);
+      }
+    }
   }
 }
 
@@ -297,6 +319,11 @@ class UpstreamState {
   videoPreset: VideoPreset = VIDEO_PRESETS["motion"];
   audioPreset: AudioPresetConfig = AUDIO_PRESETS["speech"];
 }
+
+type AudioIntentState = {
+  pinned: string[];
+  auto: boolean;
+};
 
 class Transport {
   readonly pc: RTCPeerConnection;
@@ -420,16 +447,16 @@ class Transport {
     this.dc.close();
   }
 
-  upstreamTrackStates(main: UpstreamState, aux: UpstreamState): UpstreamIntent[] {
+  upstreamTrackStates(main: UpstreamState, aux: UpstreamState): PublishIntent[] {
     const pairs = [
       [this.mainVideoTransceiver, main] as const,
       [this.auxVideoTransceiver, aux] as const,
     ];
 
-    const states: UpstreamIntent[] = [];
+    const states: PublishIntent[] = [];
     for (const [tx, desired] of pairs) {
       if (!tx.mid) continue;
-      states.push(create(UpstreamIntentSchema, {
+      states.push(create(PublishIntentSchema, {
         mid: tx.mid,
         // This is publisher intent, not an observation of the sender. A
         // freshly selected display track is the desired upstream state even
@@ -638,14 +665,16 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   private transport: Transport | null = null;
   private _state: ConnectionState = "new";
 
-  private lastSentRequests: VideoRequest[] = [];
-  private lastSentUpstreamIntents: UpstreamIntent[] = [];
+  private lastSentRequests: VideoIntent[] = [];
+  private lastSentUpstreamIntents: PublishIntent[] = [];
+  private lastSentAudioIntent: AudioIntentState | null = null;
 
   // null = adaptive (initial session state; SFU sends no extension).
   // Once set to an object it is permanent for the session — the playout-delay
   // extension is sticky in libwebrtc and there is no wire "unset". Reverting to
   // adaptive requires a new session (new Participant instance).
   private playoutDelay: { minMs: number; maxMs: number } | null = null;
+  private audioIntent: AudioIntentState | null = null;
   // Floor hint for audio receivers (no playout-delay ext on audio).
   // null = adaptive. Capped at 4000ms (jitterBufferTarget API limit).
   private jitterBufferTargetMs: number | null = null;
@@ -658,7 +687,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   private reconnectTimer: any = null;
   private ac = new AbortController();
   private generation = 0;
-  private emittedAudioTrackIds: string[] = [];
+  private emittedAudioTracks = new Map<string, RemoteAudioTrack>();
 
   public readonly main: StreamPublisher;
   public readonly aux: StreamPublisher;
@@ -760,10 +789,48 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   }
 
   private clearRemoteAudioTracks() {
-    for (const trackId of this.emittedAudioTrackIds) {
-      this.emit(ParticipantEvent.AudioTrackRemoved, { trackId });
+    for (const track of this.emittedAudioTracks.values()) {
+      this.emit(ParticipantEvent.AudioTrackRemoved, { trackId: track.id });
     }
-    this.emittedAudioTrackIds = [];
+    this.emittedAudioTracks.clear();
+  }
+
+  private reconcileAudioTracks() {
+    if (!this.transport) return;
+
+    const next = new Map<string, RemoteAudioTrack>();
+    for (const binding of this.session.audioBindings.values()) {
+      const slot = this.transport.audioSlots.find((candidate) => candidate.mid === binding.mid);
+      if (!slot) continue;
+      const publication = this.session.publications.get(binding.trackId);
+      if (!publication || publication.kind !== TrackKind.AUDIO) continue;
+
+      const current = this.emittedAudioTracks.get(binding.mid);
+      if (current?.trackId === binding.trackId) {
+        current.levelDbov = binding.levelDbov;
+        next.set(binding.mid, current);
+        continue;
+      }
+      if (current) {
+        this.emit(ParticipantEvent.AudioTrackRemoved, { trackId: current.id });
+      }
+
+      const track = new RemoteAudioTrack(
+        new this.adapter.MediaStream([slot.receiver.track]),
+        binding.trackId,
+        publication?.participantId ?? null,
+        binding.levelDbov,
+      );
+      next.set(binding.mid, track);
+      this.emit(ParticipantEvent.AudioTrackAdded, { track });
+    }
+
+    for (const [mid, track] of this.emittedAudioTracks) {
+      if (!next.has(mid)) {
+        this.emit(ParticipantEvent.AudioTrackRemoved, { trackId: track.id });
+      }
+    }
+    this.emittedAudioTracks = next;
   }
 
   private async establishConnection(method: "POST" | "PATCH", uri: string) {
@@ -845,6 +912,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       this.transport = newTransport;
       this.wireTopicsToTransport(newTransport);
       newTransport.sync(this.main._upstream, this.aux._upstream);
+      this.routePhysicalToVirtual();
 
       // Reset the sent requests cache, as we have a fresh transport/session context
       this.lastSentRequests = [];
@@ -857,12 +925,7 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       this.isReconnecting = false;
 
       this.clearRemoteAudioTracks();
-      this.transport.audioSlots.forEach(t => {
-        const stream = new this.adapter.MediaStream([t.receiver.track]);
-        const track = new RemoteAudioTrack(stream);
-        this.emittedAudioTrackIds.push(track.id);
-        this.emit(ParticipantEvent.AudioTrackAdded, { track });
-      });
+      this.reconcileAudioTracks();
 
       // Re-apply the local jitter-buffer target to the fresh receivers.
       this.applyJitterBufferTarget();
@@ -923,21 +986,11 @@ export class Participant extends EventEmitter<ParticipantEvents> {
   private handleSignal(data: ArrayBuffer) {
     try {
       const msg = fromBinary(ServerMessageSchema, new Uint8Array(data));
-      if (msg.payload.case === "update") {
-        const u = msg.payload.value;
-        if (!u.isSnapshot && (u.seq > this.session.seq + 1n)) {
-          this.sendSyncRequest();
-        } else if (u.isSnapshot || u.seq > this.session.seq) {
-          this.session.applyUpdate(u);
-          this.routePhysicalToVirtual();
-          if (u.isSnapshot) {
-            // if we received a snapshot, the state has been drifted. 
-            // We should reconcile immediately to recover the UI.
-            this.reconcile(true);
-          } else {
-            this.scheduleReconcile();
-          }
-        }
+      if (msg.payload.case === "state") {
+        this.session.applyState(msg.payload.value);
+        this.routePhysicalToVirtual();
+        this.reconcileAudioTracks();
+        this.scheduleReconcile();
       } else if (msg.payload.case === "error") {
         console.error("SFU Error:", msg.payload.value);
       }
@@ -954,11 +1007,11 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       const mid = slot.mid;
       if (!mid) continue;
 
-      const assign = this.session.assignments.get(mid);
-      if (!assign || !this.session.tracks.has(assign.trackId)) continue;
+      const binding = this.session.videoBindings.get(mid);
+      if (!binding || !this.session.publications.has(binding.trackId)) continue;
 
-      if (!assign.paused) {
-        activeStreams.set(assign.trackId, slot.receiver.track);
+      if (!binding.paused) {
+        activeStreams.set(binding.trackId, slot.receiver.track);
       }
     }
 
@@ -1020,6 +1073,18 @@ export class Participant extends EventEmitter<ParticipantEvents> {
 
   /** Whether {@link setLatency} has been called, locking the session out of true adaptive mode. */
   get latencyLocked(): boolean { return this.playoutDelay !== null; }
+
+  /**
+   * Replace the audio selection policy. Pins name published audio track ids;
+   * the remaining slots are filled by loudness when `auto` is true.
+   */
+  setAudioIntent(options: { pinned?: readonly string[]; auto?: boolean } = {}): void {
+    this.audioIntent = {
+      pinned: [...(options.pinned ?? [])],
+      auto: options.auto ?? true,
+    };
+    this.reconcile(true);
+  }
 
   /**
    * Returns a builder for publishing and subscribing to raw-byte data topics.
@@ -1088,32 +1153,39 @@ export class Participant extends EventEmitter<ParticipantEvents> {
     const desired = Array.from(this.session.remoteVideoTracks.values())
       .filter(v => v.height > 0)
       .sort((a, b) => b.priority - a.priority || b.height - a.height)
-      .map(v => ({ id: v.id, height: v.height, minHeight: v.minHeight, priority: v.priority }));
+      .map(v => ({
+        id: v.id,
+        height: v.height,
+        minHeight: v.minHeight,
+        minFps: v.minFps,
+        priority: v.priority,
+      }));
 
     // 2. Resource State: What slots do we have, and what are they currently assigned to?
     const slotStates = this.transport.videoSlots
       .filter((s): s is RTCRtpTransceiver & { mid: string } => s.mid !== null)
       .map(s => ({
         mid: s.mid,
-        currentTrackId: this.session.assignments.get(s.mid)?.trackId ?? null,
+        currentTrackId: this.session.videoBindings.get(s.mid)?.trackId ?? null,
       }));
 
     // 3. Reconciliation Algorithm: Map Desired -> Resources (priority-aware eviction)
     const nextAssignments = computeVideoSlotAssignments(desired, slotStates);
 
     // 4. Construct Intent
-    const requests: VideoRequest[] = [];
+    const requests: VideoIntent[] = [];
     for (const slot of this.transport.videoSlots) {
       const mid = slot.mid;
       if (!mid) continue;
 
       const assign = nextAssignments.get(mid);
       if (assign) {
-        requests.push(create(VideoRequestSchema, {
+        requests.push(create(VideoIntentSchema, {
           mid,
           trackId: assign.trackId,
           height: assign.height,
           minHeight: assign.minHeight,
+          minFps: assign.minFps,
           priority: assign.priority,
         }));
       }
@@ -1126,23 +1198,32 @@ export class Participant extends EventEmitter<ParticipantEvents> {
       !force
       && areRequestsEqual(this.lastSentRequests, requests)
       && areUpstreamIntentsEqual(this.lastSentUpstreamIntents, upstreamIntents)
+      && areAudioIntentsEqual(this.lastSentAudioIntent, this.audioIntent)
     ) {
       return;
     }
     this.lastSentRequests = requests;
     this.lastSentUpstreamIntents = upstreamIntents;
+    this.lastSentAudioIntent = this.audioIntent && {
+      pinned: [...this.audioIntent.pinned],
+      auto: this.audioIntent.auto,
+    };
 
-    console.table(requests);
+    const audio = this.audioIntent
+      ? create(AudioIntentSchema, this.audioIntent)
+      : undefined;
+    const ext = this.playoutDelay
+      ? create(ExtensionsSchema, {
+        playoutDelay: create(PlayoutDelaySchema, this.playoutDelay),
+      })
+      : undefined;
     const intent: ClientIntent = create(ClientIntentSchema, {
-      downstreamRequests: requests,
-      upstreamIntents,
-      ...(this.playoutDelay !== null && { playoutDelay: create(PlayoutDelaySchema, this.playoutDelay) }),
+      video: requests,
+      publish: upstreamIntents,
+      ...(audio && { audio }),
+      ...(ext && { ext }),
     });
     this.send({ case: "intent", value: intent });
-  }
-
-  private sendSyncRequest() {
-    this.send({ case: "requestSync", value: true });
   }
 
   private send(payload: ClientMessage["payload"]) {
@@ -1160,6 +1241,8 @@ export interface DesiredVideoTrack {
   height: number;
   /** Floor to keep under contention; defaults to 0 (droppable). */
   minHeight?: number;
+  /** Temporal floor to keep under contention; defaults to 0. */
+  minFps?: number;
   /** Contention importance; defaults to 0. */
   priority?: number;
 }
@@ -1168,6 +1251,7 @@ export interface VideoSlotAssignment {
   trackId: string;
   height: number;
   minHeight: number;
+  minFps: number;
   priority: number;
 }
 
@@ -1203,6 +1287,7 @@ export function computeVideoSlotAssignments(
     trackId: t.id,
     height: t.height,
     minHeight: t.minHeight ?? 0,
+    minFps: t.minFps ?? 0,
     priority: t.priority ?? 0,
   });
 
@@ -1233,7 +1318,7 @@ export function computeVideoSlotAssignments(
   return nextAssignments;
 }
 
-function areRequestsEqual(a: VideoRequest[], b: VideoRequest[]): boolean {
+function areRequestsEqual(a: VideoIntent[], b: VideoIntent[]): boolean {
   if (a.length !== b.length) return false;
   // Sort by MID to ensure deterministic comparison
   const sA = [...a].sort((x, y) => x.mid.localeCompare(y.mid));
@@ -1249,6 +1334,7 @@ function areRequestsEqual(a: VideoRequest[], b: VideoRequest[]): boolean {
       reqA.trackId !== reqB.trackId ||
       reqA.height !== reqB.height ||
       reqA.minHeight !== reqB.minHeight ||
+      reqA.minFps !== reqB.minFps ||
       reqA.priority !== reqB.priority
     ) {
       return false;
@@ -1258,8 +1344,8 @@ function areRequestsEqual(a: VideoRequest[], b: VideoRequest[]): boolean {
 }
 
 function areUpstreamIntentsEqual(
-  a: UpstreamIntent[],
-  b: UpstreamIntent[],
+  a: PublishIntent[],
+  b: PublishIntent[],
 ): boolean {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
@@ -1271,4 +1357,13 @@ function areUpstreamIntentsEqual(
     }
   }
   return true;
+}
+
+function areAudioIntentsEqual(
+  a: AudioIntentState | null,
+  b: AudioIntentState | null,
+): boolean {
+  if (a === b) return true;
+  if (!a || !b || a.auto !== b.auto || a.pinned.length !== b.pinned.length) return false;
+  return a.pinned.every((trackId, index) => trackId === b.pinned[index]);
 }

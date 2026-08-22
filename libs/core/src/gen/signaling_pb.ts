@@ -10,58 +10,94 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file signaling.proto.
  */
 export const file_signaling: GenFile = /*@__PURE__*/
-  fileDesc("Cg9zaWduYWxpbmcucHJvdG8SCXNpZ25hbGluZyKmAQoFVHJhY2sSCgoCaWQYASABKAkSIgoEa2luZBgCIAEoDjIULnNpZ25hbGluZy5UcmFja0tpbmQSFgoOcGFydGljaXBhbnRfaWQYAyABKAkSKAoEbWV0YRgEIAMoCzIaLnNpZ25hbGluZy5UcmFjay5NZXRhRW50cnkaKwoJTWV0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiQAoPVmlkZW9Bc3NpZ25tZW50EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZwYXVzZWQYAyABKAgiwwEKC1N0YXRlVXBkYXRlEgsKA3NlcRgBIAEoBBITCgtpc19zbmFwc2hvdBgCIAEoCBInCg10cmFja3NfdXBzZXJ0GAMgAygLMhAuc2lnbmFsaW5nLlRyYWNrEhUKDXRyYWNrc19yZW1vdmUYBCADKAkSNgoSYXNzaWdubWVudHNfdXBzZXJ0GAUgAygLMhouc2lnbmFsaW5nLlZpZGVvQXNzaWdubWVudBIaChJhc3NpZ25tZW50c19yZW1vdmUYBiADKAkiYwoMVmlkZW9SZXF1ZXN0EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZoZWlnaHQYAyABKA0SEAoIcHJpb3JpdHkYBCABKA0SEgoKbWluX2hlaWdodBgFIAEoDSItCg5VcHN0cmVhbUludGVudBILCgNtaWQYASABKAkSDgoGYWN0aXZlGAIgASgIIi4KDFBsYXlvdXREZWxheRIOCgZtaW5fbXMYASABKA0SDgoGbWF4X21zGAIgASgNIsABCgxDbGllbnRJbnRlbnQSNAoTZG93bnN0cmVhbV9yZXF1ZXN0cxgBIAMoCzIXLnNpZ25hbGluZy5WaWRlb1JlcXVlc3QSMwoQdXBzdHJlYW1faW50ZW50cxgCIAMoCzIZLnNpZ25hbGluZy5VcHN0cmVhbUludGVudBIzCg1wbGF5b3V0X2RlbGF5GAMgASgLMhcuc2lnbmFsaW5nLlBsYXlvdXREZWxheUgAiAEBQhAKDl9wbGF5b3V0X2RlbGF5Il0KDUNsaWVudE1lc3NhZ2USKQoGaW50ZW50GAEgASgLMhcuc2lnbmFsaW5nLkNsaWVudEludGVudEgAEhYKDHJlcXVlc3Rfc3luYxgCIAEoCEgAQgkKB3BheWxvYWQiVQoNU2VydmVyTWVzc2FnZRIoCgZ1cGRhdGUYASABKAsyFi5zaWduYWxpbmcuU3RhdGVVcGRhdGVIABIPCgVlcnJvchgCIAEoCUgAQgkKB3BheWxvYWQqPQoJVHJhY2tLaW5kEhoKFlRSQUNLX0tJTkRfVU5TUEVDSUZJRUQQABIJCgVWSURFTxABEgkKBUFVRElPEAJiBnByb3RvMw");
+  fileDesc("Cg9zaWduYWxpbmcucHJvdG8SCXNpZ25hbGluZyIlCgtQYXJ0aWNpcGFudBIWCg5wYXJ0aWNpcGFudF9pZBgBIAEoCSJbCgtQdWJsaWNhdGlvbhIQCgh0cmFja19pZBgBIAEoCRIWCg5wYXJ0aWNpcGFudF9pZBgCIAEoCRIiCgRraW5kGAMgASgOMhQuc2lnbmFsaW5nLlRyYWNrS2luZCI9CgxWaWRlb0JpbmRpbmcSEAoIdHJhY2tfaWQYASABKAkSCwoDbWlkGAIgASgJEg4KBnBhdXNlZBgDIAEoCCJBCgxBdWRpb0JpbmRpbmcSEAoIdHJhY2tfaWQYASABKAkSCwoDbWlkGAIgASgJEhIKCmxldmVsX2Rib3YYAyABKAUiNwoNVmlkZW9CaW5kaW5ncxImCgVpdGVtcxgBIAMoCzIXLnNpZ25hbGluZy5WaWRlb0JpbmRpbmciNwoNQXVkaW9CaW5kaW5ncxImCgVpdGVtcxgBIAMoCzIXLnNpZ25hbGluZy5BdWRpb0JpbmRpbmcioQIKC1NlcnZlclN0YXRlEjIKEnBhcnRpY2lwYW50c19hZGRlZBgBIAMoCzIWLnNpZ25hbGluZy5QYXJ0aWNpcGFudBIcChRwYXJ0aWNpcGFudHNfcmVtb3ZlZBgCIAMoCRIyChJwdWJsaWNhdGlvbnNfYWRkZWQYAyADKAsyFi5zaWduYWxpbmcuUHVibGljYXRpb24SHAoUcHVibGljYXRpb25zX3JlbW92ZWQYBCADKAkSLAoFdmlkZW8YBSABKAsyGC5zaWduYWxpbmcuVmlkZW9CaW5kaW5nc0gAiAEBEiwKBWF1ZGlvGAYgASgLMhguc2lnbmFsaW5nLkF1ZGlvQmluZGluZ3NIAYgBAUIICgZfdmlkZW9CCAoGX2F1ZGlvInMKC1ZpZGVvSW50ZW50EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZoZWlnaHQYAyABKA0SEgoKbWluX2hlaWdodBgEIAEoDRIPCgdtaW5fZnBzGAUgASgNEhAKCHByaW9yaXR5GAYgASgNIisKC0F1ZGlvSW50ZW50Eg4KBnBpbm5lZBgBIAMoCRIMCgRhdXRvGAIgASgIIiwKDVB1Ymxpc2hJbnRlbnQSCwoDbWlkGAEgASgJEg4KBmFjdGl2ZRgCIAEoCCIuCgxQbGF5b3V0RGVsYXkSDgoGbWluX21zGAEgASgNEg4KBm1heF9tcxgCIAEoDSJTCgpFeHRlbnNpb25zEjMKDXBsYXlvdXRfZGVsYXkYASABKAsyFy5zaWduYWxpbmcuUGxheW91dERlbGF5SACIAQFCEAoOX3BsYXlvdXRfZGVsYXkiqwEKDENsaWVudEludGVudBIlCgV2aWRlbxgBIAMoCzIWLnNpZ25hbGluZy5WaWRlb0ludGVudBIlCgVhdWRpbxgCIAEoCzIWLnNpZ25hbGluZy5BdWRpb0ludGVudBIpCgdwdWJsaXNoGAMgAygLMhguc2lnbmFsaW5nLlB1Ymxpc2hJbnRlbnQSIgoDZXh0GA8gASgLMhUuc2lnbmFsaW5nLkV4dGVuc2lvbnMiRQoNQ2xpZW50TWVzc2FnZRIpCgZpbnRlbnQYASABKAsyFy5zaWduYWxpbmcuQ2xpZW50SW50ZW50SABCCQoHcGF5bG9hZCJUCg1TZXJ2ZXJNZXNzYWdlEicKBXN0YXRlGAEgASgLMhYuc2lnbmFsaW5nLlNlcnZlclN0YXRlSAASDwoFZXJyb3IYAiABKAlIAEIJCgdwYXlsb2FkKj0KCVRyYWNrS2luZBIaChZUUkFDS19LSU5EX1VOU1BFQ0lGSUVEEAASCQoFVklERU8QARIJCgVBVURJTxACYgZwcm90bzM");
 
 /**
- * @generated from message signaling.Track
+ * Somebody publishing in the room.
+ *
+ * Deliberately one field. It exists so participants are an entity rather than a
+ * string repeated on every track, and so clients build tiles from people rather
+ * than from a track list. Do not add display names, avatars or mute state:
+ * those belong to the application's own signaling, and carrying them makes
+ * every roster update pay for data the SFU never reads.
+ *
+ * Derived from publications, so a participant who publishes nothing does not
+ * appear. The SFU has no room-membership signal to build a fuller roster from -
+ * a participant only ever learns of another when a track is announced to it -
+ * and applications get presence from their own backend. If that changes, this
+ * is the message that carries it.
+ *
+ * @generated from message signaling.Participant
  */
-export type Track = Message<"signaling.Track"> & {
+export type Participant = Message<"signaling.Participant"> & {
   /**
-   * @generated from field: string id = 1;
-   */
-  id: string;
-
-  /**
-   * @generated from field: signaling.TrackKind kind = 2;
-   */
-  kind: TrackKind;
-
-  /**
-   * @generated from field: string participant_id = 3;
+   * @generated from field: string participant_id = 1;
    */
   participantId: string;
-
-  /**
-   * Extensible metadata (e.g. "display_name", "is_muted", "avatar_url").
-   *
-   * @generated from field: map<string, string> meta = 4;
-   */
-  meta: { [key: string]: string };
 };
 
 /**
- * Describes the message signaling.Track.
- * Use `create(TrackSchema)` to create a new message.
+ * Describes the message signaling.Participant.
+ * Use `create(ParticipantSchema)` to create a new message.
  */
-export const TrackSchema: GenMessage<Track> = /*@__PURE__*/
+export const ParticipantSchema: GenMessage<Participant> = /*@__PURE__*/
   messageDesc(file_signaling, 0);
 
 /**
- * @generated from message signaling.VideoAssignment
+ * Something a participant is publishing.
+ *
+ * Audio appears here too. Selection ranks tracks, and one participant may
+ * publish two of them (microphone, screen-share audio), so a recording has to be
+ * able to say which track it captured and a pin has to be able to name one of
+ * them. Clients build tiles from the participant roster, not from this list —
+ * which is what makes announcing audio here safe, where announcing it in a
+ * video-shaped track list was not.
+ *
+ * @generated from message signaling.Publication
  */
-export type VideoAssignment = Message<"signaling.VideoAssignment"> & {
+export type Publication = Message<"signaling.Publication"> & {
   /**
-   * @generated from field: string mid = 1;
-   */
-  mid: string;
-
-  /**
-   * @generated from field: string track_id = 2;
+   * @generated from field: string track_id = 1;
    */
   trackId: string;
 
   /**
-   * Feedback indicating if the stream is actively flowing or halted by the SFU.
+   * @generated from field: string participant_id = 2;
+   */
+  participantId: string;
+
+  /**
+   * @generated from field: signaling.TrackKind kind = 3;
+   */
+  kind: TrackKind;
+};
+
+/**
+ * Describes the message signaling.Publication.
+ * Use `create(PublicationSchema)` to create a new message.
+ */
+export const PublicationSchema: GenMessage<Publication> = /*@__PURE__*/
+  messageDesc(file_signaling, 1);
+
+/**
+ * @generated from message signaling.VideoBinding
+ */
+export type VideoBinding = Message<"signaling.VideoBinding"> & {
+  /**
+   * @generated from field: string track_id = 1;
+   */
+  trackId: string;
+
+  /**
+   * The m-line carrying it. Bounded at 16 characters: str0m stores a mid as
+   * [u8; 16] and truncates silently past that.
+   *
+   * @generated from field: string mid = 2;
+   */
+  mid: string;
+
+  /**
+   * Feedback indicating the stream is halted by the SFU rather than flowing.
    *
    * @generated from field: bool paused = 3;
    */
@@ -69,84 +105,173 @@ export type VideoAssignment = Message<"signaling.VideoAssignment"> & {
 };
 
 /**
- * Describes the message signaling.VideoAssignment.
- * Use `create(VideoAssignmentSchema)` to create a new message.
+ * Describes the message signaling.VideoBinding.
+ * Use `create(VideoBindingSchema)` to create a new message.
  */
-export const VideoAssignmentSchema: GenMessage<VideoAssignment> = /*@__PURE__*/
-  messageDesc(file_signaling, 1);
-
-/**
- * @generated from message signaling.StateUpdate
- */
-export type StateUpdate = Message<"signaling.StateUpdate"> & {
-  /**
-   * Monotonically strictly incrementing sequence number.
-   * Used for gap detection and ordering validation.
-   *
-   * @generated from field: uint64 seq = 1;
-   */
-  seq: bigint;
-
-  /**
-   * If true, the client must clear local state before applying this update.
-   * If false, the client applies changes incrementally.
-   *
-   * @generated from field: bool is_snapshot = 2;
-   */
-  isSnapshot: boolean;
-
-  /**
-   * Room Topology (Available Tracks)
-   *
-   * @generated from field: repeated signaling.Track tracks_upsert = 3;
-   */
-  tracksUpsert: Track[];
-
-  /**
-   * @generated from field: repeated string tracks_remove = 4;
-   */
-  tracksRemove: string[];
-
-  /**
-   * User State (Active Assignments)
-   *
-   * @generated from field: repeated signaling.VideoAssignment assignments_upsert = 5;
-   */
-  assignmentsUpsert: VideoAssignment[];
-
-  /**
-   * @generated from field: repeated string assignments_remove = 6;
-   */
-  assignmentsRemove: string[];
-};
-
-/**
- * Describes the message signaling.StateUpdate.
- * Use `create(StateUpdateSchema)` to create a new message.
- */
-export const StateUpdateSchema: GenMessage<StateUpdate> = /*@__PURE__*/
+export const VideoBindingSchema: GenMessage<VideoBinding> = /*@__PURE__*/
   messageDesc(file_signaling, 2);
 
 /**
- * Per received video stream, `VideoRequest` tells the server how the stream is
- * being consumed so it can spend the subscriber's limited downlink bandwidth
- * where it matters most. The server chooses one simulcast layer per stream to
- * maximize perceived quality within the available budget.
+ * Which speaker occupies one of the subscriber's audio slots.
  *
- * Under bandwidth contention the server, per subscriber:
+ * Audio slots are not assigned the way video slots are. The SFU forwards only
+ * the loudest few speakers and steals a slot the moment someone louder starts
+ * talking, so the occupant of a mid changes on its own and a client cannot infer
+ * who it is hearing from the media alone.
+ *
+ * Ordered loudest first. The position in the list *is* the rank, so there is no
+ * rank field that can disagree with it.
+ *
+ * @generated from message signaling.AudioBinding
+ */
+export type AudioBinding = Message<"signaling.AudioBinding"> & {
+  /**
+   * @generated from field: string track_id = 1;
+   */
+  trackId: string;
+
+  /**
+   * @generated from field: string mid = 2;
+   */
+  mid: string;
+
+  /**
+   * Most recent loudness in negative dBov, as RFC 6464 carries it: 0 is full
+   * scale, around -30 is ordinary speech, quieter is more negative. Present so a
+   * recording has the loudness envelope without re-deriving it from the media,
+   * and so a UI can show intensity rather than a binary indicator.
+   *
+   * @generated from field: int32 level_dbov = 3;
+   */
+  levelDbov: number;
+};
+
+/**
+ * Describes the message signaling.AudioBinding.
+ * Use `create(AudioBindingSchema)` to create a new message.
+ */
+export const AudioBindingSchema: GenMessage<AudioBinding> = /*@__PURE__*/
+  messageDesc(file_signaling, 3);
+
+/**
+ * Each group is complete when present and unchanged when absent, which is what
+ * lets a speaker change send only the audio group. Audio churns far faster than
+ * video — a slot steal is rate-limited only by newborn immunity, so several per
+ * second is reachable — and resending every video binding to say one speaker
+ * moved cost several hundred bytes to carry a few. Proto3 cannot tell an empty
+ * repeated field from an absent one, so the wrapper carries the distinction:
+ * present-but-empty means nothing is bound, absent means unchanged.
+ *
+ * @generated from message signaling.VideoBindings
+ */
+export type VideoBindings = Message<"signaling.VideoBindings"> & {
+  /**
+   * @generated from field: repeated signaling.VideoBinding items = 1;
+   */
+  items: VideoBinding[];
+};
+
+/**
+ * Describes the message signaling.VideoBindings.
+ * Use `create(VideoBindingsSchema)` to create a new message.
+ */
+export const VideoBindingsSchema: GenMessage<VideoBindings> = /*@__PURE__*/
+  messageDesc(file_signaling, 4);
+
+/**
+ * @generated from message signaling.AudioBindings
+ */
+export type AudioBindings = Message<"signaling.AudioBindings"> & {
+  /**
+   * @generated from field: repeated signaling.AudioBinding items = 1;
+   */
+  items: AudioBinding[];
+};
+
+/**
+ * Describes the message signaling.AudioBindings.
+ * Use `create(AudioBindingsSchema)` to create a new message.
+ */
+export const AudioBindingsSchema: GenMessage<AudioBindings> = /*@__PURE__*/
+  messageDesc(file_signaling, 5);
+
+/**
+ * The room as this subscriber sees it.
+ *
+ * The roster is a log: a participant or publication enters once and leaves once,
+ * so it is carried as added/removed rather than resent. The bindings are bounded
+ * by the subscriber's negotiated slot count, so they are sent whole and there is
+ * nothing to reconcile — no sequence number, no snapshot flag, no removal list,
+ * and no resync request. The signaling channel is reliable and ordered, so gaps
+ * cannot happen and detecting them was never earning its keep.
+ *
+ * @generated from message signaling.ServerState
+ */
+export type ServerState = Message<"signaling.ServerState"> & {
+  /**
+   * @generated from field: repeated signaling.Participant participants_added = 1;
+   */
+  participantsAdded: Participant[];
+
+  /**
+   * participant ids
+   *
+   * @generated from field: repeated string participants_removed = 2;
+   */
+  participantsRemoved: string[];
+
+  /**
+   * @generated from field: repeated signaling.Publication publications_added = 3;
+   */
+  publicationsAdded: Publication[];
+
+  /**
+   * track ids
+   *
+   * @generated from field: repeated string publications_removed = 4;
+   */
+  publicationsRemoved: string[];
+
+  /**
+   * @generated from field: optional signaling.VideoBindings video = 5;
+   */
+  video?: VideoBindings;
+
+  /**
+   * @generated from field: optional signaling.AudioBindings audio = 6;
+   */
+  audio?: AudioBindings;
+};
+
+/**
+ * Describes the message signaling.ServerState.
+ * Use `create(ServerStateSchema)` to create a new message.
+ */
+export const ServerStateSchema: GenMessage<ServerState> = /*@__PURE__*/
+  messageDesc(file_signaling, 6);
+
+/**
+ * How one received video stream is being consumed, so the server can spend a
+ * subscriber's limited downlink where it matters. The server chooses one
+ * simulcast layer per stream to maximize perceived quality within the budget.
+ *
+ * Under contention the server, per subscriber:
  *   1. guarantees each stream its `min_height` floor, in `priority` order
  *      (least-important droppable streams give way first), then
- *   2. raises streams toward their `height` target, in `priority` order, one
- *      quality step at a time.
+ *   2. raises streams toward `height`, in `priority` order, one step at a time.
  *
- * Optimal use: set `height` to what you actually render, `min_height` to the
- * lowest quality you still want (or 0 to allow pausing), and `priority` to how
- * much this stream matters relative to your others.
+ * Set `height` to what you actually render, `min_height` to the lowest quality
+ * you still want (or 0 to allow pausing), and `priority` to how much this stream
+ * matters relative to your others.
  *
- * @generated from message signaling.VideoRequest
+ * @generated from message signaling.VideoIntent
  */
-export type VideoRequest = Message<"signaling.VideoRequest"> & {
+export type VideoIntent = Message<"signaling.VideoIntent"> & {
   /**
+   * The m-line this subscriber wants the track delivered on. The client owns
+   * its own mids and this binding is authoritative; the server only chooses
+   * which layer to put there. Bounded at 16 characters, as elsewhere.
+   *
    * @generated from field: string mid = 1;
    */
   mid: string;
@@ -158,11 +283,11 @@ export type VideoRequest = Message<"signaling.VideoRequest"> & {
 
   /**
    * TARGET render height in physical pixels — the size you are actually
-   * displaying this stream at. Primary quality lever: the server will not send
-   * meaningfully more than this, because pixels beyond your display size are
-   * invisible. Update it whenever your layout changes (resize, pin, fullscreen).
-   *   0  = hidden / off-screen → the server sends nothing (frees bandwidth).
-   *   >0 = the server picks the simulcast layer that best matches this size.
+   * displaying at. The primary quality lever: the server will not send
+   * meaningfully more, because pixels beyond your display size are invisible.
+   * Update it whenever your layout changes (resize, pin, fullscreen).
+   *   0  = hidden / off-screen; the server sends nothing and frees the bandwidth
+   *   >0 = the server picks the simulcast layer that best matches
    * Do not over-request: asking for 1080p in a thumbnail steals bandwidth from
    * the streams you are actually looking at.
    *
@@ -171,76 +296,117 @@ export type VideoRequest = Message<"signaling.VideoRequest"> & {
   height: number;
 
   /**
-   * Relative importance for bandwidth contention — decides the ORDER in which
-   * streams keep and gain quality when not everything fits. Higher = more
-   * important; 0 = least. It is an order only, not a size (size is `height`),
-   * so do not encode display size here.
+   * FLOOR: the lowest render height to keep under contention. The server holds
+   * the stream at or above this as long as it can, dropping below it only when
+   * no budget remains after higher-`priority` streams.
+   *   0              = droppable: may be paused entirely
+   *   0 < n < height = keep at least ~n px (a small always-visible tile)
+   *   n == height    = pin at full quality: never degrade
    *
-   * A free scalar, so it can be driven continuously and dynamically — e.g. from
-   * an active-speaker score, gaze/focus, or a proximity/danger sensor.
-   * Suggested (non-binding) convention: 0 background, 100 normal, 200 focused /
-   * active speaker, 255+ safety-critical. Any monotonically increasing scheme
-   * works.
-   *
-   * @generated from field: uint32 priority = 4;
-   */
-  priority: number;
-
-  /**
-   * FLOOR: the lowest render height to keep for this stream under contention.
-   * The server holds the stream at or above this resolution as long as it
-   * possibly can, dropping below it (to paused) only when no budget remains
-   * after higher-`priority` streams.
-   *   0              = droppable: may be paused entirely under contention
-   *                    (use for background/auxiliary streams).
-   *   0 < n < height = keep at least ~n px (e.g. a small always-visible tile).
-   *   n == height    = pin at full quality: never degrade (safety-critical /
-   *                    focused stream).
-   *
-   * Examples:
-   *   Teleoperation front camera : height=1080 priority=255 min_height=1080
-   *   Teleoperation side camera  : height=480  priority=5   min_height=0
-   *   Conference active speaker  : height=720  priority=200 min_height=180
-   *   Conference other tile      : height=360  priority=10  min_height=90
-   *   Conference minimized tile  : height=0
-   *
-   * @generated from field: uint32 min_height = 5;
+   * @generated from field: uint32 min_height = 4;
    */
   minHeight: number;
+
+  /**
+   * FLOOR: the lowest frame rate to keep under contention, for scalable
+   * (Dependency Descriptor) streams. The temporal analog of `min_height`: the
+   * server sheds temporal layers to save bandwidth but never below the decode
+   * target that still delivers this many frames per second. Ignored for
+   * non-scalable streams and when the stream advertises no frame rate.
+   *
+   * @generated from field: uint32 min_fps = 5;
+   */
+  minFps: number;
+
+  /**
+   * Relative importance for contention — the ORDER in which streams keep and
+   * gain quality when not everything fits. Higher is more important; 0 is least.
+   * An order only, not a size, so do not encode display size here.
+   *
+   * A free scalar, so it can be driven continuously — from an active-speaker
+   * score, gaze/focus, or a proximity sensor. Suggested convention: 0
+   * background, 100 normal, 200 focused, 255+ safety-critical.
+   *
+   * @generated from field: uint32 priority = 6;
+   */
+  priority: number;
 };
 
 /**
- * Describes the message signaling.VideoRequest.
- * Use `create(VideoRequestSchema)` to create a new message.
+ * Describes the message signaling.VideoIntent.
+ * Use `create(VideoIntentSchema)` to create a new message.
  */
-export const VideoRequestSchema: GenMessage<VideoRequest> = /*@__PURE__*/
-  messageDesc(file_signaling, 3);
+export const VideoIntentSchema: GenMessage<VideoIntent> = /*@__PURE__*/
+  messageDesc(file_signaling, 7);
 
 /**
- * @generated from message signaling.UpstreamIntent
+ * How this subscriber wants its audio slots filled.
+ *
+ * Auto is the default and the common case: `{ auto: true, pinned: [] }` is what
+ * a client that sends no AudioIntent gets, and matches the SFU's behaviour
+ * before this message existed. Pinning is the exception layered on top.
+ *
+ * Pins name tracks rather than participants because selection ranks tracks: one
+ * participant may publish a microphone and a screen-share audio track, and
+ * pinning one must not pin the other.
+ *
+ * @generated from message signaling.AudioIntent
  */
-export type UpstreamIntent = Message<"signaling.UpstreamIntent"> & {
+export type AudioIntent = Message<"signaling.AudioIntent"> & {
+  /**
+   * Tracks that hold a slot regardless of loudness, in preference order. Pins
+   * beyond the negotiated slot count are ignored rather than rejected.
+   *
+   * @generated from field: repeated string pinned = 1;
+   */
+  pinned: string[];
+
+  /**
+   * Fill the slots pinning does not claim by loudness. false = hear only pins.
+   *
+   * @generated from field: bool auto = 2;
+   */
+  auto: boolean;
+};
+
+/**
+ * Describes the message signaling.AudioIntent.
+ * Use `create(AudioIntentSchema)` to create a new message.
+ */
+export const AudioIntentSchema: GenMessage<AudioIntent> = /*@__PURE__*/
+  messageDesc(file_signaling, 8);
+
+/**
+ * Publisher intent for explicit stop.
+ *   active=false: explicit unpublish.
+ *   active=true:  advisory; the server may also publish implicitly.
+ *
+ * Kept rather than inferred from the media. VLA describes the layers of a stream
+ * that is already flowing and never withdraws one, and it is video-only, so an
+ * audio publisher has nothing to withdraw with. Inferring from silence would
+ * trade an exact signal for a timeout that flaps on a network stall, and DTX
+ * means a muted participant legitimately sends nothing indefinitely.
+ *
+ * @generated from message signaling.PublishIntent
+ */
+export type PublishIntent = Message<"signaling.PublishIntent"> & {
   /**
    * @generated from field: string mid = 1;
    */
   mid: string;
 
   /**
-   * Publisher intent for explicit stop behavior.
-   * - active=false: explicit stop/unpublish intent from publisher.
-   * - active=true: advisory publish intent; server may also publish implicitly.
-   *
    * @generated from field: bool active = 2;
    */
   active: boolean;
 };
 
 /**
- * Describes the message signaling.UpstreamIntent.
- * Use `create(UpstreamIntentSchema)` to create a new message.
+ * Describes the message signaling.PublishIntent.
+ * Use `create(PublishIntentSchema)` to create a new message.
  */
-export const UpstreamIntentSchema: GenMessage<UpstreamIntent> = /*@__PURE__*/
-  messageDesc(file_signaling, 4);
+export const PublishIntentSchema: GenMessage<PublishIntent> = /*@__PURE__*/
+  messageDesc(file_signaling, 9);
 
 /**
  * Fixed receiver jitter-buffer bounds, signaled via the `playout-delay` RTP
@@ -252,11 +418,10 @@ export const UpstreamIntentSchema: GenMessage<UpstreamIntent> = /*@__PURE__*/
  *                     `max` is the hard latency ceiling — the receiver conceals
  *                     rather than buffer past it.
  *
- * ONE-WAY: every session starts in adaptive mode (browser owns the jitter buffer;
- * no extension is sent). This message transitions the session to FIXED mode.
- * The extension is sticky in libwebrtc — there is no wire "unset" — so returning
- * to true adaptive requires a new session. Client SDKs must encode this constraint
- * in their API (e.g. `setLatency` is a one-way call; `latencyLocked` flag).
+ * ONE-WAY: every session starts adaptive (the browser owns the jitter buffer and
+ * no extension is sent). This transitions the session to FIXED. The extension is
+ * sticky in libwebrtc — there is no wire "unset" — so returning to adaptive
+ * requires a new session. Client SDKs must encode that constraint in their API.
  *
  * @generated from message signaling.PlayoutDelay
  */
@@ -277,35 +442,59 @@ export type PlayoutDelay = Message<"signaling.PlayoutDelay"> & {
  * Use `create(PlayoutDelaySchema)` to create a new message.
  */
 export const PlayoutDelaySchema: GenMessage<PlayoutDelay> = /*@__PURE__*/
-  messageDesc(file_signaling, 5);
+  messageDesc(file_signaling, 10);
+
+/**
+ * Options that are set once per session if ever. Behind one tag so the
+ * single-byte tag range stays available to fields sent on every message.
+ *
+ * @generated from message signaling.Extensions
+ */
+export type Extensions = Message<"signaling.Extensions"> & {
+  /**
+   * Absent → adaptive (initial) state. This is the ONLY way to get true adaptive
+   * behaviour: once sent, it is permanent for the session, so omitting it again
+   * does nothing to the receiver's already-stamped bounds.
+   * Present → fixed mode: the SFU stamps these bounds on ALL egress RTP, audio
+   * and video together, preserving lip-sync.
+   *
+   * @generated from field: optional signaling.PlayoutDelay playout_delay = 1;
+   */
+  playoutDelay?: PlayoutDelay;
+};
+
+/**
+ * Describes the message signaling.Extensions.
+ * Use `create(ExtensionsSchema)` to create a new message.
+ */
+export const ExtensionsSchema: GenMessage<Extensions> = /*@__PURE__*/
+  messageDesc(file_signaling, 11);
 
 /**
  * @generated from message signaling.ClientIntent
  */
 export type ClientIntent = Message<"signaling.ClientIntent"> & {
   /**
-   * @generated from field: repeated signaling.VideoRequest downstream_requests = 1;
+   * @generated from field: repeated signaling.VideoIntent video = 1;
    */
-  downstreamRequests: VideoRequest[];
+  video: VideoIntent[];
 
   /**
-   * @generated from field: repeated signaling.UpstreamIntent upstream_intents = 2;
+   * @generated from field: signaling.AudioIntent audio = 2;
    */
-  upstreamIntents: UpstreamIntent[];
+  audio?: AudioIntent;
 
   /**
-   * Absent → adaptive (initial) state: browser owns the jitter buffer; SFU
-   *          stamps no extension. This is the ONLY way to get true adaptive
-   *          behavior — once `playout_delay` is sent it is permanent for the
-   *          session (sticky extension, no wire unset). Do NOT send this field
-   *          and then omit it hoping to reset; omission after a prior send does
-   *          nothing to the receiver's already-stamped bounds.
-   * Present → fixed mode: SFU stamps these bounds on ALL egress RTP (audio +
-   *           video together, preserving A/V lip-sync).
+   * @generated from field: repeated signaling.PublishIntent publish = 3;
+   */
+  publish: PublishIntent[];
+
+  /**
+   * 4..14 are reserved for fields sent on every message; see Extensions.
    *
-   * @generated from field: optional signaling.PlayoutDelay playout_delay = 3;
+   * @generated from field: signaling.Extensions ext = 15;
    */
-  playoutDelay?: PlayoutDelay;
+  ext?: Extensions;
 };
 
 /**
@@ -313,7 +502,7 @@ export type ClientIntent = Message<"signaling.ClientIntent"> & {
  * Use `create(ClientIntentSchema)` to create a new message.
  */
 export const ClientIntentSchema: GenMessage<ClientIntent> = /*@__PURE__*/
-  messageDesc(file_signaling, 6);
+  messageDesc(file_signaling, 12);
 
 /**
  * @generated from message signaling.ClientMessage
@@ -328,12 +517,6 @@ export type ClientMessage = Message<"signaling.ClientMessage"> & {
      */
     value: ClientIntent;
     case: "intent";
-  } | {
-    /**
-     * @generated from field: bool request_sync = 2;
-     */
-    value: boolean;
-    case: "requestSync";
   } | { case: undefined; value?: undefined };
 };
 
@@ -342,7 +525,7 @@ export type ClientMessage = Message<"signaling.ClientMessage"> & {
  * Use `create(ClientMessageSchema)` to create a new message.
  */
 export const ClientMessageSchema: GenMessage<ClientMessage> = /*@__PURE__*/
-  messageDesc(file_signaling, 7);
+  messageDesc(file_signaling, 13);
 
 /**
  * @generated from message signaling.ServerMessage
@@ -353,10 +536,10 @@ export type ServerMessage = Message<"signaling.ServerMessage"> & {
    */
   payload: {
     /**
-     * @generated from field: signaling.StateUpdate update = 1;
+     * @generated from field: signaling.ServerState state = 1;
      */
-    value: StateUpdate;
-    case: "update";
+    value: ServerState;
+    case: "state";
   } | {
     /**
      * @generated from field: string error = 2;
@@ -371,7 +554,7 @@ export type ServerMessage = Message<"signaling.ServerMessage"> & {
  * Use `create(ServerMessageSchema)` to create a new message.
  */
 export const ServerMessageSchema: GenMessage<ServerMessage> = /*@__PURE__*/
-  messageDesc(file_signaling, 8);
+  messageDesc(file_signaling, 14);
 
 /**
  * @generated from enum signaling.TrackKind
