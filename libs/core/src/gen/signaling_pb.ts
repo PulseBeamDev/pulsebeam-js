@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file signaling.proto.
  */
 export const file_signaling: GenFile = /*@__PURE__*/
-  fileDesc("Cg9zaWduYWxpbmcucHJvdG8SCXNpZ25hbGluZyIlCgtQYXJ0aWNpcGFudBIWCg5wYXJ0aWNpcGFudF9pZBgBIAEoCSJbCgtQdWJsaWNhdGlvbhIQCgh0cmFja19pZBgBIAEoCRIWCg5wYXJ0aWNpcGFudF9pZBgCIAEoCRIiCgRraW5kGAMgASgOMhQuc2lnbmFsaW5nLlRyYWNrS2luZCI9CgxWaWRlb0JpbmRpbmcSEAoIdHJhY2tfaWQYASABKAkSCwoDbWlkGAIgASgJEg4KBnBhdXNlZBgDIAEoCCJBCgxBdWRpb0JpbmRpbmcSEAoIdHJhY2tfaWQYASABKAkSCwoDbWlkGAIgASgJEhIKCmxldmVsX2Rib3YYAyABKAUiNwoNVmlkZW9CaW5kaW5ncxImCgVpdGVtcxgBIAMoCzIXLnNpZ25hbGluZy5WaWRlb0JpbmRpbmciNwoNQXVkaW9CaW5kaW5ncxImCgVpdGVtcxgBIAMoCzIXLnNpZ25hbGluZy5BdWRpb0JpbmRpbmcioQIKC1NlcnZlclN0YXRlEjIKEnBhcnRpY2lwYW50c19hZGRlZBgBIAMoCzIWLnNpZ25hbGluZy5QYXJ0aWNpcGFudBIcChRwYXJ0aWNpcGFudHNfcmVtb3ZlZBgCIAMoCRIyChJwdWJsaWNhdGlvbnNfYWRkZWQYAyADKAsyFi5zaWduYWxpbmcuUHVibGljYXRpb24SHAoUcHVibGljYXRpb25zX3JlbW92ZWQYBCADKAkSLAoFdmlkZW8YBSABKAsyGC5zaWduYWxpbmcuVmlkZW9CaW5kaW5nc0gAiAEBEiwKBWF1ZGlvGAYgASgLMhguc2lnbmFsaW5nLkF1ZGlvQmluZGluZ3NIAYgBAUIICgZfdmlkZW9CCAoGX2F1ZGlvInMKC1ZpZGVvSW50ZW50EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZoZWlnaHQYAyABKA0SEgoKbWluX2hlaWdodBgEIAEoDRIPCgdtaW5fZnBzGAUgASgNEhAKCHByaW9yaXR5GAYgASgNIisKC0F1ZGlvSW50ZW50Eg4KBnBpbm5lZBgBIAMoCRIMCgRhdXRvGAIgASgIIiwKDVB1Ymxpc2hJbnRlbnQSCwoDbWlkGAEgASgJEg4KBmFjdGl2ZRgCIAEoCCIuCgxQbGF5b3V0RGVsYXkSDgoGbWluX21zGAEgASgNEg4KBm1heF9tcxgCIAEoDSJTCgpFeHRlbnNpb25zEjMKDXBsYXlvdXRfZGVsYXkYASABKAsyFy5zaWduYWxpbmcuUGxheW91dERlbGF5SACIAQFCEAoOX3BsYXlvdXRfZGVsYXkiqwEKDENsaWVudEludGVudBIlCgV2aWRlbxgBIAMoCzIWLnNpZ25hbGluZy5WaWRlb0ludGVudBIlCgVhdWRpbxgCIAEoCzIWLnNpZ25hbGluZy5BdWRpb0ludGVudBIpCgdwdWJsaXNoGAMgAygLMhguc2lnbmFsaW5nLlB1Ymxpc2hJbnRlbnQSIgoDZXh0GA8gASgLMhUuc2lnbmFsaW5nLkV4dGVuc2lvbnMiRQoNQ2xpZW50TWVzc2FnZRIpCgZpbnRlbnQYASABKAsyFy5zaWduYWxpbmcuQ2xpZW50SW50ZW50SABCCQoHcGF5bG9hZCJUCg1TZXJ2ZXJNZXNzYWdlEicKBXN0YXRlGAEgASgLMhYuc2lnbmFsaW5nLlNlcnZlclN0YXRlSAASDwoFZXJyb3IYAiABKAlIAEIJCgdwYXlsb2FkKj0KCVRyYWNrS2luZBIaChZUUkFDS19LSU5EX1VOU1BFQ0lGSUVEEAASCQoFVklERU8QARIJCgVBVURJTxACYgZwcm90bzM");
+  fileDesc("Cg9zaWduYWxpbmcucHJvdG8SCXNpZ25hbGluZyIlCgtQYXJ0aWNpcGFudBIWCg5wYXJ0aWNpcGFudF9pZBgBIAEoCSJbCgtQdWJsaWNhdGlvbhIQCgh0cmFja19pZBgBIAEoCRIWCg5wYXJ0aWNpcGFudF9pZBgCIAEoCRIiCgRraW5kGAMgASgOMhQuc2lnbmFsaW5nLlRyYWNrS2luZCI9CgxWaWRlb0JpbmRpbmcSEAoIdHJhY2tfaWQYASABKAkSCwoDbWlkGAIgASgJEg4KBnBhdXNlZBgDIAEoCCJBCgxBdWRpb0JpbmRpbmcSEAoIdHJhY2tfaWQYASABKAkSCwoDbWlkGAIgASgJEhIKCmxldmVsX2Rib3YYAyABKAUiNwoNVmlkZW9CaW5kaW5ncxImCgVpdGVtcxgBIAMoCzIXLnNpZ25hbGluZy5WaWRlb0JpbmRpbmciNwoNQXVkaW9CaW5kaW5ncxImCgVpdGVtcxgBIAMoCzIXLnNpZ25hbGluZy5BdWRpb0JpbmRpbmciswIKC1NlcnZlclN0YXRlEhAKCHNuYXBzaG90GAEgASgIEjIKEnBhcnRpY2lwYW50c19hZGRlZBgCIAMoCzIWLnNpZ25hbGluZy5QYXJ0aWNpcGFudBIcChRwYXJ0aWNpcGFudHNfcmVtb3ZlZBgDIAMoCRIyChJwdWJsaWNhdGlvbnNfYWRkZWQYBCADKAsyFi5zaWduYWxpbmcuUHVibGljYXRpb24SHAoUcHVibGljYXRpb25zX3JlbW92ZWQYBSADKAkSLAoFdmlkZW8YBiABKAsyGC5zaWduYWxpbmcuVmlkZW9CaW5kaW5nc0gAiAEBEiwKBWF1ZGlvGAcgASgLMhguc2lnbmFsaW5nLkF1ZGlvQmluZGluZ3NIAYgBAUIICgZfdmlkZW9CCAoGX2F1ZGlvInMKC1ZpZGVvSW50ZW50EgsKA21pZBgBIAEoCRIQCgh0cmFja19pZBgCIAEoCRIOCgZoZWlnaHQYAyABKA0SEgoKbWluX2hlaWdodBgEIAEoDRIPCgdtaW5fZnBzGAUgASgNEhAKCHByaW9yaXR5GAYgASgNIisKC0F1ZGlvSW50ZW50Eg4KBnBpbm5lZBgBIAMoCRIMCgRhdXRvGAIgASgIIiwKDVB1Ymxpc2hJbnRlbnQSCwoDbWlkGAEgASgJEg4KBmFjdGl2ZRgCIAEoCCIuCgxQbGF5b3V0RGVsYXkSDgoGbWluX21zGAEgASgNEg4KBm1heF9tcxgCIAEoDSJTCgpFeHRlbnNpb25zEjMKDXBsYXlvdXRfZGVsYXkYASABKAsyFy5zaWduYWxpbmcuUGxheW91dERlbGF5SACIAQFCEAoOX3BsYXlvdXRfZGVsYXkiqwEKDENsaWVudEludGVudBIlCgV2aWRlbxgBIAMoCzIWLnNpZ25hbGluZy5WaWRlb0ludGVudBIlCgVhdWRpbxgCIAEoCzIWLnNpZ25hbGluZy5BdWRpb0ludGVudBIpCgdwdWJsaXNoGAMgAygLMhguc2lnbmFsaW5nLlB1Ymxpc2hJbnRlbnQSIgoDZXh0GA8gASgLMhUuc2lnbmFsaW5nLkV4dGVuc2lvbnMiRQoNQ2xpZW50TWVzc2FnZRIpCgZpbnRlbnQYASABKAsyFy5zaWduYWxpbmcuQ2xpZW50SW50ZW50SABCCQoHcGF5bG9hZCJUCg1TZXJ2ZXJNZXNzYWdlEicKBXN0YXRlGAEgASgLMhYuc2lnbmFsaW5nLlNlcnZlclN0YXRlSAASDwoFZXJyb3IYAiABKAlIAEIJCgdwYXlsb2FkKj0KCVRyYWNrS2luZBIaChZUUkFDS19LSU5EX1VOU1BFQ0lGSUVEEAASCQoFVklERU8QARIJCgVBVURJTxACYgZwcm90bzM");
 
 /**
  * Somebody publishing in the room.
@@ -198,47 +198,49 @@ export const AudioBindingsSchema: GenMessage<AudioBindings> = /*@__PURE__*/
 /**
  * The room as this subscriber sees it.
  *
- * The roster is a log: a participant or publication enters once and leaves once,
- * so it is carried as added/removed rather than resent. The bindings are bounded
- * by the subscriber's negotiated slot count, so they are sent whole and there is
- * nothing to reconcile — no sequence number, no snapshot flag, no removal list,
- * and no resync request. The signaling channel is reliable and ordered, so gaps
- * cannot happen and detecting them was never earning its keep.
+ * Ordinary updates carry additions/removals. A full snapshot sets snapshot=true
+ * and includes the complete current roster and publication set so a receiver can
+ * recover from a lost update without a request or acknowledgment.
  *
  * @generated from message signaling.ServerState
  */
 export type ServerState = Message<"signaling.ServerState"> & {
   /**
-   * @generated from field: repeated signaling.Participant participants_added = 1;
+   * @generated from field: bool snapshot = 1;
+   */
+  snapshot: boolean;
+
+  /**
+   * @generated from field: repeated signaling.Participant participants_added = 2;
    */
   participantsAdded: Participant[];
 
   /**
    * participant ids
    *
-   * @generated from field: repeated string participants_removed = 2;
+   * @generated from field: repeated string participants_removed = 3;
    */
   participantsRemoved: string[];
 
   /**
-   * @generated from field: repeated signaling.Publication publications_added = 3;
+   * @generated from field: repeated signaling.Publication publications_added = 4;
    */
   publicationsAdded: Publication[];
 
   /**
    * track ids
    *
-   * @generated from field: repeated string publications_removed = 4;
+   * @generated from field: repeated string publications_removed = 5;
    */
   publicationsRemoved: string[];
 
   /**
-   * @generated from field: optional signaling.VideoBindings video = 5;
+   * @generated from field: optional signaling.VideoBindings video = 6;
    */
   video?: VideoBindings;
 
   /**
-   * @generated from field: optional signaling.AudioBindings audio = 6;
+   * @generated from field: optional signaling.AudioBindings audio = 7;
    */
   audio?: AudioBindings;
 };
