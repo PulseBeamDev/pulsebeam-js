@@ -1,6 +1,0 @@
-build:
-  wasm-pack build  --target web
-
-install:
-  brew install wasm-pack
-
