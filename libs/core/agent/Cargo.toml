@@ -7,6 +7,7 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
+lz4_flex = { version = "0.14", default-features = false, features = ["alloc"] }
 prost = "0.14.4"
 prost-types = "0.14.4"
 wasm-bindgen = "0.2.127"
