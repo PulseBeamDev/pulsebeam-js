@@ -9,6 +9,7 @@ prost = "0.14.4"
 prost-types = "0.14.4"
 log = { version = "0.4", default-features = false }
 spin = "0.12.3"
+thiserror = { version = "2.0.20", default-features = false }
 
 [build-dependencies]
 prost-build = "0.14.4"

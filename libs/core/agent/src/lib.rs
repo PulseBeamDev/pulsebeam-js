@@ -2,6 +2,7 @@
 
 mod agent;
 mod conn;
+mod effect;
 pub mod host;
 mod proto;
 

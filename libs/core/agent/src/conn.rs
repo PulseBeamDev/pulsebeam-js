@@ -1,89 +1,99 @@
 use core::time::Duration;
 
-use crate::{conn, host::Instant};
-use alloc::vec::Vec;
+use crate::effect::Effects;
 
-#[derive(PartialEq, Clone, Copy)]
-pub(crate) enum ConnectionState {
-    New,
-    Connecting(ConnectingStats),
-    Connected(ConnectedStats),
-    Failed,
+pub(super) enum ConnectionEvent {
+    TransportConnected,
+    TransportDisconnected,
 }
 
-#[derive(PartialEq, Clone, Copy)]
-pub(crate) enum ConnectingMode {
-    Initial,
-    Reconnecting,
+pub(super) enum ConnectionEffect {
+    ConnectTransport,
+    DisconnectTransport,
+    ScheduleReconnect { after: Duration },
+    Synchronize,
 }
 
-#[derive(PartialEq, Clone, Copy)]
-pub(crate) struct ConnectingStats {
-    started_at: Instant,
-    mode: ConnectingMode,
+pub struct Connection<C: ConnectionState> {
+    state: C,
 }
 
-#[derive(PartialEq, Clone, Copy)]
-pub(crate) struct ConnectedStats {
-    time_to_connected: Duration,
-}
+pub(super) trait ConnectionState {}
+impl ConnectionState for New {}
+impl ConnectionState for Connecting {}
+impl ConnectionState for Connected {}
+impl ConnectionState for ReconnectWait {}
+impl ConnectionState for Disconnected {}
 
-pub(crate) struct Connection {
-    state: ConnectionState,
-}
-
-pub(crate) enum ConnectionEvent {
-    Connect(Instant),
-    Connected(Instant),
-}
-
-pub(crate) enum ConnectionEffect {
-    Connect,
-    Disconnect,
-}
-
-impl Connection {
-    pub(crate) fn new() -> Self {
-        Self {
-            state: ConnectionState::New,
+trait Closable: Sized {}
+impl Closable for New {}
+impl Closable for Connecting {}
+impl Closable for Connected {}
+impl Closable for ReconnectWait {}
+impl<C: Closable + ConnectionState> Connection<C> {
+    fn close(self, effects: &mut Effects<ConnectionEffect>) -> Disconnected {
+        effects.emit(ConnectionEffect::DisconnectTransport);
+        Disconnected {
+            reason: DisconnectedReason::UserInitiated,
         }
     }
+}
 
-    pub(crate) fn handle(
-        &mut self,
-        ev: ConnectionEvent,
-        effects: &mut Vec<ConnectionEffect>,
-    ) -> bool {
-        let new_state = match (self.state, ev) {
-            (ConnectionState::New, ConnectionEvent::Connect(started_at)) => {
-                ConnectionState::Connecting(ConnectingStats {
-                    started_at,
-                    mode: ConnectingMode::Initial,
-                })
-            }
-            (ConnectionState::Connecting(_), ConnectionEvent::Connect(_)) => self.state,
-            (
-                ConnectionState::Connecting(connecting_stats),
-                ConnectionEvent::Connected(connected_at),
-            ) => ConnectionState::Connected(ConnectedStats {
-                time_to_connected: connected_at.elapsed_since(connecting_stats.started_at),
-            }),
-            _ => todo!(),
-        };
+pub(super) struct New {}
 
-        match (self.state, new_state) {
-            (a, b) if a == b => {
-                return false;
-            }
-            (_, ConnectionState::Connecting(_)) => {
-                log::debug!("connecting");
-            }
-            (_, ConnectionState::Connected(stats)) => {
-                log::debug!("connected took {}ms", stats.time_to_connected.as_millis());
-            }
-            _ => todo!(),
-        }
-        self.state = new_state;
-        true
+impl Connection<New> {
+    pub(super) const fn new() -> Self {
+        Self { state: New {} }
     }
+
+    pub(super) fn connect(self) -> Connection<Connecting> {
+        Connection {
+            state: Connecting {},
+        }
+    }
+}
+
+pub(super) struct Connecting {}
+
+impl Connection<Connecting> {
+    fn connected(self) -> Connection<Connected> {
+        Connection {
+            state: Connected {},
+        }
+    }
+}
+
+pub(super) struct Connected {}
+
+impl Connection<Connected> {
+    fn disconnected(self, effects: &mut Effects<ConnectionEffect>) -> Connection<ReconnectWait> {
+        effects.emit(ConnectionEffect::ScheduleReconnect {
+            after: Duration::from_millis(100),
+        });
+        Connection {
+            state: ReconnectWait {},
+        }
+    }
+}
+
+pub(super) struct ReconnectWait {}
+
+impl ReconnectWait {
+    fn close(self) -> Connection<Disconnected> {
+        Connection {
+            state: Disconnected {
+                reason: DisconnectedReason::UserInitiated,
+            },
+        }
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub(super) enum DisconnectedReason {
+    #[error("user initiated")]
+    UserInitiated,
+}
+
+pub(super) struct Disconnected {
+    reason: DisconnectedReason,
 }
