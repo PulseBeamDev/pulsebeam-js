@@ -3,7 +3,7 @@
 extern crate alloc;
 
 mod host;
-use agent::{self, AgentEngine, AgentEngineConfig};
+mod web_agent;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -17,7 +17,4 @@ pub fn start() {
 }
 
 #[wasm_bindgen]
-pub fn greet(name: &str) {
-    let mut agent = AgentEngine::new(AgentEngineConfig {});
-    agent.connect();
-}
+pub fn greet(name: &str) {}
