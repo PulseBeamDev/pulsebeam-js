@@ -2,11 +2,6 @@ use core::time::Duration;
 
 use crate::effect::Effects;
 
-pub(super) enum ConnectionEvent {
-    TransportConnected,
-    TransportDisconnected,
-}
-
 pub(super) enum ConnectionEffect {
     ConnectTransport,
     DisconnectTransport,

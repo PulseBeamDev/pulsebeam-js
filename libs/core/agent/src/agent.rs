@@ -60,41 +60,6 @@ pub enum AgentEffect {
     Timer(TimerEffect),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Generation(u64);
-
-pub enum RtcEffect {
-    CreateOffer {
-        generation: Generation,
-    },
-    ApplyAnswer {
-        generation: Generation,
-        answer: String,
-    },
-    Close {
-        generation: Generation,
-    },
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct RequestId(u64);
-
-pub enum HttpEffect {
-    Request {
-        id: RequestId,
-        request: http::Request<Vec<u8>>,
-    },
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct OperationId(u64);
-
-pub enum TimerEffect {
-    Schedule { id: OperationId, after: Duration },
-
-    Cancel { id: OperationId },
-}
-
 pub struct AgentConfig {}
 
 pub struct Agent {
