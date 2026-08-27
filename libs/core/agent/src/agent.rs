@@ -1,4 +1,9 @@
+use alloc::vec::Vec;
+
 use crate::conn::{self, Connection, ConnectionState};
+
+pub type HttpRequest = http::Request<Vec<u8>>;
+pub type HttpResponse = http::Response<Vec<u8>>;
 
 pub struct ClientState {
     pub connection: ClientConnectionState,
@@ -7,6 +12,87 @@ pub struct ClientState {
 pub enum ClientConnectionState {
     Connected,
     Disconnected,
+}
+
+pub enum AgentEvent {
+    Rtc(RtcEvent),
+    Http(HttpEvent),
+    Timer(TimerEvent),
+}
+
+pub enum RtcEvent {
+    OfferCreated {
+        generation: Generation,
+        offer: String,
+    },
+
+    AnswerApplied {
+        generation: Generation,
+    },
+
+    Connected {
+        generation: Generation,
+    },
+
+    Disconnected {
+        generation: Generation,
+    },
+}
+
+pub enum HttpEvent {
+    Response {
+        id: RequestId,
+        response: HttpResponse,
+    },
+
+    Failed {
+        id: RequestId,
+    },
+}
+
+pub enum TimerEvent {
+    Fired { id: OperationId },
+}
+
+pub enum AgentEffect {
+    Rtc(RtcEffect),
+    Http(HttpEffect),
+    Timer(TimerEffect),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Generation(u64);
+
+pub enum RtcEffect {
+    CreateOffer {
+        generation: Generation,
+    },
+    ApplyAnswer {
+        generation: Generation,
+        answer: String,
+    },
+    Close {
+        generation: Generation,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct RequestId(u64);
+
+pub enum HttpEffect {
+    Request {
+        id: RequestId,
+        request: http::Request<Vec<u8>>,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct OperationId(u64);
+
+pub enum TimerEffect {
+    Schedule { id: OperationId, after: Duration },
+
+    Cancel { id: OperationId },
 }
 
 pub struct AgentConfig {}
@@ -36,6 +122,7 @@ impl Agent {
 
 pub enum ErasedAgentState {
     New(AgentState<conn::New>),
+    Ready(AgentState<conn::Connected>),
 }
 
 impl ErasedAgentState {
@@ -43,9 +130,6 @@ impl ErasedAgentState {
         Self::New(AgentState::new())
     }
 }
-
-pub enum AgentEvent {}
-pub enum AgentEffect {}
 
 pub struct AgentState<C: ConnectionState> {
     conn: Connection<C>,
