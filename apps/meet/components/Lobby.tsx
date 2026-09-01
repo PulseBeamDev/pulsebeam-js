@@ -1,6 +1,4 @@
-import { Card, CardContent } from "@pulsebeam/ui";
-import { Button } from "@pulsebeam/ui";
-import { Input } from "@pulsebeam/ui";
+import { Button, Card, CardContent, Input } from "./ui";
 import { useEffect, useRef, useState } from "react";
 import { MediaPreview } from "./MediaPreview";
 import { DeviceSelector } from "./DeviceSelector";

@@ -1,4 +1,4 @@
-import { Button } from "@pulsebeam/ui";
+import { Button } from "./ui";
 import { Mic, MicOff, Video as VideoIcon, VideoOff } from "lucide-react";
 import { RefObject } from "react";
 

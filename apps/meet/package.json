@@ -3,7 +3,7 @@
   "version": "0.1.1",
   "private": true,
   "scripts": {
-    "dev": "pnpm --parallel --filter @pulsebeam/core --filter @pulsebeam/web --filter @pulsebeam/react --filter @pulsebeam/ui --filter meet run dev:local",
+    "dev": "pnpm --parallel --filter @pulsebeam/core --filter @pulsebeam/web --filter @pulsebeam/react --filter meet run dev:local",
     "dev:local": "next dev",
     "build": "next build",
     "start": "serve out",
@@ -13,7 +13,6 @@
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "@pulsebeam/ui": "workspace:*",
     "@pulsebeam/react": "workspace:*",
     "lucide-react": "^0.564.0"
   },

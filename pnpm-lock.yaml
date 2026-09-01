@@ -23,9 +23,6 @@ importers:
       '@pulsebeam/react':
         specifier: workspace:*
         version: link:../../libs/react
-      '@pulsebeam/ui':
-        specifier: workspace:*
-        version: link:../../libs/ui
       lucide-react:
         specifier: ^0.564.0
         version: 0.564.0(react@19.2.3)

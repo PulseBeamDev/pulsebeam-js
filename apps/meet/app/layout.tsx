@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import "@pulsebeam/ui/style.css";
 
 export const metadata: Metadata = {
   title: "PulseBeam Meet",

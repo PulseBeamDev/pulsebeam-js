@@ -9,18 +9,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
   Card,
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItemWithDescription,
-  SelectLabel,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
   Input,
   ScrollArea,
   cn,
-} from "@pulsebeam/ui";
+} from "./ui";
 import {
   Monitor, MonitorOff, Mic, MicOff, Video as VideoIcon,
   VideoOff, PhoneOff, RotateCcw, Loader2, Gauge, MessageCircle, Send, SmilePlus,
@@ -229,42 +221,25 @@ function RoomHeader({ roomId, state, screen, chatOpen, latencyMode, latencyLocke
               {activeHint}
             </TooltipContent>
           </Tooltip>
-          <Select
+          <select
+            aria-label="Latency mode"
             value={latencyMode ?? "auto"}
-            onValueChange={(v) => v !== "auto" && onLatencyChange(v)}
+            onChange={(event) => event.target.value !== "auto" && onLatencyChange(event.target.value)}
+            className="h-6 min-w-[72px] border-0 bg-transparent px-0 text-xs font-medium outline-none focus-visible:ring-0"
           >
-            <SelectTrigger
-              size="sm"
-              className="border-0 bg-transparent shadow-none focus-visible:ring-0 h-6 px-0 text-xs font-medium min-w-[72px] gap-1"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent align="end" className="min-w-52">
-              <SelectGroup>
-                <SelectLabel>Adaptive</SelectLabel>
-                <SelectItemWithDescription
-                  value="auto"
-                  description={latencyLocked ? "Reconnect to restore" : "Browser managed"}
-                  disabled={latencyLocked}
-                >
-                  {latencyLocked ? "Auto (session locked)" : "Auto"}
-                </SelectItemWithDescription>
-              </SelectGroup>
-              <SelectSeparator />
-              <SelectGroup>
-                <SelectLabel>Fixed</SelectLabel>
-                {LATENCY_MODES.map((m) => (
-                  <SelectItemWithDescription
-                    key={m.label}
-                    value={m.label}
-                    description={m.description}
-                  >
-                    {m.label}
-                  </SelectItemWithDescription>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+            <optgroup label="Adaptive">
+              <option value="auto" disabled={latencyLocked}>
+                {latencyLocked ? "Auto (session locked)" : "Auto — browser managed"}
+              </option>
+            </optgroup>
+            <optgroup label="Fixed">
+              {LATENCY_MODES.map((mode) => (
+                <option key={mode.label} value={mode.label}>
+                  {mode.label} — {mode.description}
+                </option>
+              ))}
+            </optgroup>
+          </select>
         </div>
         <Separator orientation="vertical" className="mx-1 h-4" />
         <Button

@@ -1,4 +1,4 @@
-import { cn } from "@pulsebeam/ui";
+import { cn } from "./ui";
 import { useEffect, useRef } from "react";
 
 export function LocalVideo({ stream, mirror = false, ...props }: { stream: MediaStream; mirror?: boolean } & React.VideoHTMLAttributes<HTMLVideoElement>) {
