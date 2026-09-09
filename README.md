@@ -1,5 +1,7 @@
 # pulsebeam-js
 
+**This repo has moved to https://github.com/PulseBeamDev/pulsebeam**
+
 **Thin JavaScript client for PulseBeam SFU.**  
 A lightweight, optional SDK for connecting to the [PulseBeam WebRTC SFU server](https://github.com/pulsebeamdev/pulsebeam). Simplifies real-time video, audio, and data streaming using native WebRTC APIs.
 
